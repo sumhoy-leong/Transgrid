@@ -1,0 +1,254 @@
+%***  $Id: trr14c.rdl,v5.0 02/05/2012 16:00:00 Exp $
+%*** TRR14C.rdl
+%*** Revision History *** 
+%*** 25-Feb-13 a9is6175      MO164 (Version 0002)
+%*** ......................  Corrected RO literals displaying
+%*** 05-Sep-12 N Perry       MO164 (Version 001)
+%*** ......................  Reset version number to 0001 for E8 upgrade
+%*** 31-Aug-12 N Perry       MO164
+%*** ......................  MSF190 no longer exists.
+%*** ......................  Now use MSF1CS and MSF1HB
+%*** 08-Aug-12 N Perry
+%*** ......................  Needed to add ' to the TEXT fields  
+%*** ......................  SOH values not held on MSF170 andymore.
+%*** ......................  Need to use MSSSOH now.
+%*** ......................  Replaced ESR14A with TRR400      
+%*** ......................  Replace PIC Statements with D-PIC.    
+%*** ......................  Convert to Ellipse 8 format.
+%*** 02-May-12 E Fredeluces  SC3943409
+%***                         Include District and Warehouse parameters.
+%***                         Add warehouse on the report.
+%*** 19-Jan-01 E Fredeluces  W01010410
+%***                         To print current recommended orders
+%***                         only.
+%*** 05-Apr-00 E Fredeluces  W00040019
+%***                         Added picture clause for VALT and
+%***                         COUNT variables.
+%*** 10-Mar-00 E Fredeluces  W00030190
+%***                         Fix the Requested-by field to substring
+%***                         the last 5 chars instead of the first 5. 
+%*** 16-Apr-96 Mincom        Replace 'RC' table access with HRGET macro.
+%*** ....................
+%***
+%*** Assia Sahyoun 01-09-1995 ISCS - 26429  Version - 004
+%*** Added new parameter which will determine if
+%*** the report is to sorted by authorised by or
+%*** requested  by. 
+%*
+%PROGRAM-ID
+       TRR14C
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  This program reports all Reservation Issue Requisitions
+      **  for a District.
+      **
+%VERSION
+       0002
+%MODULE
+       3210
+%ROUTINES
+       MSSSOH
+%FILES
+        MFILE = MSF141
+        LFILE = MSF010
+        LFILE = MSF100
+        LFILE = MSF110A
+        LFILE = MSF140
+        LFILE = MSF141
+        LFILE = MSF170
+%*        LFILE = MSF190
+        LFILE = MSF1CSA
+	    LFILE = MSF1HB
+        LFILE = MSF210
+        LFILE = MSF220
+        LFILE = MSF221B
+        LFILE = MSF240
+        RFILE = TRR14CA
+%SELECTION
+<IF %DC% <> SPACES>
+      WHERE     (DSTRCT-CODE >= %DC%,-
+                 DSTRCT-CODE <= %DC%)
+<ENDIF>
+       REJECTIF (ITEM-141-STAT  = '9')
+       REJECTIF (WHOUSE-ID     <> %WH%, -
+                %WH%           <> SPACES)
+%BREAK-FIELDS
+       AUTHSD-BY VIA (AUTH) 
+       REQ-BY-DATE VIA (AUTH) 
+%ORDER
+       PARAM
+       REQ-BY-DATE 
+%REPORT-TITLE
+       'REVIEW OF RESERVATION PICKING SLIP ITEMS'
+%PAGE HEADING
+'AUTHORISING OFFICER - '{ANAME                                           }
+'========================================================================='
+
+'FLAG=(* = QTY REQ > AVAIL;  ** = QTY REQ > AVAIL + DUES IN;  *** = QTY REQ > AVAIL + DUES IN + REC. ORDERS)' 
+
+'REQD  DATE    REQ   ITEM   QTY   STKCODE  WH/BIN    DESCRIPTION/                             REC    DUES   DUES  PRICE L/T SUPP'
+' BY   REQD    NO.   NO.    REQD  STKLINE  LOCATIONS REC.ORD-CREATED  O/NO-DUE DTE-SUPP SOH  ORDER    IN     OUT    $   IND L/T FLG'
+%BREAK AUTHSD-BY VIA (AUTH) HEADING ON NEW-PAGE
+%DETAIL TEST-PAGE (3)
+<IF (DATECR < DATERQ)>
+{RBY} {DATER } {RNO } {RI}{QREQ} {STK    } WWWW {BIN     }{INAME                  } {SOHO }{SOHRO}{SOHDI}{DO   }{PR    } T{LT} FFF
+  <IF %FULL-DESC% = 'Y'>
+                                 {SL   }        {BIN     }{DESC                        }
+<REPEAT>
+<SUPPRESS>
+                                                {BIN     }{DESC                        }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                                {BIN     }{RR} AAA {RODTE } {OHPO} {ORDDTE}
+<ENDREPEAT>
+  <ELSE>
+<SUPPRESS>
+                                 {SL   }  {BIN     }{RR} AAA {RODTE } {OHPO} {ORDDTE} {OHS }
+<REPEAT>
+<SUPPRESS>
+                                          {BIN     }{RR} AAA {RODTE } {OHPO} {ORDDTE}
+<ENDREPEAT>
+  <ENDIF>
+
+<ENDIF>
+%BREAK AUTHSD-BY VIA (AUTH) FOOTING
+<IF COUNT > 0>
+'Total Number/Value of Reservation Picking Slip Items for' {ANAME                                    } '='{COUNT} {VALT            }
+<ENDIF>
+%SUMMARY
+
+
+
+'Total Number/Value of ALL Reservation Picking Slip Items'                                             '='{COUNT} {VALT            }
+%CONTROL
+       TRIM-REPORT
+%REQUEST-PARAMETERS
+       DC        D-PIC (X(4)) TEXT 'District Code (Blank for all)       :'
+       WH        D-PIC (X(4)) TEXT 'Whouse-Id     (Blank for all)       :'
+       FULL-DESC D-PIC (X)    TEXT 'Print 5 Lines of Description   (Y/N):'
+       SORTBY    D-PIC (X)    TEXT 'Sorted By Authorised/Requester (A/R):'
+%VARIABLES
+       P     = WX-WHOUSE-ID CONSTANT 
+       W     = WHOUSE-ID
+       AUTH  = AUTHSD-BY OF MSF140 WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+                                          IREQ-NO     = IREQ-NO)
+       REQBY = REQUESTED-BY VIA (AUTH)
+       RBY   = SUBSTR (REQBY,6,5)
+       PARAM = CHOOSE (AUTH IF (%SORTBY% = 'A'),- 
+                       RBY)                      
+       DATECR = CREATION-DATE VIA (AUTH)
+       DATERQ = REQ-BY-DATE VIA (AUTH)
+       DATER = GET (DISPLAY-DATE FROM (DATERQ))
+       RNO = IREQ-NO
+       RI = IREQ-ITEM
+       QREQ = QTY-REQ
+       STK = STOCK-CODE
+       ANAME1 = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = AUTH)
+       ANAME  = FORMATTED-NAME via (ANAME1)
+       INAME = ITEM-NAME OF MSF100 WHERE (STOCK-CODE = STOCK-CODE) D-PIC X(30)
+       DESC = DESC-LINE VIA (INAME)
+       PP = CATENATE ('-',DSTRCT-CODE)
+       MNEM = MNEMONIC OF MSF110A WHERE (DSTRCT-CODE = '    ', -
+              STOCK-CODE = STOCK-CODE, PREF-PART-IND >= '97') -
+              SELECTIF (MNEMONIC = '-GENL') -
+              SELECTIF (MNEMONIC = '-TRAN') -
+              SELECTIF (MNEMONIC = PP) MAX (1)
+       SL = PART-NO VIA (MNEM)
+       B = PREF-PART-IND-9 VIA (MNEM) FORMAT (BWZ)
+       ROPT = ROP OF MSF170 WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+              STOCK-CODE = STOCK-CODE)
+%*       SOHA = GET (SOH-AVAIL FROM ('MSF170')) D-PIC (Z(8)9)
+%*       SOHO = SOH VIA (ROPT) D-PIC (Z(6)9)
+%* Get the District SOH
+       SOHO   = OWN-CON-SOH OF MSSSOH -
+                WHERE (OPTION-SOH  = '1', -
+                DSTRCT-CODE = DSTRCT-CODE, -
+                STOCK-CODE  = STOCK-CODE)
+       SOHDO = DUES-OUT VIA (ROPT) D-PIC (Z(6)9)
+       SOHB = TOTAL-PICKED VIA (ROPT) D-PIC (Z(6)9)
+       SOHR = RESERVED VIA (ROPT) D-PIC (Z(6)9)
+       DO = CALC (SOHDO + SOHB + SOHR - QREQ) D-PIC (Z(6)9)
+%*       SOHOT = IN-TRANSIT VIA (ROPT) D-PIC (Z(6)9)
+%*       SOHCT = CONSIGN-ITRANS VIA (ROPT) D-PIC (Z(6)9)
+       SOHDI = DUES-IN VIA (ROPT) D-PIC (Z(6)9)
+%*       SOHXF1 = XFERS-REQUEST VIA (ROPT) D-PIC (Z(6)9)
+%*       SOHXF2 = XFERS-IN-TRANS VIA (ROPT) D-PIC (Z(6)9)
+       SOHRO = ROQ  VIA (ROPT) D-PIC (Z(6)9)
+       PR = INVENT-COST-PR VIA (ROPT) D-PIC (Z(4)9.99)
+       SOHADIRO = CALC (SOHO - DO + SOHDI + SOHRO)        
+       SOHADI =   CALC (SOHO - DO + SOHDI)        
+       SOHADO =   CALC (SOHO - DO)        
+       SUPP = CURR-SUPPLIER VIA (ROPT)
+       PC = PRICE-CODE VIA (ROPT)
+       F = CHOOSE ('***' IF (QREQ > SOHADIRO), -
+                    '**' IF (QREQ > SOHADI),   -
+                     '*' IF (QREQ > SOHADO),  ' ')
+
+%*******************************************************************	   
+%* This has been modified as MSF190 no longer exists.
+%* We now use MSF1CS to get the Custodian ID
+%* We then use the Custodian ID to obtain the Bin from MSF1HB
+%*       BIN = BIN-CODE OF MSF190 WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+%*                                       STOCK-CODE = STOCK-CODE, -
+%*                                       WHOUSE-ID >= SPACES) MAX (100)
+       B91 = CUSTODIAN-ID OF MSF1CSA -
+             WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+                    WHOUSE-ID  >= SPACES) -
+             MAX(100)
+
+
+       BIN = BIN-CODE OF MSF1HB -
+             WHERE (CUSTODIAN-ID = B91, -
+                    STOCK-CODE   = STOCK-CODE, -
+                    BIN-CODE   >= SPACES) -
+    MAX(100)
+%*******************************************************************	   
+	
+       OHPO = PO-NO OF MSF221B WHERE (PREQ-STK-CODE = STOCK-CODE, -
+                                      REVSD-CRT-DATE >= SPACES) -
+                               SELECTIF (DSTRCT-CODE = DSTRCT-CODE, -
+                                         STATUS-221 < '3', -
+                                         RECEIPT-STATUS < '2', -
+                                         CURR-QTY-I > 0) MAX (10)
+       ORDDTE = CURR-DUE-DATE VIA (OHPO) FORMAT (DATE)
+       X = '/'
+       G = PO-ITEM-NO VIA (OHPO)
+%*       OHPC = PRICE-CODE VIA (OHPO)
+       OHDATE = ORDER-DATE OF MSF220 WHERE (PO-NO = OHPO) FORMAT (DATE)
+%*       OHPR = CURR-NET-PR-I VIA (OHPO)
+       OHS = SUPPLIER-NO VIA (OHDATE)
+       LTS = SUPP-LEAD-TIME OF MSF210 WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+                  STOCK-CODE = STOCK-CODE, SUPPLIER-NO = SUPP, -
+                  PRICE-CODE = PC)
+       LTA = LAST-ACT-LEAD VIA (LTS) 
+       T = SUPP-ACT-IND VIA (LTS) 
+       LT = CHOOSE (LTS IF (T = 'S'), LTA)
+%*       AL = ACT-LEAD-TIME VIA (OHPO)
+%*       UI = UNIT-OF-ISSUE VIA (ROPT)
+%*       IV = INVENT-VALUE VIA (ROPT)
+%* Totals
+       VAL = calc (QREQ * PR)
+       VAL1 = choose (VAL IF (DATECR < DATERQ),0)
+       VALT = total (VAL1) D-PIC (ZZ,ZZZ,ZZZ,ZZ9.99-)
+       COUNT1 = choose (1 IF (DATECR < DATERQ),0)
+       COUNT = total (COUNT1)  D-PIC (ZZZ,ZZ9)
+%* Amended by EF 19/01/01
+       A = ACTIVITY-CTR OF MSF240                  -
+           WHERE    (DSTRCT-CODE    = DSTRCT-CODE, -
+                     STOCK-CODE     = STOCK-CODE,  -
+                     ACTIVITY-CTR  >= SPACES)      -
+           SELECTIF (RO-ACTION-TYPE = 'B')   -
+           SELECTIF (RO-ACTION-TYPE = 'S')   -
+           SELECTIF (RO-ACTION-TYPE = 'P')   -
+           SELECTIF (RO-ACTION-TYPE = 'T')   -
+           MAX      (10)
+%*
+       I = RO-ACTION-TYPE VIA (A) SUPPRESS
+	   R = CATENATE ('RO',I)
+	   RR= CHOOSE (SPACES IF (R = 'RO'), R)
+%*       R = CHOOSE ('ROS' IF (I = 'S'), 'ROB' IF (I = 'B'),'ROP' IF (I = 'P'),'ROT' IF (I = 'T'), SPACES) 
+       RODTE = CREATION-DATE VIA (A) FORMAT (DATE)

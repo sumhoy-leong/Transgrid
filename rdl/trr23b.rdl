@@ -1,0 +1,189 @@
+%*** Revision History:
+%*** 06-May-13   AIT IG       v002 Changes requested
+%*** ......................... 1. Space between each entry
+%*** ......................... 2. The value to be 2 decimal places
+%*** ......................... 3. The full description to display in a 
+%*** .........................    block of text so that it is readable
+%*** 01-May-13   AIT IG       v001 Migrated from Ellipse 5 to Ellipse8
+%*** ......................... moved WHERE claues of subroutine browse
+%*** ......................... outside of parantheses.
+%*** ......................... Date restriction/parameter not working.
+%*** ......................... Had to move selection criteria inside IF
+%*** ......................... statement of %SELECTION.
+%*** 27-Jun-05   Amanda N.     P05060270
+%***                           - Added Warehouse request parameter
+%***                           and modified the PR to include the 
+%***                           warehouse code 'eg"-N1"' as a suffix
+%***                           for district 'GRID'.
+%*** 08-Feb-02   L Nee         WCHG001130
+%***                           Amend the report heading.
+%*** 03-Sep-01   E Fredeluces  W01081067
+%***                           Include only authorised requisitions. 
+%*** May 2000    RK Mahajan    W00050049 
+%PROGRAM-ID
+    TRR23B
+%AUTHOR
+    Mincom Pty Ltd
+%NARRATIVE
+    This report reads the MSF230/231 files and produces a 
+    report on the number of Purchase Req Items processed
+    for a period with same requesting and authorizing officers.
+
+    Initial Version
+    May 2000    RK Mahajan    W00050049
+%*
+%VERSION
+    002
+%MODULE
+    3210
+%*
+%ROUTINES
+    MSSDAT
+    MSSCNV
+%FILES
+    MFILE = MSF230
+    AFILE = MSF231
+    LFILE = MSF810
+    RFILE = TRR23BA
+%*
+%SELECTION
+<IF  %DSTRCT% <> SPACES>
+    WHERE    (DSTRCT-CODE  = DSTRCT, -
+              PREQ-NO     >= SPACES)
+    REJECTIF (CREATION-DATE  < DATEFR)
+    REJECTIF (CREATION-DATE  > DATETO)
+    REJECTIF (AUTHSD-STATUS <> 'A')
+<ELSE>
+    WHERE    (DSTRCT-CODE >= SPACES)
+    REJECTIF (CREATION-DATE  < DATEFR)
+    REJECTIF (CREATION-DATE  > DATETO)
+    REJECTIF (AUTHSD-STATUS <> 'A')
+<ENDIF>
+%*
+%ORDER
+    DSTRCT-CODE
+    PREQ-NO
+    WHOUSE-ID  VIA (M231)
+%*
+%CONTROL-BREAKS
+    DSTRCT-CODE
+%*
+%REPORT-TITLE
+'Purchase Requisitions requested and authorized by the same officer'
+%PAGE HEADING
+'District: ' {DC}    '  Period From : ' {DATEFR}  'To : ' {DATETO}
+'PR No      Item       Date        Quantity            Value Item Description                         Requesting Officer '
+'                                                                                                     Authorizing Officer'
+%*
+%DETAIL
+<IF PRFLG = 'Y'>
+{PRWH   }   {PRI}   {CD      }{QTY        } {ESTPR         } {ITDES1                                } {REQBY                       }
+<SUPPRESS>
+                                                             {ITDES2                                } {AUTHBY                      }
+<SUPPRESS>
+                                                             {ITDES3                                }
+<SUPPRESS>
+                                                             {ITDES4                                }
+
+<ENDIF>
+%*
+%BREAK DSTRCT-CODE FOOTING
+<IF CNT <> ZERO> 
+
+'Total Reqs/Items for the district ' {DC  }  {CNT   }
+
+<ENDIF>
+%REPORT-SUMMARY
+
+'Total Reqs/Items for all the districts '    {CNT   }
+
+                                        '*** End Of Report ***'
+%*
+%REQUEST-PARAMETERS
+    DSTRCT       PIC (X(4))    TEXT 'District Code      : '
+    DF           PIC (X(8))    TEXT 'Date From          : ' 
+    DT           PIC (X(8))    TEXT 'Date To            : ' 
+    WHOUSE       PIC (X(2))    TEXT 'Warehouse Code     : '
+%*
+%VARIABLES
+    DSTRCT  = %DSTRCT%                      CONSTANT
+    DATEF   = %DF%                          CONSTANT FORMAT (DATE)
+    DATET   = %DT%                          CONSTANT FORMAT (DATE)
+%* If date is blank then it would use the last month for extraction of data.  
+    TODAY   = DATE ()                       CONSTANT FORMAT (DATE)
+    CP      = WX-STORES-CP                  CONSTANT
+    LP      = PERIOD-YRMN OF MSSDAT    -
+              WHERE (OPTION      = 'I', -
+                     PERIOD-YRMN = CP,  -
+                     DAYS        = -1)      CONSTANT FORMAT (PERIOD)
+    LP1     = PERIOD-YRMN OF MSSDAT    -
+              WHERE (OPTION      = 'H', -
+                     PERIOD-YRMN = LP)      CONSTANT FORMAT (PERIOD)
+    ST-DATE = STARTING-DATE-1-9         VIA (LP1) CONSTANT FORMAT (DATE)
+    ED-DATE = ENDING-DATE-1-9           VIA (LP1) CONSTANT FORMAT (DATE)
+%*
+    DATEFR  = choose (%DF% IF (%DF% <> SPACES), ST-DATE) CONSTANT FORMAT (DATE)
+    DATETO  = choose (%DT% IF (%DT% <> SPACES), ED-DATE) CONSTANT FORMAT (DATE)
+%*
+    DC   = DSTRCT-CODE
+    PR   = PREQ-NO
+    CD   = CREATION-DATE                      FORMAT (DATE)
+    RB1  = REQUESTED-BY
+    RB   = choose (RB1 IF (RB1 <> SPACES), 'RB-BLANK')
+    AB1  = AUTHSD-BY
+    AB   = choose (AB1 IF (AB1 <> SPACES), 'AB-BLANK')
+    FLAG = choose ('Y' IF (RB = AB), 'N')
+%*
+%* Get name from MSF810 for Requesting Officer.
+    SNR   = SURNAME OF MSF810 -
+            WHERE (EMPLOYEE-ID = RB)
+    FNR   = FIRST-NAME             VIA (SNR)
+    NM1   = catenate (SNR,' ',FNR)
+    REQBY = OUT-STRING OF MSSCNV -
+            WHERE (OPTION     = 'P', -
+                   INP-STRING = NM1)
+%*
+%* Get name from MSF810 for Authorizing Officer.
+    SNA    = SURNAME OF MSF810 -
+             WHERE (EMPLOYEE-ID = AB)
+    FNA    = FIRST-NAME             VIA (SNA)
+    NM2    = catenate (SNA,' ',FNA)
+    AUTHBY = OUT-STRING OF MSSCNV -
+             WHERE (OPTION     = 'P', -
+                    INP-STRING = NM2)
+%*
+%*  M231
+%*                    ````              
+    M231  = PREQ-NO FROM MSF231            - 
+            WHERE (DSTRCT-CODE   = DC,     -
+                   PREQ-NO       = PR,     -
+                   PREQ-ITEM-NO >= SPACES) 
+%*
+    PRI   = PREQ-ITEM-NO         VIA (M231)
+    QTY   = PR-QTY-REQD          VIA (M231)
+    ESTPR = EST-PRICE            VIA (M231) D-PIC (Z(12)9.99)
+%* dislay 4 lines of desc not just 110 chars
+%*    ITMD  = ITEM-DESC-DATA       VIA (M231)
+%*    ID1   = substr (ITMD,1,40)
+%*    ID2   = substr (ITMD,41,70)
+%*    IDESX = catenate (ID1,' ',ID2)
+%*	  IDES  = OUT-STRING OF MSSCNV       -
+%*            WHERE (OPTION     = 'P',   -
+%*                   INP-STRING  = IDESX)
+	ITDES1 = ITEM-DESC1           VIA (M231)
+	ITDES2 = ITEM-DESC2           VIA (M231)
+	ITDES3 = ITEM-DESC3           VIA (M231)
+	ITDES4 = ITEM-DESC4           VIA (M231)
+	
+    WH    = WHOUSE-ID            VIA (M231)
+    WHID  = SUBSTR (WH, 1, 2)
+    PRWH1 = CATENATE (PR,'-',WHID)
+    PRWH  = CHOOSE (PRWH1 IF (DC = 'GRID'), - 
+                    PR)
+    WHFLG = CHOOSE ('N' IF (%WHOUSE% <> SPACES AND WHID <> %WHOUSE%), -
+                    'Y')
+    PRFLG = CHOOSE ('Y' IF (FLAG  = 'Y',  -
+                            WHFLG = 'Y'), - 
+                    'N')
+    CNT1  = choose (1 IF (PR = M231, PRFLG = 'Y'), 0)
+    CNT   = total (CNT1)

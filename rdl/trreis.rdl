@@ -1,0 +1,311 @@
+%*** TRREIS.rdl
+%***
+%*** Revision History.
+%*** ------------------------------------------------------------------------------
+%*** 10-Aug-12 a9nh4814       MO164 (Version 0001)
+%***                          Changed MSF822-REFERENCE field into
+%***                          MSF822-DEDN-REF.
+%***                          Reset version number to 0001 for E8 upgrade.
+%*** 23-Jul-07 E Fredeluces   SC1535642
+%***                          Initial Coding.
+%*** ------------------------------------------------------------------------------
+%***
+%PROGRAM-ID
+      TRREIS
+%AUTHOR
+      Mincom PTY LTD
+%NARRATIVE
+      **
+      **  This program will provide information to the 
+      **  Energy Industries Superannuation Scheme (EISS).
+      **
+%VERSION
+       0001
+%MODULE
+       3760
+%FILES
+       MFILE = MSF760
+       LFILE = MSF801
+       LFILE = MSF810
+       LFILE = MSF010
+       LFILE = MSF822
+       LFILE = MSF200
+       LFILE = MSF824
+       LFILE = MSF870
+       LFILE = MSF878B 
+       OFILE = TRTEISSA
+%ROUTINES
+       MSSDAT
+       MSSCNV 
+%SELECTION
+       WHERE    (EMPLOYEE-ID >= '0000000000', -
+                 EMPLOYEE-ID <= '9999999999')
+       SELECTIF (HIRE-DATE   >= SDAT, -
+                 HIRE-DATE   <= EDAT)
+       REJECTIF (EMP-STATUS  <> 'A')
+       REJECTIF (STAFF-CATEG  = 'ZA')
+       REJECTIF (STAFF-CATEG  = 'ZO')
+       REJECTIF (STAFF-CATEG  = 'WC')
+%BREAK-FIELDS
+        DUM
+        EMPLOYEE-ID
+%OUTPUT-FILE
+       A
+%CONTROL
+       RECORD-LENGTH = 355
+%BREAK DUM HEADER
+{HDG1                                             }{HDG2                                               }-
+{HDG3                                   }{HDG4                                }{HDG5                       }
+%DETAIL
+{EMP     }Z{LNAME             }Z{FNAME     }Z{SNAME     }Z{BD       }Z{HD       }ZEEEZXZ-
+{POSDESC                                }Z-
+{ADDRESS                                                       }Z{SUBURB                        }Z-
+IJKZGGGGZ{C-ID      }Z{D1}{D2}{D3}{D4}{D5}Z{A1}{A2}{A3}{A4}{A5}Z{SPNO}Z{SUP-NAME                      }Z-
+{TFN         }BBBBBBBBB
+%REQUEST-PARAMETERS
+       FDATE    PIC (X(8)) FORMAT (DATE) TEXT Payroll Weekend Start Date:
+       EDATE    PIC (X(8)) FORMAT (DATE) TEXT Payroll Weekend End   Date:
+       DED1     PIC (X(3))               TEXT Deduction Code 1          :
+       DED2     PIC (X(3))               TEXT Deduction Code 2          :
+       DED3     PIC (X(3))               TEXT Deduction Code 3          :
+       DED4     PIC (X(3))               TEXT Deduction Code 4          :
+       DED5     PIC (X(3))               TEXT Deduction Code 5          :
+       ASF1     PIC (X(3))               TEXT Award Super Fund Code 1   :
+       ASF2     PIC (X(3))               TEXT Award Super Fund Code 2   :
+       ASF3     PIC (X(3))               TEXT Award Super Fund Code 2   :
+       ASF4     PIC (X(3))               TEXT Award Super Fund Code 4   :
+       ASF5     PIC (X(3))               TEXT Award Super Fund Code 5   :
+%VARIABLES
+%* Constants and request Parameters.
+       B       = ' '      CONSTANT
+       Z       = ','      CONSTANT  
+       FDATE   = %FDATE%  CONSTANT
+       EDATE   = %EDATE%  CONSTANT
+       DED1    = %DED1%   CONSTANT
+       DED2    = %DED2%   CONSTANT
+       DED3    = %DED3%   CONSTANT
+       DED4    = %DED4%   CONSTANT
+       DED5    = %DED5%   CONSTANT
+       ASF1    = %ASF1%   CONSTANT
+       ASF2    = %ASF2%   CONSTANT
+       ASF3    = %ASF3%   CONSTANT
+       ASF4    = %ASF4%   CONSTANT
+       ASF5    = %ASF5%   CONSTANT 
+%*
+%* Get the previous period start and end dates from MSF801 file
+%* This will default to the previous payroll run if the dates are spaces
+       M801    = CUR-STR-DT-PG OF MSF801        -
+                 WHERE (CNTL-REC-TYPE  = 'PG',  -
+                        CNTL-KEY-REST  = 'T01') -
+                                            CONSTANT
+       PRSD    = PRV-STR-DT-PG   VIA (M801) CONSTANT
+       PRED    = PRV-END-DT-PG   VIA (M801) CONSTANT
+       SDAT    = CHOOSE (FDATE IF (FDATE <> SPACES), -
+                         PRSD)              CONSTANT
+       EDAT    = CHOOSE (EDATE IF (EDATE <> SPACES), -
+                         PRED)              CONSTANT
+%*
+%* Data Extraction from MSF760 Main File.
+       EMP     = EMPLOYEE-ID
+       X       = GENDER
+       E       = EMP-TYPE
+       HDT     = HIRE-DATE
+       HD      = HDT  FORMAT (DATE)
+       BD1     = BIRTH-DATE
+       BD      = BD1  FORMAT (DATE)
+%*
+%* Header of CSV File
+      DUMMY    = 'Y'                                                      CONSTANT
+      DUM      =  CHOOSE ('Y' IF (EMP = EMP), DUMMY) 
+      HDG1     = 'Emp-Id,Last Name,First Name,Second Name,Birth Date,'    CONSTANT
+      HDG2     = 'Hire Date,Emp Type,Sex,Position,Address,Suburb,State,'  CONSTANT
+      HDG3     = 'Post Code,Contributor No.,Deduction Code,'              CONSTANT
+      HDG4     = 'Award Superannuation Fund,Supplier No,'                 CONSTANT
+      HDG5     = 'Supplier Name,Tax File Number'                          CONSTANT
+%*
+%* Get Position info from MSF878
+       POS     = POSITION-ID OF MSF878B           -
+                 WHERE (EMPLOYEE-ID-2     =  EMP, -
+                        INV-STR-DATE-2   >= '0')  -
+                 MAX (1)
+%*
+%* Get Position Description
+       PRC     = PRIM-RPT-GRP OF MSF870 -
+                 WHERE (POSITION-ID = POS)
+       POSDESC = POS-TITLE VIA (PRC)
+%*
+%* Get Personal info from MSF810 file.
+       FNAME   = FIRST-NAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = EMP)
+       LNAME   = SURNAME        VIA (FNAME)
+       SNAME   = SECOND-NAME    VIA (FNAME)
+       ADDR1   = POST-ADDRESS-1  VIA (FNAME)
+       ADDR2   = POST-ADDRESS-2  VIA (FNAME)
+       SUBURB  = POST-ADDRESS-3  VIA (FNAME)
+       F       = POST-STATE      VIA (FNAME)
+       G       = POST-POSTCODE   VIA (FNAME)
+       
+       I       = ASSOC-CHAR-5 OF MSF010 -
+                 WHERE (TABLE-TYPE = 'SY', -
+                        TABLE-CODE = F)
+       J       = ASSOC-CHAR-6 VIA (I)
+       K       = ASSOC-CHAR-7 VIA (I)
+%*
+       ADDR    = catenate (ADDR1,' ',ADDR2)
+       ADDRESS = OUT-STRING OF MSSCNV      -
+                 WHERE (OPTION      = 'P', -
+                        INP-STRING  = ADDR)
+%*
+%* Get Maximum of 3 Deductin Codes
+       MSF822 = DEDN-CODE OF MSF822               -
+                WHERE    (EMPLOYEE-ID   = EMP,    -
+                          CONS-PAY-GRP >= SPACES) -
+                REJECTIF (END-DATE <> '00000000') -
+                REJECTIF (DEDN-CODE <> DED1,      -
+                          DEDN-CODE <> DED2,      -
+                          DEDN-CODE <> DED3,      -
+                          DEDN-CODE <> DED4,      -
+                          DEDN-CODE <> DED5,      -
+                          DEDN-CODE <> ASF1,      -
+                          DEDN-CODE <> ASF2,      -
+                          DEDN-CODE <> ASF3,      -
+                          DEDN-CODE <> ASF4,      -
+                          DEDN-CODE <> ASF5)      -
+                MAX      (5)
+       DED    = DEDN-CODE VIA (MSF822)
+       DEDN   = PUT (DED) MAX (5)
+       DEDN1  = SINGLE (DEDN (1))
+       DEDN2  = SINGLE (DEDN (2))
+       DEDN3  = SINGLE (DEDN (3))
+       DEDN4  = SINGLE (DEDN (4))
+       DEDN5  = SINGLE (DEDN (5))
+%*
+%* Get Maximum of 2 Contributor Numbers
+       REF    = DEDN-REF VIA (MSF822)
+       REFN   = PUT (REF) MAX (5)
+       REF1   = SINGLE (REFN (1))
+       REF2   = SINGLE (REFN (2))
+       REF3   = SINGLE (REFN (3))
+       REF4   = SINGLE (REFN (4))
+       REF5   = SINGLE (REFN (5))
+
+%*
+%* Get Supplier No
+       SUP    = SUPPLIER-NO VIA (MSF822)
+       SUPN   = PUT (SUP) MAX (5)
+       SUP1   = SINGLE (SUPN (1))
+       SUP2   = SINGLE (SUPN (2))
+       SUP3   = SINGLE (SUPN (3))
+       SUP4   = SINGLE (SUPN (4))
+       SUP5   = SINGLE (SUPN (5))
+
+%*
+%* Check the type of Deductions
+%*     064           - written to the "Deduction Code" Column
+%*     080, 081, 082 - written to the "Award Superannuation Column"
+%*
+     DED1-FLG = CHOOSE ('Y' IF (DEDN1 = DED1, DED1 <> SPACES), -
+                        'Y' IF (DEDN1 = DED2, DED2 <> SPACES), -
+                        'Y' IF (DEDN1 = DED3, DED3 <> SPACES), -
+                        'Y' IF (DEDN1 = DED4, DED4 <> SPACES), -
+                        'Y' IF (DEDN1 = DED5, DED5 <> SPACES), -
+                        'N')
+     DED2-FLG = CHOOSE ('Y' IF (DEDN2 = DED1, DED1 <> SPACES), -
+                        'Y' IF (DEDN2 = DED2, DED2 <> SPACES), -
+                        'Y' IF (DEDN2 = DED3, DED3 <> SPACES), -
+                        'Y' IF (DEDN2 = DED4, DED4 <> SPACES), -
+                        'Y' IF (DEDN2 = DED5, DED5 <> SPACES), -
+                        'N')
+     DED3-FLG = CHOOSE ('Y' IF (DEDN3 = DED1, DED1 <> SPACES), -
+                        'Y' IF (DEDN3 = DED2, DED2 <> SPACES), -
+                        'Y' IF (DEDN3 = DED3, DED3 <> SPACES), -
+                        'Y' IF (DEDN3 = DED4, DED4 <> SPACES), -
+                        'Y' IF (DEDN3 = DED5, DED5 <> SPACES), -
+                        'N')
+     DED4-FLG = CHOOSE ('Y' IF (DEDN4 = DED1, DED1 <> SPACES), -
+                        'Y' IF (DEDN4 = DED2, DED2 <> SPACES), -
+                        'Y' IF (DEDN4 = DED3, DED3 <> SPACES), -
+                        'Y' IF (DEDN4 = DED4, DED4 <> SPACES), -
+                        'Y' IF (DEDN4 = DED5, DED5 <> SPACES), -
+                        'N')
+     DED5-FLG = CHOOSE ('Y' IF (DEDN5 = DED1, DED1 <> SPACES), -
+                        'Y' IF (DEDN5 = DED2, DED2 <> SPACES), -
+                        'Y' IF (DEDN5 = DED3, DED3 <> SPACES), -
+                        'Y' IF (DEDN5 = DED4, DED4 <> SPACES), -
+                        'Y' IF (DEDN5 = DED5, DED5 <> SPACES), -
+                        'N')
+%* Determine if for "Award Superannuation Fund" Column
+     ASF1-FLG = CHOOSE ('Y' IF (DEDN1 = ASF1, ASF1 <> SPACES), -
+                        'Y' IF (DEDN1 = ASF2, ASF2 <> SPACES), -
+                        'Y' IF (DEDN1 = ASF3, ASF3 <> SPACES), -
+                        'Y' IF (DEDN1 = ASF4, ASF4 <> SPACES), -
+                        'Y' IF (DEDN1 = ASF5, ASF5 <> SPACES), -
+                        'N')
+     ASF2-FLG = CHOOSE ('Y' IF (DEDN2 = ASF1, ASF1 <> SPACES), -
+                        'Y' IF (DEDN2 = ASF2, ASF2 <> SPACES), -
+                        'Y' IF (DEDN2 = ASF3, ASF3 <> SPACES), -
+                        'Y' IF (DEDN2 = ASF4, ASF4 <> SPACES), -
+                        'Y' IF (DEDN2 = ASF5, ASF5 <> SPACES), -
+                        'N')
+     ASF3-FLG = CHOOSE ('Y' IF (DEDN3 = ASF1, ASF1 <> SPACES), -
+                        'Y' IF (DEDN3 = ASF2, ASF2 <> SPACES), -
+                        'Y' IF (DEDN3 = ASF3, ASF3 <> SPACES), -
+                        'Y' IF (DEDN3 = ASF4, ASF4 <> SPACES), -
+                        'Y' IF (DEDN3 = ASF5, ASF5 <> SPACES), -
+                        'N')
+     ASF4-FLG = CHOOSE ('Y' IF (DEDN4 = ASF1, ASF1 <> SPACES), -
+                        'Y' IF (DEDN4 = ASF2, ASF2 <> SPACES), -
+                        'Y' IF (DEDN4 = ASF3, ASF3 <> SPACES), -
+                        'Y' IF (DEDN4 = ASF4, ASF4 <> SPACES), -
+                        'Y' IF (DEDN4 = ASF5, ASF5 <> SPACES), -
+                        'N')
+     ASF5-FLG = CHOOSE ('Y' IF (DEDN5 = ASF1, ASF1 <> SPACES), -
+                        'Y' IF (DEDN5 = ASF2, ASF2 <> SPACES), -
+                        'Y' IF (DEDN5 = ASF3, ASF3 <> SPACES), -
+                        'Y' IF (DEDN5 = ASF4, ASF4 <> SPACES), -
+                        'Y' IF (DEDN5 = ASF5, ASF5 <> SPACES), -
+                        'N')
+%*
+%* This deduction is for "Deduction Code" Column
+      D1     = CHOOSE (DEDN1 IF (DED1-FLG = 'Y'), SPACES)
+      D2     = CHOOSE (DEDN2 IF (DED2-FLG = 'Y'), SPACES)
+      D3     = CHOOSE (DEDN3 IF (DED3-FLG = 'Y'), SPACES)
+      D4     = CHOOSE (DEDN4 IF (DED4-FLG = 'Y'), SPACES)
+      D5     = CHOOSE (DEDN5 IF (DED5-FLG = 'Y'), SPACES)
+%*
+%* This is contributor number of the first valid "S1" deduction 
+      C-ID   = CHOOSE (REF1  IF (DED1-FLG = 'Y'),-
+                       REF2  IF (DED2-FLG = 'Y'),-
+                       REF3  IF (DED3-FLG = 'Y'),-
+                       REF4  IF (DED4-FLG = 'Y'),-
+                       REF5  IF (DED5-FLG = 'Y'),-
+                       SPACES)
+%*  
+%* This deduction is for "Award Superannuation Fund" Column
+      A1     = CHOOSE (DEDN1 IF (ASF1-FLG = 'Y'), SPACES)
+      A2     = CHOOSE (DEDN2 IF (ASF2-FLG = 'Y'), SPACES)
+      A3     = CHOOSE (DEDN3 IF (ASF3-FLG = 'Y'), SPACES)
+      A4     = CHOOSE (DEDN4 IF (ASF4-FLG = 'Y'), SPACES)
+      A5     = CHOOSE (DEDN5 IF (ASF5-FLG = 'Y'), SPACES)
+
+%*
+%* Supplier Number of the first valid "S1" deduction 
+      SPNO    = CHOOSE (SUP1  IF (DED1-FLG = 'Y'),-
+                       SUP2  IF (DED2-FLG = 'Y'),-
+                       SUP3  IF (DED3-FLG = 'Y'),-
+                       SUP4  IF (DED4-FLG = 'Y'),-
+                       SUP5  IF (DED5-FLG = 'Y'),-
+                       SPACES)
+
+      SUP-NAME = SUPPLIER-NAME OF MSF200 -
+      WHERE     (SUPPLIER-NO       = SPNO)
+
+%*
+%* Get Tax File No
+       TFN    = TAX-FILE-NO OF MSF824          -
+                WHERE (EMPLOYEE-ID   = EMP,    -
+                       CONS-PAY-GRP >= SPACES) -
+                MAX (1)
+%*
+%*                                 End Of Program
+%*

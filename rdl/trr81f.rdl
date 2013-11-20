@@ -1,0 +1,573 @@
+%PROGRAM-ID
+       TRR81F
+%AUTHOR
+       Mincom LTD
+%ROUTINES
+    MSS880
+    MSSRAT
+%NARRATIVE
+      **************************************************************************
+      **  This report will produce Employee detail report by
+      **  Paygroup ,Sex ,Employee Id.
+      **************************************************************************
+      **  Revision History
+      **  11-Feb-09 G Presser     2215001          (Version 005)
+      **                          Include Weekly Pay Rate into report
+      **  02-Aug-07 Janak Barar   SC1543265 requires change to title as
+      **                          "Employer Superanuation Fund" and only
+      **                          Column for reference code as reference no.
+      **  18-Nov-05 E Fredeluces  P05110870
+      **                          Fix compilation error in MSF845.
+      **  09-Nov-05 E Fredeluces  P05110870
+      **                          Fix compilation errors in Ellipse 5.2.3.7.
+      **  29-Oct-04 A Iesho       WCHG074776
+      **                          Initial Coding Based on TRR81E
+      **************************************************************************
+%FILES
+        MFILE = MSF820
+        LFILE = MSF810
+        LFILE = MSF760
+        LFILE = MSF723A
+        LFILE = MSF878A
+        LFILE = MSF878B
+        LFILE = MSF828
+        LFILE = MSF829
+        LFILE = MSF845
+        LFILE = MSF84B
+        LFILE = MSF801
+        LFILE = MSF808
+        LFILE = MSF870
+        LFILE = MSF871
+        LFILE = MSF830
+        LFILE = MSF880
+        AFILE = MSF071
+        OFILE = TRT81FA
+%VERSION
+        005
+%ORDER
+        SRTORD
+%SELECTION
+        SELECTIF (EMPLOYEE-ID >= SPACES)
+        REJECTIF (PAY-GROUP <> %PG% , %PG% <> SPACES)
+%BREAK-FIELDS
+    DUM
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 432
+%BREAK DUM HEADER
+'Prim-Rpt-Code,Surname,Initials,Employee-ID,Sex,Employee-Type,Staff-Categ,-
+Birth-Date,Age,Hire-Date,Service-date,Years-of-Service,Pay-Loc, Position-ID,-
+Position-Description,Salary-Pt,Weekly-Pay-Rate,MIN-SP,MAX-SP,LSL-Balance,-
+Employer-Super-Fund'
+%DETAIL
+<IF SEXFLG = 'Y', WGFLG = 'Y', STAT = 'A', SPTFLG = 'Y', PRT = 'Y', PRT2 = 'Y', ET <> 'CAS'>
+{RG-D                   }B{SURN                          }B-
+YZB{EMP     }BSB{E}B{C}B{BDT   }B{AG}B{HDT   }B{SRV    }B{SY}BPPPB-
+Q{POS     }QBQ{PTIT                                   }QB{SPT }B-
+{WKR   }B-
+{MINR}B{MAXR}B{LVENT         }B{REFCD                                 }
+<ENDIF>
+%REQUEST-PARAMETERS
+   SRTKEY    PIC (X(1))  TEXT Sort Order (A)lpha (E)mpId (P)rc      :
+   PRC       PIC (X(40)) TEXT PRC                   - Blank for All :
+   PG        PIC (X(3))  TEXT Paygroup              - Blank for All : 
+   IGROUP1   PIC (X(10)) TEXT Work Group 1          - Blank for All :
+   IGROUP2   PIC (X(10)) TEXT Work Group 2                          :
+   IGROUP3   PIC (X(10)) TEXT Work Group 3                          :  
+   IGROUP4   PIC (X(10)) TEXT Work Group 4                          :  
+   IGROUP5   PIC (X(10)) TEXT Work Group 5                          :
+   ESEX      PIC (X(1))  TEXT Sex (M)ale / (F)emale - Blank for All : 
+   SPFROM    PIC (X(4))  TEXT Salary Point From     - Blank for All :  
+   SPTO      PIC (X(4))  TEXT Salary Point To                       :
+%*
+%VARIABLES
+%*
+       IWGROUP1 = %IGROUP1%                     CONSTANT              
+       IWGROUP2 = %IGROUP2%                     CONSTANT              
+       IWGROUP3 = %IGROUP3%                     CONSTANT              
+       IWGROUP4 = %IGROUP4%                     CONSTANT              
+       IWGROUP5 = %IGROUP5%                     CONSTANT              
+
+       ESEX    = %ESEX%                        CONSTANT
+       SPTFR   = %SPFROM%                      CONSTANT
+       SPTO    = %SPTO%                        CONSTANT
+%*              
+       USRL = substr (WX-USER-ID,1,5)          CONSTANT D-PIC (X(5))
+       USR  = catenate ('00000',USRL)        CONSTANT D-PIC (X(10))
+       WPOS  = POSITION-ID OF MSF878A            -
+                WHERE (EMPLOYEE-ID-1   = USR,   -
+                       PRIMARY-POS-1   = '0',     -
+                       INV-STR-DATE-1 >= SPACES)  -
+                MAX (1)                          CONSTANT D-PIC (X(10))
+       M870   = POSITION-ID OF MSF870         -
+                WHERE (POSITION-ID = WPOS)      CONSTANT
+       ACC    = ACCESS-RULE                   VIA (M870) CONSTANT
+       ART    = ACCESS-PAYGRP                 VIA (M870) CONSTANT
+       ART1   = single (ART(1))                          CONSTANT
+       ART2   = single (ART(2))                          CONSTANT
+       ART3   = single (ART(3))                          CONSTANT
+       ART4   = single (ART(4))                          CONSTANT
+       ART5   = single (ART(5))                          CONSTANT
+       ART6   = single (ART(6))                          CONSTANT
+       ART7   = single (ART(7))                          CONSTANT
+       ART8   = single (ART(8))                          CONSTANT
+       ART9   = single (ART(9))                          CONSTANT
+       ART10  = single (ART(10))                         CONSTANT
+       ART11  = single (ART(11))                         CONSTANT
+       ART12  = single (ART(12))                         CONSTANT
+       ART13  = single (ART(13))                         CONSTANT
+       ART14  = single (ART(14))                         CONSTANT
+       ART15  = single (ART(15))                         CONSTANT
+       ART16  = single (ART(16))                         CONSTANT
+       ART17  = single (ART(17))                         CONSTANT
+       ART18  = single (ART(18))                         CONSTANT
+       ART19  = single (ART(19))                         CONSTANT
+       ART20  = single (ART(20))                         CONSTANT
+       AWG    = ACC-WORK-GROUP                VIA (M870) CONSTANT
+       AWG1   = single (AWG(1))                          CONSTANT
+       AWG2   = single (AWG(2))                          CONSTANT
+       AWG3   = single (AWG(3))                          CONSTANT
+       AWG4   = single (AWG(4))                          CONSTANT
+       AWG5   = single (AWG(5))                          CONSTANT
+       AWG6   = single (AWG(6))                          CONSTANT
+       AWG7   = single (AWG(7))                          CONSTANT
+       AWG8   = single (AWG(8))                          CONSTANT
+       AWG9   = single (AWG(9))                          CONSTANT
+       AWG10  = single (AWG(10))                         CONSTANT
+       PGRP   = %PG%                                     CONSTANT
+%*             
+%*W00120601 (RG up to PRCSUB)
+        RG   = RPT-PRC   
+        RG1  = SUBSTR(RG,1,4)
+        RG2  = SUBSTR(RG,1,8)
+        RG3  = SUBSTR(RG,1,12)
+        RG4  = SUBSTR(RG,1,16)
+        RG5  = SUBSTR(RG,1,20)
+        RG6  = SUBSTR(RG,1,24)
+        RG7  = SUBSTR(RG,1,28)   
+        RG8  = SUBSTR(RG,1,32)   
+        RG9  = SUBSTR(RG,1,36)   
+        RG10 = SUBSTR(RG,1,40)        
+        RG-D = PRC-NAME OF MSF808 -
+               WHERE (PRIM-RPT-CODES = RG)
+%*
+%* W00120601 (S up to PRT)
+        PRC0 = %PRC%
+        PRC1 = SUBSTR (%PRC%,1,4)
+        PRC2 = SUBSTR (%PRC%,5,4)
+        PRC3 = SUBSTR (%PRC%,9,4)
+        PRC4 = SUBSTR (%PRC%,13,4)
+        PRC5 = SUBSTR (%PRC%,17,4)
+        PRC6 = SUBSTR (%PRC%,21,4)
+        PRC7 = SUBSTR (%PRC%,25,4)
+        PRC8 = SUBSTR (%PRC%,29,4)
+        PRC9 = SUBSTR (%PRC%,33,4)
+        PRC10= SUBSTR (%PRC%,37,4)
+%*
+        PRC11 = choose (PRC1  IF(PRC1 <> '....'), SPACES)
+        PRC22 = choose (PRC2  IF(PRC2 <> '....'), SPACES)
+        PRC33 = choose (PRC3  IF(PRC3 <> '....'), SPACES)
+        PRC44 = choose (PRC4  IF(PRC4 <> '....'), SPACES)
+        PRC55 = choose (PRC5  IF(PRC5 <> '....'), SPACES)
+        PRC66 = choose (PRC6  IF(PRC6 <> '....'), SPACES)
+        PRC77 = choose (PRC7  IF(PRC7 <> '....'), SPACES)
+        PRC88 = choose (PRC8  IF(PRC8 <> '....'), SPACES)
+        PRC99 = choose (PRC9  IF(PRC9 <> '....'), SPACES)
+        PRC00 = choose (PRC10 IF(PRC10 <> '....'), SPACES)
+%*
+        PRCL1 = SUBSTR (PRC0,1,4)
+        PRCL2 = SUBSTR (PRC0,1,8)
+        PRCL3 = SUBSTR (PRC0,1,12)
+        PRCL4 = SUBSTR (PRC0,1,16)
+        PRCL5 = SUBSTR (PRC0,1,20)
+        PRCL6 = SUBSTR (PRC0,1,24)
+        PRCL7 = SUBSTR (PRC0,1,28)
+        PRCL8 = SUBSTR (PRC0,1,32)
+        PRCL9 = SUBSTR (PRC0,1,36)
+        PRCL10= SUBSTR (PRC0,1,40)
+%*
+        LVLREQ = choose ('0'  IF(PRC11  = SPACES),                  -
+                         '1'  IF(PRC22  = SPACES),                  -
+                         '2'  IF(PRC22  > SPACES, PRC33  = SPACES), -
+                         '3'  IF(PRC33  > SPACES, PRC44  = SPACES), -
+                         '4'  IF(PRC44  > SPACES, PRC55  = SPACES), -
+                         '5'  IF(PRC55  > SPACES, PRC66  = SPACES), -
+                         '6'  IF(PRC66  > SPACES, PRC77  = SPACES), -
+                         '7'  IF(PRC77  > SPACES, PRC88  = SPACES), -
+                         '8'  IF(PRC88  > SPACES, PRC99  = SPACES), -
+                         '9'  IF(PRC99  > SPACES, PRC00  = SPACES), -
+                         '10' IF(PRC00  > SPACES),PRC00)
+%*
+        EPRCSUB = choose (RG1 IF (LVLREQ = '1'), -
+                          RG2 IF (LVLREQ = '2'), -
+                          RG3 IF (LVLREQ = '3'), -
+                          RG4 IF (LVLREQ = '4'), -
+                          RG5 IF (LVLREQ = '5'), -
+                          RG6 IF (LVLREQ = '6'), -
+                          RG7 IF (LVLREQ = '7'), -
+                          RG8 IF (LVLREQ = '8'), -
+                          RG9 IF (LVLREQ = '9'), -
+                          RG) 
+%*
+       PRCSUB = choose  (PRCL1 IF (LVLREQ = '1'), -
+                         PRCL2 IF (LVLREQ = '2'), -
+                         PRCL3 IF (LVLREQ = '3'), -
+                         PRCL4 IF (LVLREQ = '4'), -
+                         PRCL5 IF (LVLREQ = '5'), -
+                         PRCL6 IF (LVLREQ = '6'), -
+                         PRCL7 IF (LVLREQ = '7'), -
+                         PRCL8 IF (LVLREQ = '8'), -
+                         PRCL9 IF (LVLREQ = '9'), -
+                         PRC0)
+%*
+      PRT   = choose ('Y' IF (EPRCSUB = PRCSUB), -
+                      'Y' IF (RG      = PRC0), -
+                      'Y' IF (PRC11   = SPACES), -
+                      'N')
+      PG    = PAY-GROUP
+%*
+        PAYGRP1  = choose ('Y' IF (ACC   = 'I',                  - 
+                                   ART1  = PG, ART1 <> SPACES),  -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART2  = PG, ART2 <> SPACES),  -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART3  = PG, ART3 <> SPACES),  -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART4  = PG, ART4 <> SPACES),  -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART5  = PG, ART5 <> SPACES),  -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART6  = PG, ART6 <> SPACES),  -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART7  = PG, ART7 <> SPACES),  -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART8  = PG, ART8 <> SPACES),  -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART9  = PG, ART9 <> SPACES),  -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART10 = PG, ART10 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART11 = PG, ART11 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART12 = PG, ART12 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART13 = PG, ART13 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART14 = PG, ART14 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART15 = PG, ART15 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART16 = PG, ART16 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART17 = PG, ART17 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART18 = PG, ART18 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART19 = PG, ART19 <> SPACES), -
+                           'Y' IF (ACC   = 'I',                  -
+                                   ART20 = PG, ART20 <> SPACES), -
+                           'N')
+        PAYGRP2  = choose ('N' IF (ACC   = 'E',                  -
+                                   ART1  = PG, ART1 <> SPACES),  -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART2  = PG, ART2 <> SPACES),  -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART3  = PG, ART3 <> SPACES),  -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART4  = PG, ART4 <> SPACES),  -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART5  = PG, ART5 <> SPACES),  -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART6  = PG, ART6 <> SPACES),  -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART7  = PG, ART7 <> SPACES),  -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART8  = PG, ART8 <> SPACES),  -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART9  = PG, ART9 <> SPACES),  -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART10 = PG, ART10 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART11 = PG, ART11 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART12 = PG, ART12 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART13 = PG, ART13 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART14 = PG, ART14 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART15 = PG, ART15 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART16 = PG, ART16 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART17 = PG, ART17 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART18 = PG, ART18 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART19 = PG, ART19 <> SPACES), -
+                           'N' IF (ACC   = 'E',                  -
+                                   ART20 = PG, ART20 <> SPACES), -
+                           'Y')
+        PGSEL    = choose ('Y' IF (ACC = 'A'),     -
+                           'Y' IF (ACC = 'I', PAYGRP1 = 'Y'), -
+                           'Y' IF (ACC = 'E', PAYGRP2 = 'Y'), -
+                           'N')
+%*
+        EMP      = EMPLOYEE-ID   SUPPRESS
+        L        = RPT-PHY-LOC   
+%*            
+        STAT     = EMP-STATUS OF MSF760 -
+                              WHERE(EMPLOYEE-ID = EMP)
+        S        = GENDER            VIA (STAT)
+        SC       = STAFF-CATEG       VIA (STAT)
+        SRV      = SERVICE-DATE      VIA (STAT)     FORMAT (DATE)
+        S1       = substr (SRV,7,2)
+        S1N      = numeric (S1)  I-PIC (9(2))
+        S2       = substr (SRV,5,2)
+        S2N      = numeric (S2)  I-PIC (9(2))
+        S3       = substr (SRV,1,4) I-PIC (X(4))
+        SDN      = numeric (S3)  I-PIC 9(4)
+        TDAY     = date()
+        Y1       = substr (TDAY,1,4)
+        CYR      = substr (TDAY,1,4)
+        M1       = substr (TDAY,5,2)
+        M1N      = numeric (M1)  I-PIC (9(2))
+        D1       = substr (TDAY,7,2)
+        D1N      = numeric (D1)  I-PIC (9(2))
+        CYRN     = numeric(CYR)  I-PIC 9(4)
+        SY1      = calc(CYRN - SDN) I-PIC (9(4))
+        SY2      = calc(CYRN - SDN - 1) I-PIC (9(4))
+        SY       = choose(SY1 IF(M1N > S2N), -
+                          SY1 IF(M1N = S2N, D1N >= S1N), SY2) I-PIC (X(4))
+%* W00120601 (PRT2)
+        PRT2     = choose ('N' IF (SC = 'CS'), -
+                           'N' IF (SC = 'GC'), -
+                           'N' IF (SC = 'GT'), -
+                           'N' IF (SC = 'IC'), -
+                           'N' IF (SC = 'IE'), -
+                           'N' IF (SC = 'IS'), -
+                           'N' IF (SC = 'WC'), -
+                           'N' IF (SC = 'ZA'), -
+                           'N' IF (SC = 'ZO'), 'Y')
+
+        ET       = EMP-TYPE          VIA (STAT)
+        BD       = BIRTH-DATE        VIA (STAT)     FORMAT (DATE)
+        HD       = HIRE-DATE         VIA (STAT)     FORMAT (DATE)
+        B1       = substr (BD,7,2)
+        B2       = substr (BD,5,2)
+        B2N      = numeric (B2)  I-PIC (9(2))
+        B3       = substr (BD,3,2)
+        B1N      = numeric (B1)  I-PIC (9(2))
+        BDT      = catenate (B1,'/',B2,'/',B3) 
+        BYR      = substr (BD,1,4)
+        BY       = substr (BD,1,4)
+        BYRN     = numeric(BYR)  I-PIC 9(4)
+        AG1      = calc(CYRN - BYRN)   I-PIC 9(4)
+        AG2      = calc(CYRN - BYRN -1) I-PIC 9(4)
+        AG       = choose(AG1 IF(M1N > B2N), -
+                          AG1 IF(M1N = B2N, D1N >= B1N), AG2) I-PIC (X(4))
+        H1       = substr (HD,7,2)
+        H2       = substr (HD,5,2)
+        H3       = substr (HD,3,2)
+        HDT      = catenate (H1,'/',H2,'/',H3) 
+%*
+        EMPID    = EMPLOYEE-ID   OF MSF810 -
+                                 WHERE(EMPLOYEE-ID = EMP)
+        FLNAM    = SURNAME          VIA (EMPID)
+        FNAME    = FIRST-INITIAL    VIA (EMPID)
+        SNAME    = SECOND-INITIAL   VIA (EMPID)
+        LNAME    = catenate (FLNAM,FNAME,SNAME,' ',EMP,'  ',S,'   ',ET,'  ',SC,'  ',BDT,' ',HDT,'   ') SUPPRESS
+        SURN     = FLNAM
+        Y        = FNAME
+        Z        = SNAME
+        RDET     = catenate (EMP,'    ',S,'  ',ET,'  ',SC,'  ',BDT,' ',HDT,'   ')
+%*
+        SEXFLG   = choose ('Y' IF (S = ESEX , ESEX <> SPACES) ,-
+                           'Y' IF (ESEX = SPACES)             ,-
+                           'N')   
+%*
+        SRTORD    = choose (SURN IF (%SRTKEY% = 'A') ,-
+                            EMP  IF (%SRTKEY% = 'E') ,- 
+                            RG   IF (%SRTKEY% = 'P') ,-
+                            SURN)          
+%*
+        POS       = POSITION-ID OF MSF878B           -
+                    WHERE    (EMPLOYEE-ID-2   = EMP, -
+                              INV-STR-DATE-2 >= '0') -
+                    SELECTIF (PRIMARY-POS-2   = '0', -
+                              INV-STR-DATE-2 <> '0') -
+                    MAX (10)
+%*
+        PRCS     = PRIM-RPT-GRP OF MSF870 -
+                   WHERE (POSITION-ID = POS)
+        PTIT     = POS-TITLE    VIA (PRCS)
+        MINR     = RATE-REF-MIN OF MSF871 -
+                   WHERE   (POSITION-ID = POS)
+        MAXR     = RATE-REF-MAX  VIA (MINR)
+%*
+        ACDE     = AWARD-CODE OF MSF828 -
+                   WHERE (EMPLOYEE-ID   = EMP, -
+                          INV-STR-DATE >= '00000000') -
+                   MAX (1)
+%*
+        WKRATE   = CALC-WKLY-RATE OF MSSRAT -
+                   WHERE (OPTION = '1', -
+                          EMPLOYEE-ID = EMP, -
+                          REQUIRED-DATE = WX-CUR-PERIOD-END-DATE-9)
+        WKR      = WKRATE                     D-PIC (9(6).99)
+%*
+        P        = PHYSICAL-LOC OF MSF829 -
+                   WHERE (EMPLOYEE-ID   = EMP, -
+                          INV-STR-DATE >= '00000000') -
+                   MAX (1)
+%*
+        PL       = BEN-PLAN-ID  OF MSF845 -
+                   WHERE (EMPLOYEE-ID   = EMP, -
+                         BEN-PLAN-ID   >= SPACES) -
+                   REJECTIF (BEN-PLAN-ID    = SPACES) -
+                   REJECTIF (BEN-PLAN-ID    = 'ETOP') -
+                   REJECTIF (BEN-PLAN-ID    = 'SPOU') -
+                   REJECTIF (BEN-PLAN-ID    = 'ASSS') -
+                   REJECTIF (ACCEPT-REASON <> 'A') -
+                   MAX (5)
+
+        PLS      = size(PL)
+        PLD      = PLAN-NAME OF MSF84B          -
+                   WHERE (BEN-PLAN-ID = PL)
+
+        PL1S     = single(PLD(1))
+        PL1      = choose(PL1S IF(PLS > 0), SPACES)
+        PL2S     = single(PLD(2))
+        PL2      = choose(PL2S IF(PLS > 1), SPACES)
+        PL3S     = single(PLD(3))
+        PL3      = choose(PL3S IF(PLS > 2), SPACES)
+        PL4S     = single(PLD(4))
+        PL4      = choose(PL4S IF(PLS > 3), SPACES)
+        PL5S     = single(PLD(5))
+        PL5      = choose(PL5S IF(PLS = 5), SPACES)
+%*
+        ACCR     = ACCRUAL-CODE OF MSF880 -
+                   WHERE (EMPLOYEE-ID   = EMP, -
+                          LEAVE-TYPE    = 'L')
+        LVBR     = LVE-ST-BALANCE  VIA (ACCR)
+        LVMN     = LVE-MAN-ADJ     VIA (ACCR)
+        LVTK     = LEAVE-TAKEN     VIA (ACCR)
+        ETREF    = ENTITY-TYPE FROM MSF071 -
+                   WHERE (ENTITY-TYPE = 'EMP', -
+                          ENTITY-VALUE >= EMP) -
+                   REJECTIF (ENTITY-VALUE <> EMP) -
+                   REJECTIF (REF-NO <> '002') 
+
+        REFCD    = REF-CODE VIA (ETREF)
+ 
+        ENTIT    = calc(LVBR + LVMN + LVTK) 
+
+        UNT      = UNIT-TYPE-R OF MSF801 -
+                   WHERE (CNTL-REC-TYPE = 'R', -
+                          CNTL-KEY-REST = 'L' & ACCR)
+
+        HDFAC    = HRS-DAYS-FAC OF MSS880 -
+                   WHERE (OPTION-880   = '3', -
+                          LEAVE-TYPE   = 'L', -
+                          AWARD-CODE   = 'XX', -
+                          EMPLOYEE-ID  = EMP)
+
+        FACT     = calc(HDFAC * 1.0000)
+        EMPCL    = EMPLOYEE-CLASS
+        UNTC     = choose(FACT IF(UNT = 'D', EMPCL <> 'C'), 1.0000) 
+        LVENT    = calc(ENTIT * UNTC)  D-PIC ZZZZZZZZZZ9.9999
+%*
+        SPT      = RATE-REF-CODE OF MSF830 -
+                   WHERE (EMPLOYEE-ID   = EMP, -
+                          INV-STR-DATE >= SPACES) -
+                   MAX (1)
+%*
+       SPTFLG    = choose ('Y' IF (SPT >= SPTFR, SPT <= SPTO), -
+                           'Y' IF (SPTFR = SPACES), -
+                           'N')   
+%*
+%*Work Group                                       
+       IWGROUP   = WORK-GROUP OF MSF723A  - 
+                              WHERE(REC-723-TYPE-2   = 'W'  ,  -
+                                    EQUIP-NO-2       = SPACES, -       
+                                    EMPLOYEE-ID-2    = EMP  ,  -       
+                                    EFF-DT-REVSD-2  >= '0') MAX(1) -      
+                              SELECTIF (EFF-DT-REVSD-2 > '0')     
+       WGFLG     = choose ('Y' IF (IWGROUP1 = SPACES), -                       
+                           'Y' IF (IWGROUP1 <> SPACES,  IWGROUP = IWGROUP1), - 
+                           'Y' IF (IWGROUP2 <> SPACES,  IWGROUP = IWGROUP2), - 
+                           'Y' IF (IWGROUP3 <> SPACES,  IWGROUP = IWGROUP3), - 
+                           'Y' IF (IWGROUP4 <> SPACES,  IWGROUP = IWGROUP4), - 
+                           'Y' IF (IWGROUP5 <> SPACES,  IWGROUP = IWGROUP5), -
+                           'N')
+%*                         'Y' IF (IWGROUP6 <> SPACES,  IWGROUP = IWGROUP6),  
+%*                         'Y' IF (IWGROUP7 <> SPACES,  IWGROUP = IWGROUP7),  
+%*                         'Y' IF (IWGROUP8 <> SPACES,  IWGROUP = IWGROUP8),  
+%*                         'Y' IF (IWGROUP9 <> SPACES,  IWGROUP = IWGROUP9),  
+%*                         'Y' IF (IWGROUP10 <> SPACES, IWGROUP = IWGROUP10), 
+%*                         'N')                                        
+       WGROUP1   = choose ('Y' IF (ACC  = 'W',                       -
+                                   AWG1 = IWGROUP, AWG1 <> SPACES),  -
+                           'Y' IF (ACC  = 'W',                       -
+                                   AWG2 = IWGROUP, AWG2 <> SPACES),  -
+                           'Y' IF (ACC  = 'W',                       -
+                                   AWG3 = IWGROUP, AWG3 <> SPACES),  -
+                           'Y' IF (ACC  = 'W',                      -
+                                   AWG4 = IWGROUP, AWG4 <> SPACES),  -
+                           'Y' IF (ACC  = 'W',                       -
+                                   AWG5 = IWGROUP, AWG5 <> SPACES),  -
+                           'N')
+%*                         'Y' IF (ACC  = 'W',                       
+%*                                 AWG6 = IWGROUP, AWG6 <> SPACES),   
+%*                         'Y' IF (ACC  = 'W',                       
+%*                                 AWG7 = IWGROUP, AWG7 <> SPACES),  
+%*                         'Y' IF (ACC  = 'W',                       
+%*                                 AWG8 = IWGROUP, AWG8 <> SPACES),  
+%*                         'Y' IF (ACC  = 'W',                       
+%*                                 AWG9 = IWGROUP, AWG9 <> SPACES),  
+%*                         'Y' IF (ACC  = 'W',                       
+%*                                 AWG10 = IWGROUP, AWG10 <> SPACES), 'N')
+
+       SELACC = choose ('Y' IF (PGSEL   = 'Y'), -
+                        'Y' IF (WGROUP1 = 'Y'), -
+                        'N')
+%*
+       EMPT   = choose (1 IF (SEXFLG = 'Y',  -
+                              WGFLG  = 'Y',  -
+                              STAT   = 'A',  -
+                              SPTFLG = 'Y',  -
+                              SELACC = 'Y',  -
+                              PRT    = 'Y',  -
+                              PRT2   = 'Y'), -
+                          0)
+
+       TTOT   = total (EMPT) D-PIC (Z(5)9)
+%* Get the print flag
+       PRFLG  = choose ('Y' IF (SEXFLG = 'Y',  -
+                                WGFLG  = 'Y',  -
+                                STAT   = 'A',  -
+                                SPTFLG = 'Y',  -
+                                SELACC = 'Y',  -
+                                PRT    = 'Y',  -
+                                PRT2   = 'Y'), -
+                        'N')
+%* Output File variables
+       HDG1      = '** Sort Order - Alpha (Surname) **'
+       HDG2      = '** Sort Order - Service Number **'
+       HDG3      = 'Employee Surname, Employee Initials, Employee ID, Sex, Employee Type, Staff Category, Birth Date, Hire Date,-
+Pay Loc, Position ID, Position Description, Rate Ref Code, Work Group,-
+Prim-Rptg-Code' CONSTANT
+       ENAME     = CATENATE (SURN, ' ', Y, Z)
+%*     POSN      = CATENATE ('"', POS, PTIT, '"')
+       POSN1     = CATENATE ('"', POS, '"')
+       POSN2     = CATENATE ('"', PTIT, '"')
+       E         = ET
+       C         = SC
+       B         = ','
+       Q         = '"'
+       IWG       = IWGROUP
+       DUMMY     = 'Y'
+       DUM       = choose ('Y' IF (EMP = EMP), DUMMY)
+%*
+%*End of Program

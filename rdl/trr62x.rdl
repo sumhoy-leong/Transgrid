@@ -1,0 +1,185 @@
+%PROGRAM-ID
+    TRR62X
+%AUTHOR
+    MINCOM PTY LTD
+%MODULE
+    3001
+%VERSION
+    0001
+%* REVISION HISTORY
+%* 02-Aug-12   a9nh4814  MO164 (Version 0001)
+%* ..................... Reset version number to 0001 for E8 upgrade.
+%* 05-Mar-08   GPresser    1780392   - DON'T change program without prior    (Ver 004)
+%*                                   - approval - SEE NOTE.
+%* 29-Jan-08   GPresser    1755220   - Handle Closed Work Orders properly    (Ver 003)
+%* 27-Nov-07   GPresser    1633883   - Add even more fields to the .CSV file (Ver 002)
+%* 17-Feb-06   IGianakis   WO:12850 Ellipse Upgrade OMS -Amendments to selection criteria.
+%* 17-Nov-05   EFredeluces P05110870 - Fix compilation errors in Ellipse.
+%* 22-Aug-05   IGianakis   Consol16 - Only select GRID district work orders.
+%* 29-Oct-04   RYeung      P04071304 - Add more fields to .CSV file
+%* 19-Nov-04   RYeung      P04071304 - Add more fields to .CSV file
+%* 08-Oct-04   RYeung      P04071304 - Add header to output file and put ~ between fields
+%* 12-Jul-04   RYeung      A04070670 - Fixed the bug of selection in msf620
+%* 17-Jun-04   Lubanovic   P04062101 - Initial Coding 
+%*
+%NARRATIVE
+%*  
+%* Download non-routine Work Order Data from AMPS to a Network Share
+%*
+%*      ****    PLEASE NOTE      ****
+%*
+%*    This program should not be CHANGED without approval from
+%*    THEOS Systems Administrator Wayne Armitage and the 
+%*    OMS System Administrator Paul O'Malley.
+%*
+%FILES
+    MFILE = MSF620
+    AFILE = MSF623
+    AFILE = MSF696A
+    LFILE = MSF621
+    LFILE = MSF010
+    LFILE = MSF600
+    LFILE = MSF690
+    LFILE = MSF695
+    OFILE = TRT62XA
+%ROUTINES
+    MSSDAT
+%SELECTION
+    WHERE    (DSTRCT-CODE  = 'GRID', -
+              WORK-ORDER   >=  SPACES)
+    SELECTIF (PLAN-PRIORITY = '02')
+    SELECTIF (PLAN-PRIORITY = '03')
+    SELECTIF (PLAN-PRIORITY = '04')
+    SELECTIF (PLAN-PRIORITY = '05')
+%* IG 060217    REJECTIF (MAINT-TYPE = 'PR')
+    REJECTIF (WO-TYPE = 'RM')    
+    REJECTIF (WO-STATUS-M = 'C' AND CLOSED-DT < THREE-MONTHS-AGO)
+%*IG 060217
+    REJECTIF (WO-STATUS-U = 'S')
+%*
+%ORDER
+     WORK-ORDER
+%*
+%OUTPUT-FILE
+     A
+%CONTROL
+       RECORD-LENGTH = 522
+%BREAK-FIELDS
+      DUM
+%BREAK DUM HEADING
+{HDG                                                                            -
+                                                                                -
+                                                                                -
+                                                                                -
+                                                                                }
+%DETAIL
+{DC}Z{WO    }Z{WODESC                                }Z{WG   }Z{TPSD  }Z-
+{ESTHRS     }Z{SJ  }Z{SJDESC                                }Z{T}Z-
+{TSKDESC                               }Z{PSJ }Z-
+{PSJDESC                               }Z{PLANTNO                     }Z-
+{PLANTDESC                                                                     }Z-
+{LOC}Z{LOCDESC      }ZCCZ{CC}ZMMZPPZAAZ-
+{WTDESC                                          }ZBBZ-
+{MTDESC                                          }ZVVZ{RDATE }ZSSZIZ-
+{CDATE }Z{CO}Z{PNO   }
+%*
+%VARIABLES
+      DUM     = CHOOSE ('Y' IF (1 = 1), 'Y')
+      Z      = '~'  CONSTANT
+      HDG1 = 'DSTRCT~WORK-OR~WORK-DESC~WO-GRP~PLAN-ST-DTE~EST-DUR-HRS~'    CONSTANT
+      HDG2 = 'STD-JOB-NO~JOB-DESC~TSK-NO~TSK-DESC~PSJ-NO~PSJ-DESC~'        CONSTANT
+      HDG3 = 'PLANT-NO~PLANT-DESC~LOCATION~LOC-DESC~CLASS~COMP-CODE~'      CONSTANT
+      HDG4 = 'COMP-MOD-CODE~PLAN-PRI~WO-TYP~WO-TYPE-DESC~'                 CONSTANT
+      HDG5 = 'MAINT-TYPE~MAINT-TYPE-DESC~Voltage~Raised-date~Shutdown-T'   CONSTANT
+      HDG6 = '~In-Service~CL-Date~Comp-Code~Prj-No'                        CONSTANT
+      HDG  = CATENATE (HDG1,HDG2,HDG3,HDG4,HDG5,HDG6)                      CONSTANT
+      TODAY            = DATE ()                                           CONSTANT
+      THREE-MONTHS-AGO = DATE2 OF MSSDAT        -
+                         WHERE (OPTION = '1',   -
+                                DATE1  = TODAY, -
+                                DAYS   = -180)                             CONSTANT
+%*
+%*  Main File MSF620 data
+%*
+       DC        = DSTRCT-CODE
+       WO        = WORK-ORDER
+       WODESC    = WO-DESC
+       WG        = WORK-GROUP
+       PSD       = PLAN-STR-DATE
+       SJ        = STD-JOB-NO
+       EQ        = EQUIP-NO
+       CC        = COMP-CODE
+       M         = COMP-MOD-CODE
+       A         = WO-TYPE
+       B         = MAINT-TYPE
+       P         = PLAN-PRIORITY
+       RDATE     = RAISED-DATE
+       S         = SHUTDOWN-TYPE
+       I         = CHOOSE ('Y' IF (SHUTDOWN-TYPE = 'IS'), 'N')
+       CDATE     = CLOSED-DT
+       CO        = COMPLETED-CODE
+       PNO       = PROJECT-NO
+%*
+%*  MSF621 - Estimates & Actuals File
+%*
+       MSF621    = WORK-ORDER OF MSF621 - 
+                   WHERE (DSTRCT-CODE = DC, -
+                          WORK-ORDER  = WO)
+
+       ESTHRS    = EST-DUR-HRS VIA (MSF621)
+       ACTHRS    = ACT-DUR-HRS VIA (MSF621)
+
+%*
+%*  MSF010 file
+       WTDESC    = TABLE-DESC OF MSF010 -
+                   WHERE (TABLE-TYPE = 'WO', -
+                          TABLE-CODE = A)
+
+       MTDESC    = TABLE-DESC OF MSF010 -
+                   WHERE (TABLE-TYPE = 'MT', -
+                          TABLE-CODE = B)
+%*
+%*  MSF600 file
+       PLANTNO   = PLANT-NO OF MSF600 -
+                   WHERE (EQUIP-NO = EQ)
+       PLANTDESC = EQUIP-DESC-REC    VIA (PLANTNO)
+       V         = EQUIP-CLASSIF-11  VIA (PLANTNO)
+       LOC       = EQUIP-LOCATION    VIA (PLANTNO)
+       C         = EQUIP-CLASS       VIA (PLANTNO) 
+
+       LOCDESC   = TABLE-DESC OF MSF010 -
+                   WHERE (TABLE-TYPE = 'EL',  -
+                          TABLE-CODE = LOC)
+%*
+%*  MSF690 file
+       SJDESC    = STD-JOB-DESC OF MSF690 -
+                   WHERE (DSTRCT-CODE  = DC, -
+                          STD-JOB-NO   = SJ)
+
+%*  MSF696 file
+       PSJ       = SJP-PSJ-NO-2 FROM MSF696A -
+                   WHERE (DSTRCT-CODE-2  = DC,   -
+                          PSJ-SJ-IND-2   = 'S',  -
+                          PSJ-SJ-NO-2   >= SJ,   -
+                          PSJ-SJ-NO-2   <= SJ)
+%*
+%*  MSF695 file
+       PSJDESC   = SJP-PSJ-DESC OF MSF695 -
+                   WHERE (DSTRCT-CODE  = DC,   -
+                          SJP-PSJ-IND  = 'P',  -
+                          SJP-PSJ-NO   = PSJ)
+%*
+%*  MSF623 file
+%*
+       T         = WO-TASK-NO FROM MSF623  -
+                   WHERE (DSTRCT-CODE  = DC, -
+                          WORK-ORDER   = WO, -
+                          WO-TASK-NO  >= SPACES)
+       TSKDESC   = WO-TASK-DESC    VIA (T)
+       TPSD      = PLAN-STR-DATE   VIA (T)
+       TSKHRS    = TSK-DUR-HOURS   VIA (T)
+       TC        = COMP-CODE       VIA (T)
+       N         = COMP-MOD-CODE   VIA (T)
+       
+
+

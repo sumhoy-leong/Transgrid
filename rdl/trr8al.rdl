@@ -1,0 +1,269 @@
+%*** TRR8AL.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 14-Aug-12   a9tl3060     Convert from ellipse 6 to ellipse 8
+%*** ........................ (Version 0001).
+%*** 08-Feb-07   Janak Barar  SC0000001366788 Include output files to be sent
+%*** ........................ to H drive.                             
+%*** 17-Aug-04   Paul Mylonas WCHG019262 - Tricked RDL to generate a srtkey
+%*** ........................ of 13 bytes..it was somehow only creating it as 11.
+%*** ........................ Also removed the literal '- Staff Category SCO'
+%*** ........................ from the B REPORT-TITLE.
+%*** 29-JUN-2004 Lubanovic    WCHG019262 - The figures were incorrect and 
+%*** ........................ so I changed the way the program works by
+%*** ........................ using MSSCAL to get the projected leave values.
+%*** ........................ I could not compile the rdl using MSSCAL so I
+%*** ........................ wrote a cobol program which will write the 
+%*** ........................ required details to an output file TRO8AL. This 
+%*** ........................ file is then used by TRR8AL to create the 
+%*** ........................ report.
+%*** 20-MAY-2004 Lubanovic    WCHG019262 - Modified report to print correct 
+%*** ........................ totals
+%*** 08-APR-2004 Lubanovic    WCHG019262 - Modified report to correct an error
+%*** ........................ with part-time employees values not being
+%*** ........................ printed.
+%*** 23-MAY-2003 Neel Chandra WCHG002205.
+%*** .........................Initial Version. 
+%***
+%PROGRAM-ID
+       TRR8AL
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report details the leave liability for each
+      **  employee and leave type. The report will also provide
+      **  total leave liability amounts given a projected Date.
+      **  For Annual Leave SCO Staff
+%VERSION
+       0001
+%MODULE
+       3880
+%FILES
+        IFILE = TRO8AL 
+        LFILE = MSF801
+        LFILE = MSF810
+        LFILE = MSF760
+        LFILE = MSF010
+        RFILE = TRR8ALA
+        RFILE = TRR8ALB
+        OFILE = TRTREPA
+        OFILE = TRTSUMB
+%*
+%INPUT-FILE
+       I-EMPLOYEE-ID      PIC (X(10)) 
+       I-PAY-GROUP        PIC (X(3)) 
+       I-EMP-STAT         PIC (X(1)) 
+       I-EMPLOYEE-CLASS   PIC (X(1)) 
+       I-UNIT-TYPE        PIC (X(1)) 
+       I-LVE-ENTITLE      PIC (S9(6)V9999) 
+       I-LVE-ENTITLE-BAL  PIC (S9(6)V9999) 
+       I-LVE-ACCR-UNITS   PIC (S9(6)V9999) 
+%*
+%ROUTINES
+       MSS880
+       MSSEMP
+       MSSDAT
+       MSSRAT
+%*
+%ORDER
+       SRTKEY
+%CONTROL-BREAKS
+       LT
+       YRS
+%REPORT
+       A
+%REPORT-TITLE
+       'Projected Annual Leave Liability  Report'
+%PAGE HEADING
+' YEARS     EMPLOYEE ID & NAME/                  LEAVE ENTITL                LVE ACCR UP TO PROJ DTE      TOTAL ENT TOTAL'
+'SERVICE    CLASS & UNIT TYPE                    BALANCE    VALUE            BALANCE     VALUE            + ACCR    LVE LIABILITY'
+%BREAK LT HEADING ON NEW-PAGE
+'LEAVE TYPE :'{LTD                                   }
+
+%BREAK LT FOOTING
+
+
+<IF %TYPE% = ' '>
+'TOTALS IN HRS FOR'{LTD                        } {T1     }                   {T3     }                   {T5     } 
+<ENDIF>
+%DETAIL
+<IF PFLG = 'Y'  >
+
+    {YR}    {EMP     } {NAME                  } {A1     } {A2             } {A3     } {A4             } {A5     } {A6             }
+            {ETYP   }  {UTYP}                   
+<ENDIF>
+%REPORT-SUMMARY
+
+                               'TOTAL DAYS'  {T1       }  {T2            } {T3       }{T4            } {T5      } {T6            }
+
+                                                 '*** END OF REPORT ***'
+%CONTROL
+     TRIM-REPORT
+%REPORT
+        B 
+%REPORT-TITLE                                                                               
+'Projected Annual Leave Liability Summary Report'                                                             
+%PAGE HEADING                                                                              
+' TOTAL YRS         NO. OF               LEAVE ENTITLEMENT               LVE ACCRUAL                  LVE ACCR TOTAL ENTITLEMENT '
+'  SERVICE        EMPLOYEES                                              BALANCE'
+%BREAK LT HEADING ON NEW-PAGE                                                                                
+'LEAVE TYPE :'{LTD                                   }                                                               
+%BREAK YRS FOOTING
+     YY             {TCNT}               {T1      }                      {T3      }                   {T5       } 
+%REPORT-SUMMARY                                                             
+                    {TCNT} 'TOTAL DAYS'  {T1      }                      {T3      }                   {T5       } 
+%CONTROL
+     TRIM-REPORT
+%OUTPUT-FILE
+    A
+%BREAK-FIELDS
+    Z
+%CONTROL
+   RECORD-LENGTH = 284
+%BREAK Z HEADER 
+{CSVH0                                                    }
+{CSVH                                                                                                          -
+                                                                                                               }
+%DETAIL
+<IF PFLG = 'Y'  >
+{REM              }X{LT}X{LTD                        }X{YR}X{EMP     }X{NAME                  }X- 
+{A1     }X{A2             }X{A3     }X{A4            }X- 
+{A5      }X{A6        }X{ETYP   }X{UTYP}XBXBXBXBXBX
+ <IF %TYPE% = ' '>
+{REM              }XBX{LTD                        }XBXBXBXBXBXBXBXBXBXBXBX{T1      }XBX{T3     }XBX{T5     }X
+ <ENDIF>
+<ENDIF>
+%SUMMARY
+{REMTD          }XBXBXBXBXBX{T1      }X{T2            }X{T3     }X{T4            }X{T5     }X{T6            }X
+
+%OUTPUT-FILE
+    B
+%BREAK-FIELDS
+    Z
+    YRS
+%CONTROL
+   RECORD-LENGTH = 110
+%BREAK Z HEADER 
+{CSVBH0                                        }
+{CSVBH                                                                                                                 }
+%BREAK YRS FOOTING
+{REM            }X{YR}X{TCNT}X{T1      }X{T3      }X{T5      }X
+%SUMMARY
+{REMTD          }XBX{TCNT}X{T1      }X{T3      }X{T5      }X
+%REQUEST-PARAMETERS
+       TYPE      PIC (X(1))    TEXT 'Leave Type     : '
+       IDATE     PIC (X(8))    TEXT 'Projection Date: '
+%VARIABLES
+%*
+      LT    = %TYPE%                CONSTANT
+      B     = ' '                   CONSTANT
+      X     = ','                   CONSTANT
+      REM1  = 'TOTALS IN HRS FOR'   CONSTANT
+      REM2  = '                 '   CONSTANT
+      REMTD = 'TOTAL DAYS       '   CONSTANT
+      Z = choose (' ' IF ('A' = 'A'), ' ')
+ CSVH0   = 'Projected Annual Leave Liability Report                  ' CONSTANT
+%*    78901234567890123456789012345678901234567890123456789012345678901234567890
+ CSVH1 ='REMARKS,LEAVE-TYPE,LEAVE-TYPE-DESC,YEARS-SERVICE,'CONSTANT
+ CSVH2 ='EMPLOYEE-ID,NAME,LEAVE-ENTITL-BALANCE,LEAVE-ENTITL-VALUE,'CONSTANT
+ CSVH3 ='LVE-ACCR-UP-TO-PROJ-DTE-BALANCE,'CONSTANT
+ CSVH4 ='LVE-ACCR-UP-TO-PROJ-DTE-VALUE,TOTAL-ENT-AND-ACCR,'  CONSTANT
+ CSVH5 ='TOTAL-LVE-LIABILITY,CLASS,UNIT TYPE,'  CONSTANT
+ CSVH  = catenate (CSVH1, CSVH2, CSVH3, CSVH4, CSVH5)
+
+ CSVBH0 = 'Projected Annual Leave Liability Summary Report' CONSTANT
+%*    78901234567890123456789012345678901234567890123456789012345678901234567890
+ CSVBH1= 'REMARKS,TOTAL-YRS-SERVICE,NO.-OF-EMPLOYEES,' CONSTANT
+ CSVBH2= 'LEAVE-ENTITLEMENT,LVE-ACCRUAL-BALANCE,' CONSTANT
+ CSVBH3= 'LVE-ACCR-TOTAL-ENTITLEMENT,' CONSTANT
+ CSVBH  = catenate (CSVBH1, CSVBH2, CSVBH3)
+
+ REM = choose (REM1 IF (%TYPE% = ' '), REM2)
+%*
+       EMP     = I-EMPLOYEE-ID
+       PG      = I-PAY-GROUP
+       STAT    = I-EMP-STAT
+       EMPC    = I-EMPLOYEE-CLASS
+       UTR     = I-UNIT-TYPE 
+       LENT    = I-LVE-ENTITLE      D-PIC (S9(6)V9(4))
+       LENTB   = I-LVE-ENTITLE-BAL  D-PIC (S9(6)V9(4))
+       LACC    = I-LVE-ACCR-UNITS   D-PIC (S9(6)V9(4))
+%*
+       SAR     = hrget (CNTL-REC-TYPE -
+                        from ('MSF801') -
+                        type ('PG') -
+                        DEFAULT -
+                        key  (KEY1 = PG))
+       TRNDAT   = PRV-END-PG-9 VIA (SAR)
+       
+	   A53 = BASE-FREQ-TYPE OF MSSRAT -
+             WHERE (OPTION                = '1', -
+                    EMPLOYEE-ID           = EMP, -
+                    REQUIRED-DATE         = TRNDAT)
+       BDR = BASE-DLY-RATE  VIA (A53)
+       BWR = BASE-WKLY-RATE VIA (A53)
+%*
+       EMPID   = SURNAME OF MSF810 -
+                         WHERE (EMPLOYEE-ID = EMP)
+       I       = FIRST-INITIAL  VIA (EMPID)
+       J       = SECOND-INITIAL VIA (EMPID)
+       NAME    = catenate (EMPID,' ',I,' ',J)
+
+       LTD     = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'OLVD',-
+                                   TABLE-CODE = LT)
+       UTYP    = choose ('HRS ' IF (EMPC = 'C'), -
+                         'DAYS')
+       ETYP    = choose ('CASUAL   ' IF (EMPC = 'C'), -
+                         'PART TIME' IF (EMPC = 'P'), -
+                         'FULL TIME' IF (EMPC = 'F'), -
+                         '         ')
+%*
+        PFLG   = choose    ('N' IF (STAT <> 'A'),  -
+                            'N' IF (EMPC  = 'C'),  -
+                            'N' IF (PG    = 'T15'),-
+                            'Y')
+%*
+       A1      = calc (LENT / 7)              I-PIC (S9(6)V9(4))
+       A2      = calc (LENTB * 1)             I-PIC (S9(6)V9(4))
+       A3      = calc (LACC / 7)              I-PIC (S9(6)V9(4))
+       A4      = calc (A3 * BDR)              I-PIC (S9(6)V9(4))
+       A5      = calc (A1 + A3)
+       A6      = calc (A2 + A4)
+%*
+       A11     = choose (A1 IF (PFLG = 'Y'), 0)
+       A22     = choose (A2 IF (PFLG = 'Y'), 0)
+       A33     = choose (A3 IF (PFLG = 'Y'), 0)    
+       A44     = choose (A4 IF (PFLG = 'Y'), 0)    
+       A55     = choose (A5 IF (PFLG = 'Y'), 0)    
+       A66     = choose (A6 IF (PFLG = 'Y'), 0)   
+
+%*     totals 
+       T1      = total (A11)
+       T2      = total (A22)
+       T3      = total (A33)
+       T4      = total (A44)
+       T5      = total (A55)
+       T6      = total (A66)
+%*
+       SRVDTE  = SERVICE-DATE-9 OF MSF760 -
+                                WHERE (EMPLOYEE-ID = EMP)
+%* 
+       TODATE  = DATE ()
+       SYSDTE  = numeric (TODATE)   I-PIC (9(8))
+       DAY     = DAYS OF MSSDAT -
+                   WHERE (OPTION = '2',  -
+                          DATE1  = SRVDTE, -
+                          DATE2  = SYSDTE)
+       YR      = calc    (DAY / 365.25) I-PIC (9(2))
+       Y       = YR       D-PIC (Z9)
+       Y1      = CHOOSE (YR  IF (YR > 0), YR)      I-PIC (9(2))
+       YRS     = choose    (YR IF (YR <> SPACES), YR)
+       SRTKEY  = catenate  (LT,Y1,EMP) I-PIC (X(13))
+       CNT     = choose    (1  IF (PFLG = 'Y'), 0)
+       TCNT    = total     (CNT)  D-PIC  (Z,ZZ9)
+%*
+%* End of Program

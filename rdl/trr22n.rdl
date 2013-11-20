@@ -1,0 +1,158 @@
+%*** TRR22N.rdl
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 11-Nov-10 G Presser        3068237      (Version 003)
+%***                            Get start & end date of previous month
+%***                            if input dates blank
+%*** 15-Oct-03 R. Yeung         WCHG035365
+%*** .........................  Add buyer name
+%*** 25-Oct-01 D. Rae           W01100695
+%***                            Add and additional request parameter to
+%***                            allow the report to be sorted by either
+%***                            (D)istrict or (E)mployee id.
+%***
+%*** 09-Dec-99 D Diolaso        W99120364
+%***                            Bug fix on total amount on service
+%***                            purchase order
+%***
+%*** 28-May-99 G Presser        W99051070    (Version 002)
+%***                            Calculate Start & End dates correctly
+%***
+%*** 27-Oct-98 D. DIOLASO
+%***           Fix for MIMS 4.3
+%***
+%*** 01-JUL-98 D. DIOLASO
+%***           Revision as follows:
+%***           a) When no entry is provided in 'from' date parameter,
+%***              default is day one of the previous month
+%***           b) When no entry is provided in 'to' date parameter,
+%***              default is last day of the previous month
+%***
+%*** 17-APR-98 ISSAAK     INITIAL CODDING
+%***
+%***
+%PROGRAM-ID
+       TRR22N
+%AUTHOR
+       Issaak Sheftalovitch
+%NARRATIVE
+      **  This report prints purchase order items placed for each buyer
+      **  in specified  district and date range.
+%VERSION
+       003
+%MODULE
+       3210
+%FILES
+        MFILE = MSF220C
+        AFILE = MSF221
+        LFILE = MSF810
+        RFILE = TRR22NA
+%ROUTINES
+        MSSDAT
+        MSSCNV
+%SELECTION
+%*** Enter selection criteria for MSF220A
+<IF %DC% <> SPACES>
+    where (STATUS-220-2  >= SPACES,   -
+           DSTRCT-CODE-2 >= %DC%,     -
+           DSTRCT-CODE-2 <= %DC%)
+ REJECTIF (PO-TYPE = 'T')
+ REJECTIF (ORDER-DATE < FRDTE)
+ REJECTIF (ORDER-DATE > TODTE)
+<ELSE>
+    where (STATUS-220-2 >= SPACES)
+ REJECTIF (PO-TYPE = 'T')
+ REJECTIF (ORDER-DATE < FRDTE)
+ REJECTIF (ORDER-DATE > TODTE)
+<ENDIF>
+%ORDER
+       SORT-KEY1
+       SORT-KEY2
+%CONTROL-BREAKS
+       SORT-KEY1
+       SORT-KEY2
+%REPORT 
+    A
+%REPORT-TITLE
+       'Purchase Order Items Placed for Each Buyer'
+%PAGE HEADING
+<IF %SO% = 'E'>
+'District Code                                                       Order Items            Value'
+<ELSE>
+'Buyer Code                                                          Order Items            Value'
+<ENDIF>
+%BREAK SORT-KEY2 FOOTING
+<IF %SO% = 'E'>
+
+ BBBBBBBBBB                                                           HHHHHH           JJJJJJJJJJJJJ
+
+<ELSE>
+
+ AAAAAAAAAA   {POFF                             }                     HHHHHH           JJJJJJJJJJJJJ
+
+<ENDIF>
+%BREAK SORT-KEY1 FOOTING
+<IF %SO% = 'E'>
+
+'Total for Employee' AAAAAAAAAA  {POFF                             }  HHHHHH           JJJJJJJJJJJJJ
+
+<ELSE>
+
+'Total for District' BBBBBBBBBB                                       HHHHHH           JJJJJJJJJJJJJ
+
+<ENDIF>
+%SUMMARY
+
+'Total for Report'                                                    HHHHHH           JJJJJJJJJJJJJ
+%REQUEST-PARAMETERS
+       DC  PIC (X(4))  TEXT 'District Code (Blank defaulted to all districts)'
+       DF  PIC (X(9))  FORMAT (DATE) TEXT 'Date From (Blank defaulted to-
+                                           first day of previous month)'
+       DT  PIC (X(9))  FORMAT (DATE) TEXT '     To   (Blank defaulted to-
+                                           last day  of previous month)'
+       SO  PIC (X(1))                 TEXT 'Sort Order (E)mployee / (D)istrict)'
+%VARIABLES
+       D           = WX-TODAYS-DATE CONSTANT
+       YYMM        = substr (D,3,4) CONSTANT
+       LMSD        = STARTING-DATE-1-9 of MSSDAT             -
+                                  where (OPTION = 'I',       -
+                                         DAYS   = -1,        -
+                                         PERIOD-YRMN = YYMM) CONSTANT
+       LMED        = ENDING-DATE-1-9 VIA (LMSD)           CONSTANT
+       FRDTE       = choose (%DF% IF (%DF% <> SPACES),LMSD) -
+                        I-PIC (X(8)) CONSTANT
+       TODTE       = choose (%DT% IF (%DT% <> SPACES),LMED) -
+                        I-PIC (X(8)) CONSTANT
+%** Main MSF220A
+       A           = PURCH-OFFICER
+       B           = DSTRCT-CODE
+       SORT-KEY1   = choose (A IF (%SO% = 'E'),B) I-PIC(X(10))
+       SORT-KEY2   = choose (B IF (%SO% = 'E'),A) I-PIC(X(10))
+
+%** From MSF221
+       G           = PO-ITEM-NO from MSF221      -
+                               where (PO-NO = PO-NO, -
+                                      PO-ITEM-NO >= SPACES)
+       POITYPE     = PO-ITEM-TYPE    via (G)
+       PREQ        = PURCH-REQ       via (G)
+       QTY         = CURR-QTY-I      via (G)
+       PRICE       = CURR-NET-PR-I   via (G)
+       SUMA        = calc (PRICE * QTY)
+       SUM         = choose(PRICE IF(POITYPE = 'S'), SUMA)
+
+%** From MSF810
+       LNAME   = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = A)               
+       FNAME   = FIRST-NAME VIA (LNAME)                 
+       ENAME   = CATENATE (LNAME,' , ',FNAME)           
+       POFF    = OUT-STRING OF MSSCNV      -
+                 WHERE (OPTION = 'P',      -
+                        INP-STRING = ENAME)     
+
+%** Variables
+       K           = choose (1 IF (G <> SPACES),0)
+       H           = total (K)           D-PIC (ZZZZZ9)
+       J           = total (SUM)         D-PIC (-ZZZZZZZZ9.99)

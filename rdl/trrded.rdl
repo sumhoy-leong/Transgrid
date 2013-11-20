@@ -1,0 +1,145 @@
+%*** Revision History
+%*** 21-Feb-13 a9is6175        MO164 (Version 0002)
+%*** ........................  Fixed repeated heading
+%*** 10-Aug-12 a9nh4814        MO164 (Version 0001)
+%*** ........................  Changed MSF822-REFERENCE field into
+%*** ........................  MSF822-DEDN-REF.
+%*** ........................  Reset version number to 0001 for E8 upgrade.
+%*** 26-Mar-2008 E Fredeluces  SC1810697
+%*** ........................  Add the "Reference" column to the
+%*** ........................  report and CSV file.
+%*** 24-Sep-2007 E Fredeluces  SC1561990
+%*** ........................  Initial Coding.
+%***
+%PROGRAM-ID
+       TRRDED
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+       This program will generate the Prepaid Deductions
+       Report and ouputs a CSV file.
+%VERSION
+       0002
+%MODULE
+       3820
+%FILES
+       MFILE = MSF822
+       LFILE = MSF801
+       LFILE = MSF810
+       RFILE = TRRDEDA
+       OFILE = TRTDEDA
+%SELECTION
+       WHERE    (EMPLOYEE-ID >= SPACES)
+       SELECTIF (DEDN-CODE = %DED1%, %DED1% <> SPACES)
+       SELECTIF (DEDN-CODE = %DED2%, %DED2% <> SPACES)
+       SELECTIF (DEDN-CODE = %DED3%, %DED3% <> SPACES)
+       SELECTIF (DEDN-CODE = %DED4%, %DED4% <> SPACES)
+       SELECTIF (DEDN-CODE = %DED5%, %DED5% <> SPACES)
+       SELECTIF (DEDN-CODE = %DED6%, %DED6% <> SPACES)
+       SELECTIF (DEDN-CODE = %DED7%, %DED7% <> SPACES)
+       SELECTIF (DEDN-CODE = %DED8%, %DED8% <> SPACES)
+       SELECTIF (DEDN-CODE = %DED9%, %DED9% <> SPACES)
+       SELECTIF (DEDN-CODE = %DED10%, %DED10% <> SPACES) 
+       REJECTIF (END-DATE <> '00000000')
+%ORDER
+       DEDN-CODE
+%BREAK-FIELDS
+       DUM
+       DEDN-CODE
+%REPORT
+       A
+%REPORT-TITLE
+      'Prepaid Deductions Report'     
+%PAGE HEADING
+                                            'Pay Period Covered: '{PSDATE}' - '{PEDATE} 
+
+
+{underline                                                                                                                         }
+'Ded                                                                              Weekly Rate      Reducing   Start'
+'Cde  Description           Emp    Last Name                      First Name           Amount       Balance    Date    Reference '
+%BREAK DEDN-CODE FOOTING
+{underline                                                                                                                         }
+'     Deduction Code Total         No. of Employees        ' {TCNT}                       {TREDBAL        }
+{underline                                                                                                                         }
+
+%DETAIL
+{DEDNDESC                }  {EMP}  {SNAME                       } {FNAME     } {WKRATE      }{REDBAL       }  {SDATE }  {REF       }
+%REPORT-SUMMARY
+{underline                                                                                                                         }
+
+'     Report Total                 Total No. of Employees  ' {TCNT}                       {TREDBAL        }    
+
+{underline                                                                                                                         }
+
+
+                                                        '***  End of Report  ***'
+%OUTPUT-FILE
+       A
+%CONTROL
+       RECORD-LENGTH = 134  
+%BREAK DUM HEADER
+'Pay Period Covered: '{PSDATE}' - '{PEDATE}
+{HDG                                                                                                                   -
+            }
+%DETAIL
+DDDC{DESC              }C{EMP     }C{SNAME                       }C{FNAME     }C{OWKRTE      }C{OREDBAL     }C{SDATE }C-
+{REF       }C
+%REQUEST-PARAMETERS
+       DED1   PIC (X(3)) TEXT Deduction Code  1:
+       DED2   PIC (X(3)) TEXT Deduction Code  2:
+       DED3   PIC (X(3)) TEXT Deduction Code  3:
+       DED4   PIC (X(3)) TEXT Deduction Code  4:
+       DED5   PIC (X(3)) TEXT Deduction Code  5:
+       DED6   PIC (X(3)) TEXT Deduction Code  6:
+       DED7   PIC (X(3)) TEXT Deduction Code  7:
+       DED8   PIC (X(3)) TEXT Deduction Code  8:
+       DED9   PIC (X(3)) TEXT Deduction Code  9:
+       DED10  PIC (X(3)) TEXT Deduction Code 10:
+%VARIABLES
+       B         = ' '                                                    CONSTANT
+       C         = ','                                                    CONSTANT
+       S         = '$'                                                    CONSTANT
+       Z         = '='                                                    CONSTANT
+       HDG1A     = 'Deduction Code,Deduction Description,Employee Id,'    CONSTANT
+       HDG1B     = 'Last Name,First Name,Weekly Rate Amount,'             CONSTANT
+       HDG1C     = 'Reducing Balance,Start Date,Reference'                CONSTANT
+       HDG       = catenate (HDG1A,HDG1B,HDG1C)                           CONSTANT
+       DUM       = choose (C IF (C = C), C)
+%*
+       EMPID     = EMPLOYEE-ID  
+       EMP       = substr(EMPID,6,5)
+       D         = DEDN-CODE  
+       WKRATE    = DED-FACTOR   D-PIC (-------,--9.99)
+       REDBAL    = REDUCING-BAL D-PIC (---,---,--9.99)
+       OWKRTE    = DED-FACTOR   D-PIC (----------9.99)
+       OREDBAL   = REDUCING-BAL D-PIC (----------9.99)
+       SDATE     = START-DATE   FORMAT (DATE)
+       EDATE     = END-DATE    
+       REF       = DEDN-REF
+%*
+       TREDBAL   = TOTAL  (REDBAL) D-PIC ($$$$$,$$$,$$9.99)
+       CNT       = CHOOSE (1 IF (EMP > SPACES), 0)
+       TCNT      = TOTAL  (CNT)    D-PIC (ZZZ,ZZ9)
+%*
+%* Get surname and first name ...
+       SNAME     = SURNAME OF MSF810 -
+                   WHERE (EMPLOYEE-ID = EMPID)
+       FNAME     = FIRST-NAME VIA (SNAME)
+%*
+%* Get the deduction code descrption
+       DKEY      = CATENATE ('***',D) 
+       DESC      = TNAME-D OF MSF801           -
+                   WHERE (CNTL-REC-TYPE = 'D', -
+                          CNTL-KEY-REST = DKEY)
+       DEDNDESC  = CATENATE (D,'  ',DESC) SUPPRESS 
+%*
+%* Get the Period Covered Date Range 
+       MSF801    = TNAME-PG OF MSF801           -
+                   WHERE (CNTL-REC-TYPE = 'PG', -
+                          CNTL-KEY-REST = 'T01')
+       PSDATE    = PRV-STR-DT-PG VIA (MSF801)  FORMAT (DATE)
+       PEDATE    = PRV-END-DT-PG VIA (MSF801)  FORMAT (DATE)
+%*
+%*          *** End of Program ***
+%*
+

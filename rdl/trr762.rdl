@@ -1,0 +1,178 @@
+%***  $Id: trr762.rdl,v 1.1 2001/03/09 04:35:24 mimsdev Exp $
+%*** TRR762.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 30-Apr-13 AIT NL        Migrated into Ellipse 8 environment.
+%*** ....................... Modified parameters.
+%*** 09-Nov-05 E Fredeluces  P05110870
+%***                         Fix compilation errors in Ellipse 5.2.3.7.
+%*** 27-01-00 Danny Diolaso  W00010555
+%***                         Modification to conform to GST changes
+%***
+%PROGRAM-ID
+       TRR762
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report will diplay current employee contact details.
+%VERSION
+       001D
+%MODULE
+       3880
+%FILES
+        MFILE = MSF762
+        LFILE = MSF010
+        LFILE = MSF723A
+        LFILE = MSF760
+        LFILE = MSF810
+        LFILE = MSF820
+        LFILE = MSF870
+        OFILE = TRT762A
+%SELECTION
+       <IF %EMPID% > SPACES>
+          WHERE    (EMPLOYEE-ID = %EMPID%, -
+                    SEQUENCE-NO >= SPACES)       
+       <ELSE>   
+          WHERE    (EMPLOYEE-ID >= '0000000000', -
+                    EMPLOYEE-ID <= '9999999999')
+       <ENDIF>
+%ORDER
+       PRIM
+       ESURNAME
+%CONTROL-BREAKS
+       PRIM
+       ESURNAME
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 454 
+%BREAK-FIELDS
+    DUMMY
+%BREAK DUMMY HEADER
+<IF A00 = 1>
+{HDG1                                                           }-
+{HDG2                                                          }-
+{HDG3                                                         }-
+{HDG4     }
+<ENDIF>
+%DETAIL
+<IF SELSW = 'Y'>
+{PRIM                                  }C-
+{PL}C{WGROUP}C{ID }C{ESURNAME                             }C-
+{I                 }C{CNAME                                 }C-
+{CSURNAME                              }C{CTITLE             }C-
+{R                                  }C-
+{A                                  }C-
+{B                                  }C-
+{CSUB                }C{ST               }C{Z          }C-
+{H             }C{W             }C{M             }C
+<ENDIF>
+%REQUEST-PARAMETERS
+       IGROUP      PIC (X(7))   TEXT 'Work Group      - Blank for all:'
+       PRC         PIC (X(20))  TEXT 'PRC             - Blank for all:'
+       EMPID       PIC (X(10))  TEXT 'Employee number - Blank for all:'
+       PAYLOC      PIC (X(2))   TEXT 'Pay Location    - Blank for all:'
+%VARIABLES
+       DUM      = 'Y'                                           CONSTANT
+       DUMMY    = choose ('Y' IF (DUM = 'Y'), 'Y')              CONSTANT
+       C        = ','                                           CONSTANT
+       TDY      = WX-TODAYS-DATE                                CONSTANT
+       A00      = COMPUTE-AND-KEEP ( A00 + 1 )
+       HDG1     = 'PRC,Payroll Location,Work Group,Employee Id,Last Name,First Name,'
+       HDG2     = 'Contact First Name,Contact Last Name,Title,Relationship,Address,'
+       HDG3     = 'Address 2,Suburb,State,Post Code,Home Phone No.,Work Phone No.,'
+       HDG4     = 'Mobile No.,'
+%*
+       EMP      = EMPLOYEE-ID
+       ID       = SUBSTR(EMP,6,5)
+       CNAME    = FIRST-NAME
+       CSURNAME = SURNAME
+       CTITLE   = NAME-TITLE
+       R	= RELATIONSHIP
+       H    	= HOME-PHONE-NO
+       W 	= WORK-PHONE-NO
+       M        = MOBILE-NO
+       A	= ADDR-LINE-1
+       B        = ADDR-LINE-2
+       CSUB     = ADDR-LINE-3
+       CSTATE   = STATE
+       Z	= ZIPCODE
+
+%* GET MSF810 DETAILS
+       ESURNAME = SURNAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = EMPLOYEE-ID)
+       I        = FIRST-NAME VIA (ESURNAME) 
+
+%* GET MSF760 DETAILS
+       STATUS   = EMP-STATUS OF MSF760 -
+                  WHERE (EMPLOYEE-ID = EMP)
+       ACT-EMP  = CHOOSE ('Y' IF (STATUS = 'A'), 'N')
+
+%* GET MSF010 DESCRIPTIONS
+       ST       = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'SY',-
+                         TABLE-CODE = CSTATE)
+
+%* Work Group
+       WGROUP     = WORK-GROUP OF MSF723A                     -
+                       WHERE    (REC-723-TYPE-2  = 'W',    -
+                                 EQUIP-NO-2      = SPACES, -
+                                 EMPLOYEE-ID-2   = EMP,    -
+                                 EFF-DT-REVSD-2 >= '0')    -
+                                 MAX (1)
+
+       VGROUP   = choose ('Y' IF (%IGROUP% = SPACES), -
+                          'Y' IF (%IGROUP% <> SPACES, WGROUP  = %IGROUP%), -
+                          'N')
+
+%* Pay Location & PRC 
+       PL    = PAY-LOCATION OF MSF820 -
+               WHERE   (EMPLOYEE-ID = EMPLOYEE-ID)
+       PRIM  = RPT-PRC VIA (PL)
+       PRIM1 = SUBSTR (PRIM,1,4)
+       PRIM2 = SUBSTR (PRIM,5,4)
+       PRIM3 = SUBSTR (PRIM,9,4)
+       PRIM4 = SUBSTR (PRIM,13,4)
+       PRIM5 = SUBSTR (PRIM,17,4)
+
+       SELPL   = CHOOSE ('N' IF (%PAYLOC% <> SPACES, %PAYLOC% <> PL), 'Y')
+
+%* Primary Reporting Code               
+       PRC1 = SUBSTR (%PRC%,1,4)    CONSTANT
+       PRC2 = SUBSTR (%PRC%,5,4)    CONSTANT
+       PRC3 = SUBSTR (%PRC%,9,4)    CONSTANT
+       PRC4 = SUBSTR (%PRC%,13,4)   CONSTANT
+       PRC5 = SUBSTR (%PRC%,17,4)   CONSTANT
+
+%*
+       PRC1-OK = CHOOSE ('N' IF (PRC1 <> SPACES, -
+                                 PRC1 <> PRIM1), 'Y')
+       PRC2-OK = CHOOSE ('N' IF (PRC2 <> SPACES, -
+	                         PRC2 <> PRIM2), 'Y')
+       PRC3-OK = CHOOSE ('N' IF (PRC3 <> SPACES, -
+	                         PRC3 <> PRIM3), 'Y')
+       PRC4-OK = CHOOSE ('N' IF (PRC4 <> SPACES, -
+	                         PRC4 <> PRIM4), 'Y')
+       PRC5-OK = CHOOSE ('N' IF (PRC5 <> SPACES, -
+	                         PRC5 <> PRIM5), 'Y')
+       SELPRC  = CHOOSE ('Y' IF (PRC1-OK = 'Y', -
+                                 PRC2-OK = 'Y', -
+                                 PRC3-OK = 'Y', -
+                                 PRC4-OK = 'Y', -
+                                 PRC5-OK = 'Y'),-
+                         'N')  
+           
+       SELSW = CHOOSE ('Y' IF (VGROUP  = 'Y', -
+                               ACT-EMP = 'Y', - 
+                               SELPL   = 'Y', - 
+                               SELPRC  = 'Y'), -
+                       'N')
+
+       CNT = CHOOSE (1 IF (SELSW = 'Y'), 0)
+       TTL = TOTAL  (CNT )
+                          
+%*END OF SORT
+   

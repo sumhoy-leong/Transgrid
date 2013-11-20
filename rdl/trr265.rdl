@@ -1,0 +1,757 @@
+%*** TRR265.rdl
+%***
+%*** Revision History ***
+%*** 15-Jul013 Shally Lee   SC0000004314405 V003
+%***                        Fixing missing page no issue.
+%*** 22-Apr-13 a9wp3261     Removed report TRR265A.
+%*** 14-Aug-12 a9tl3060     Convert from ellipse 6 to ellipse 8 (Version 0001).
+%*** 04-Oct-07 Janak Barar  SC1540632
+%*** ...................... The prog is a clone of esr266.rdl but this prog
+%*** ...................... reads input file which has inv-comm and ext-desc
+%*** ...................... as the last entries in the database.
+%*** 27-Jul-07 EFredeluces  SC1540632
+%*** ...................... Added the Warehouse-Id to the heading and
+%*** ...................... the last modified user to the sub-heading.
+%*** 22-Dec-05 LNee         WCHG108750
+%*** ...................... Re-instated Aneeta's amendment- as held in RCS under
+%*** ...................... revision 1.8
+%*** 18-Jun-05 AIesho       WCHG108750
+%*** ...................... Modified program to select by Warehouse-id
+%*** 06-Jun-05 AIesho       P05060270
+%*** ...................... Modified program to cope with district consolidation
+%*** ...................... into GRID. Append Warehouse id to purchase order
+%*** ...................... Added the Warehouse in the Report "A" heading.
+%*** 02-Jul-03 RYeung       WCHG023260
+%***                        Additional change to Supplier name and returned.
+%*** 25-Jun-03 RYeung       WCHG023260
+%***                        Add date loaded, returned. Remove service number, invoice item, tax code
+%*** 25-Jul-02 EFredeluces  WCHG004106
+%*** ...................... Commented-out the actual print command.
+%*** 11-Jul-02 LNee         WCHG004106
+%*** ...................... Removed Dynamic printing
+%*** 04-Jul-02 LNee         WCHG003566
+%*** ...................... To change the layout of the report, including
+%*** ...................... displaying a max of 2 tax codes (instead of 5).
+%*** 17-May-02 LNee         WCHG002543
+%*** ...................... To display a maximum of five tax codes
+%*** ...................... instead of one.
+%*** 02-May-01 RCasagrande  WO : See Elizabeth Fredeluces
+%*** ...................... Disabled dynamic printing functionality.
+%*** ...................... With dynamic printing enabled RDL would halt
+%*** ...................... with run-time error: MSSPRT Fatal-Error,
+%*** ...................... Mssprt-Option : C
+%*** 29-Dec-00 DDiolaso     W00120593 
+%*** .....................  Program amendment so that report prints for all
+%*** .....................  dstricts regardless of zero values in exemption
+%*** .....................  report (REPORT B)
+%*** 05-Sep-00 EFredeluces  W00090076
+%***                        Include the second line of the supplier details.
+%*** 30-Mar-00 DDIOLASO     W00030683
+%***                        Reflected GST
+%*** 21-Feb-00 EFredeluces  W00020537
+%***                        To inclide additional tax code from MSF263.
+%*** 07-Apr-99 JN           Change run numbers to alphabetic
+%*** 12-Jan-99 G Presser    Fix reading of MSF26A file
+%*** 12-Nov-98 Brandon      Fix for MIMS 4.3. Invoice header - MSF260,
+%*** ...................... Invoice details - MSF26A.
+%*** 06-Apr-98 Saraht       W803180044
+%*** ...................... Change the format of the report to allow more lines
+%*** ...................... of the extended description. New format of the
+%*** ...................... report provided by the user.
+%*** 03-Apr-98 SarahT       W801130054
+%*** ...................... In CHOOSE statement to choose between work order
+%*** ...................... and project, change the variable SI-WO to WO1,
+%*** ...................... WO2, WO3, WO4, WO5, WO6 & WO7 to correctly report
+%*** ...................... work order and project numbers.
+%*** 23-Dec-97 Whitley      W711200034
+%*** ...................... Amended program to include Project No to be 
+%*** ...................... display for inv-type '2' records. Their could
+%*** ...................... be from 1 to 7 different project no's for this
+%*** ...................... inv-type.
+%*** 19-Jun-97 Whitley      W703180024
+%*** ...................... Amended program to display the order value as
+%*** ...................... $99999999.99 as previous it was 999999.9999.
+%*** ....................
+%*** 16-Apr-96 Mincom        Replace 'RC' table access with HRGET macro.
+%*** ....................
+%*** 16-NOV-95 Peter Lacey
+%*** ...................... Converted from 3.010 to 3.013. Changed field
+%*** ...................... MSF260-AUTH-BY to MSF260-AUTHSD-BY.
+%*** 15-Sep-94 DavidG.... Ver 010D. Fix page heading- date/time were truncating.
+%*** .................... add "by   /  /  ." to footing literal.
+%*** 20-Apr-93 DavidG.... Ver 010C. NO CHANGE. - However do not need to edit cbl anymore.
+%*** 20-Sep-93 DavidG.... Ver 010C. Repeat ext. desc max of 6 lines.           
+%*** 06-Sep-93 DavidG.... Ver 010B. First rec has blank req-by?                
+%*** .................... sort by reqby function variable.                     
+%*** 06-Sep-93 DavidG.... Ver 010A. Change sort from auth-by to req-by as      
+%*** .................... requested by Mal Harris.                             
+%*** 25-Aug-93 DavidG.... Ver 009E Added 'C' report - register to print at H/O 
+%*** .................... if siteprin 'B' (both)                               
+%*** 18-Aug-93 MaryW..... Ver 009D Moved INVTYPE from Header to Item level.   
+%*** 05-Aug-93 DavidG.... Ver 009C Remove wording "ARE FURTHER PAYMENTS 
+%*** .................... ANTICIPATED OR" from footing.
+%*** .................... Add 3 columns to register for referred, reqd, returned
+%*** 03-Aug-93 DavidG.... Ver 009B Edit cbl file to prevent fatal errors on
+%*** .................... blank district. This change should not be required 
+%*** .................... in MIMS 3.010. IT IS NOT REQUIRED IN V3.010K. DG 20/4/94.
+%*** EDIT CBL FILE AS FOLLOWS :
+%*           IF  NOT ESS266A-EOF
+%*           AND W70-MSF260A1-DSTRCT-CODE NOT = W50-DSTRCT-CODE
+%*      ** DG add following line!
+%*           AND NOT = SPACES
+%*      ** DG
+%*               MOVE W50-DSTRCT-CODE TO W50-PREV-DSTRCT-CODE
+%*               MOVE W70-MSF260A1-DSTRCT-CODE TO W50-DSTRCT-CODE
+%*                                          WX-DISTRICT
+%*               EXEC GET COMMAREA
+%*                        FROM (MSS001)
+%***
+%*** 03-Aug-93 DavidG.... Ver 009A Change: INVDTE <= CUTDTE to 
+%*** ....................                  INVDTE <= CUTDTE1 in PRINT variable
+%*** .................... Add siteprin and regonly params to allow for only
+%*** .................... printing register and printing @ H/O or site for 
+%*** .................... global requests.
+%*** .................... Only print if Invoice (J) <> spaces - was printing
+%*** .................... blank invoices in register.
+%*** 15-Jul-93 DavidG.... Ver 008C Rewrite to run more efficiently for global
+%*** .................... requests IE. make mfile msf000 & don't read any 
+%*** .................... completed invoices.
+%*** 12-Jul-93 DavidG.... Version 007B Rewrite to allow exemption report option.
+%*** 13-May-93 Mary_W.... Version 006A Modifications for ECNSW as follows:
+%*** .................... Amended A & B report layout as per M. Harris.
+%*** .................... A report, amended certification statement to 3 
+%*** .................... points and added full description of order.
+%*** .................... B report, deleted Dcpr & item columns and added  
+%*** .................... Requesting Officers name.
+%*** 01-Apr-93 Mary_W.... Version 6 Modifications for ECNSW as follows:
+%*** .................... Amending A report to print > 20 lines of commentary.
+%*** 14-Nov-92 Mary_W.... Version 5/Modifications for ECNSW as follows:
+%*** .................... Amending B Report so correct value prints.
+%*** .................... Was printing zero if value had been amended.
+%*** 14-Nov-91 DavidG     Modifications for ECNSW as follows:
+%*** .................... Add Date next to designation
+%*** .................... Include Report B - Register of service invoices
+%*** 04-oct-91 DavidG     Modifications for ECNSW as follows:
+%*** .................... add page footing 'pls return to Stn Acct/Fin Off'
+%*** 24-Sep-91 DavidG     Modifications for ECNSW as follows:
+%*** .................... New parameter 'cutoff-dte' to only report invoices
+%*** ....................     prior to a nominated date. ie Exception report
+%*** 16-Sep-91 DavidG     Modifications for ECNSW as follows:
+%*** .................... print supplier in page heading NOT supplier brk hdg
+%*** .................... add lfile msf230 for req-by variable
+%*** .................... print "requested by" code & name from msf010 in hdg
+%*** .................... change "department" to "section"
+%*** .................... print purchase req/itm
+%*** .................... control break/page break for invoice no footing
+%*** .................... add various text to page header
+%*** .................... add the following text at bottom of detail:
+%*** .................... Is this purchase order now considered complete? YES/NO
+%*** .................... Has a Purchase Order Amendment been requested?  YES/NO
+%*** .................... 'Approval Comments:' 
+%*** .................... 
+%*** 03-Sep-90 Philr      C19254 Version 004. 3.004 to 3.005/4.
+%*** 07-Aug-90 Merc       Change REQ-TYPE to REQ-TYPE-IND.
+%*** 07-Aug-90 Merc       CSS232 Version 003. 3.003 to 3.004/3.
+%*** 01-Jun-90 Kris       C99548 Version 002A. From M3002A to M3002C.
+%*** 23-Apr-90 Philr      CSB266 Version 002. From M3001A to M3002/4.
+%*** 06-Apr-90 PHILR      BREAK ON CHANGE OF DISTRICT.
+%*** 06-Apr-90 Philr      CSB266 Version 001B. From M3000C to M3001A.
+%*** 21-Mar-90 Ross       C99548 Version 001A. From M3000 to M3000C.
+%*** 08-Dec-89 PHILR   Initial Coding
+%***                  Generated by Version 001 of NEWRDL.MAC
+%***
+%PROGRAM-ID
+       TRR265
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  Invoice approval report.
+%* Only edit version no. in variable 'VER'
+%MODULE
+       3260
+%VERSION
+       0002
+%ROUTINES
+        MSS232
+        MSSDAT
+        MSSCNV
+%FILES
+        IFILE = TRO266
+%*      AFILE = MSF26AA
+        LFILE = MSF000
+        LFILE = MSF010
+        LFILE = MSF200
+%*      LFILE = MSF220
+        LFILE = MSF221
+        LFILE = MSF230
+        LFILE = MSF231
+        LFILE = MSF260
+%*      LFILE = MSF261
+%*      LFILE = MSF263
+        RFILE = TRR265B
+%*      RFILE = TRR265C
+%*      RFILE = TRR265D
+%INPUT-FILE
+    OFW        PIC (X(09)) 
+    OF1        PIC (X(06)) 
+    OG         PIC (X(03)) 
+    OH         PIC (S9(8)V99)   
+    OPREQ      PIC (X(06))
+    OPI        PIC (X(03)) 
+    OININV     PIC (X(10)) 
+    OJ         PIC (X(20)) 
+    OC         PIC (X(06)) 
+    OWARNING   PIC (S9(11)V99)  
+    OVAL-INVD  PIC (S9(11)V99)      
+    OD         PIC (S9(11)V99)     
+    OTX        PIC (X(04)) 
+    OX         PIC (X(02)) 
+    OX2        PIC (X(04)) 
+    OGSTINC    PIC (S9(11)V99)
+    OL         PIC (S9(11)V99)   
+    OU         PIC (9(02)) 
+    OK         PIC (X(03)) 
+    OI         PIC (S9(11)V99)  
+    OE         PIC (X(06)) 
+    OA         PIC (X(10)) 
+    OGST       PIC (S9(11)V99)
+    OT         PIC (X(01)) 
+    ODR          PIC (X(04)) 
+    OVAL-INVD1   PIC (S9(11)V99)  
+    OLD          PIC (X(08)) 
+    OGSTSUM    PIC (S9(11)V99)   
+    OGSTV      PIC (S9(11)V99)
+    OGSTVSUM   PIC (S9(11)V99)  
+    ODC        PIC (X(04)) 
+    OWH        PIC (X(04)) 
+    OCUTDTE    PIC (X(08)) 
+    OLOW-RUN-NO PIC (X(06)) 
+    OHIGH-RUN-NO PIC (X(06)) 
+    OSETDISCTXT PIC (X(22)) 
+    OSETVAL    PIC (X(08)) 
+    OST        PIC (X(04)) 
+    OSETDUE    PIC (X(08)) 
+    OACCTNO1   PIC (X(10)) 
+    OT1        PIC (X(06)) 
+    OWP1       PIC (X(08)) 
+    OEQUIP1    PIC (X(12)) 
+    OACCTNO2   PIC (X(10)) 
+    OT2        PIC (X(06)) 
+    OWP2       PIC (X(08)) 
+    OEQUIP2    PIC (X(12)) 
+    OACCTNO3   PIC (X(10)) 
+    OT3        PIC (X(06)) 
+    OWP3       PIC (X(08)) 
+    OEQUIP3    PIC (X(12)) 
+    OACCTNO4   PIC (X(10)) 
+    OT4        PIC (X(06)) 
+    OWP4       PIC (X(08)) 
+    OEQUIP4    PIC (X(12)) 
+    OACCTNO5   PIC (X(10)) 
+    OT5        PIC (X(06)) 
+    OWP5       PIC (X(08)) 
+    OEQUIP5    PIC (X(12)) 
+    OACCTNO6   PIC (X(10)) 
+    OT6        PIC (X(06)) 
+    OWP6       PIC (X(08)) 
+    OEQUIP6    PIC (X(12)) 
+    OACCTNO7   PIC (X(10)) 
+    OT7        PIC (X(06)) 
+    OWP7       PIC (X(08)) 
+    OEQUIP7    PIC (X(12)) 
+    OSIN       PIC (X(20)) 
+    ODDAT      PIC (X(08)) 
+    OOIN       PIC (X(10)) 
+    OM         PIC (X(06)) 
+    TRO266-ON  PIC (X(10)) 
+    TRO266-OR  PIC (S9(11)V99)  
+    OS         PIC (S9(11)V99)
+    OMODUSR    PIC (X(10)) 
+    OO         PIC (X(24)) 
+    OW         PIC (X(08)) 
+    OP         PIC (X(08)) 
+    OQ         PIC (X(13)) 
+    TRO266-1-INV-COMM PIC (X(60)) 
+    TRO266-2-INV-COMM PIC (X(60)) 
+    OCNT         PIC (X(09)) 
+    OVAL         PIC (X(17))       
+%ORDER
+   ASCENDING CNTR TEXT CONTROL-REC-NO
+             DCA  TEXT DSTRCT-CODE 
+             REQBYS
+             B1   TEXT ACCOUNTANT
+             C1   TEXT MSB265-RUN-NO 
+             INVT TEXT INV-ITEM-TYPE
+             E1   TEXT SUPPLIER-NO
+             F1   TEXT PO-NO
+             G1   TEXT PO-ITEM-NO
+             INVN TEXT INV-NO
+             PRQ  TEXT PURCH-REQ
+%CONTROL-BREAKS
+   CNTR
+   DCA
+   REQBYS
+   C1
+   F1
+   G1
+   INVN
+%REPORT
+       B
+%PAGE HEADING
+%* 'District Code:'{DC}'Whouse:' {WH}'EXEMPTION REPORT- INVOICES PRIOR TO:'{CUTDTE} 'Selected Run Nos:'{LOW-RUN-NO}'to'{HIGH-RUN-NO}
+%* {UNDERLINE                                                                                                                      }
+{L13 } {REQUESTBY1                  }  {DSTNAM2                             }                                'Page:'          {PGNO}
+{L12 } {DATE  } 'at:'{TIME  }                                                                               'Report:        TRR265B'
+                                        'REGISTER OF SERVICE INVOICES REPORT'                                'Version:'  {VER      }
+{UNDERLINE                                                                                                                         }
+<IF CUTDTE1 <> SPACES>
+'District Code:'{DR}'Whouse:'{WH}'EXEMPTION REPORT - INVOICES PRIOR TO:'{CUTDTE}  'Selected Run Nos:'{LOW-RUN-NO}'to'{HIGH-RUN-NO}
+<ELSE>
+'District Code:'{DR}                                                              'Selected Run Nos:'{LOW-RUN-NO}'to'{HIGH-RUN-NO}
+<ENDIF>
+{UNDERLINE                                                                                                                         }
+                                                                                       'Tot Inv  Date'
+'Order    Itm Supplier Name                         Invoice                Returned       $ Value  Loaded    Due Date  Name'
+{UNDERLINE                                                                                                                         }
+%BREAK CNTR HEADING ON NEW-PAGE RESET-PAGE-COUNT
+%DETAIL
+<IF PRINT = 'Y', WHOK = 'Y'>
+{FW     } {G} {E   } {SUPP-ORD-NAME               } JJJJJJJJJJJJJJJJJJJJ    Z    Z {DV-INVD1      } Z{LD    } {DDAT  }              
+
+   {INV-COM1                                                  }    {INV-COM2                                                       }
+{LINE                                                            }{LINE                                                            }
+<ENDIF>
+%BREAK CNTR FOOTING 
+<IF CNTR <> SPACES>
+
+'Total Number/Value of Service Invoice items reported :'{CNT    } {VAL            }
+
+                                        '<<<<<<<<<<<<<<< end of report >>>>>>>>>>>>>>>'
+<ENDIF>
+%CONTROL
+    TRIM-REPORT
+    NO-STD-HEADINGS
+%* %REPORT
+%*    C
+%* %PAGE HEADING
+%* {UNDERLINE                                                                                                                      }
+%* {L13 } {REQUEST1                  }  {DSTNAME                            }                                'Page:'          {PGNO}
+%* {L12 } {DATE  } 'at:'{TIME  }                                                                            'Report:        TRR265C'
+%*                                      'REGISTER OF SERVICE INVOICES REPORT'                                'Version:'  {VER      }
+%* {UNDERLINE                                                                                                                      }
+%* <IF CUTDTE1 <> SPACES>
+%* 'District Code:' {DC}          'EXEMPTION REPORT - INVOICES PRIOR TO:'{CUTDTE}   'Selected Run Nos:'{LOW-RUN-NO}'to'{HIGH-RUN-NO}
+%* <ELSE>
+%* 'District Code:' {DC}                                                            'Selected Run Nos:'{LOW-RUN-NO}'to'{HIGH-RUN-NO}
+%* <ENDIF>
+%* {UNDERLINE                                                                                                                      }
+%* 'Order    Itm Supplier Name                Invoice              Itm Tax-Cd  $Value Due Date Req By   Name        Refd Reqd  Retd'
+
+
+%* {UNDERLINE                                                                                                                      }
+%* %BREAK DCA HEADING ON NEW-PAGE RESET-PAGE-COUNT
+%* %DETAIL
+%* <IF PRINT = 'Y', WHOK = 'Y'> 
+%* {FW     } {G} {E   } {SUPP-ORD-NAME      } JJJJJJJJJJJJJJJJJJJJ {K} {TX}{VAL-INVD1     } {DDAT  } {REQBY   } {RNAME       }Z  Z Z
+%* {LINE                                                         }{LINE                                                            }
+%* <ENDIF>
+%* %BREAK DCA FOOTING 
+%* <IF DC <> SPACES>
+%*
+%* 'Total Number/Value of Service Invoice items reported :'{CNT    } {VAL            }
+
+%*                                       '<<<<<<<<<<<<<<< end of report >>>>>>>>>>>>>>>'
+%* <ENDIF>
+%* %REPORT
+%*  D
+%* %DETAIL
+%*       1         2         3         4         5         6         7
+%* 4567890123456789012345678901234567890123456789012345678901234567890123456
+%* {FW     }{G}{H          }{PREQ}{PI}{ININV   }{C   }{VAL-INVD   }   {TX}{GSTINC     }    
+%* {D          }   {L          }   UU{K}{I          }   {E   }{A       }{GST        }   {T}
+%* {GSTSUM    }    {GSTV       }   {GSTVSUM    }   {SETDISCTXT                    }{SETVAL}{ST }{SETDUE }{ACCTNO1 }{T1  }{WP1   }
+%* {EQUIP1    }{ACCTNO2 }{T2  }{WP2   }{EQUIP2    }{ACCTNO3 }{T3  }{WP3   }{EQUIP3    }{ACCTNO4 }{T4  }{WP4   }{EQUIP4    }{ACCTNO5 }
+%* {T5  }{WP5   }{EQUIP5    }{ACCTNO6 }{T6  }{WP6   }{EQUIP6    }{ACCTNO7 }{T7  }{WP7   }{EQUIP7    }{M   }{N        }
+%* {R          }    {S          }    {MODUSR  }{O                     }{W     }{P     }{Q          }{SIN               }{DDAT  }
+%* {OIN     }{DC}{WH}{CUTDTE }{LOW-RUN-NO}{HIGH-RUN-NO}{DR}{VAL-INVD1  }{LD    }{CNT    }{VAL            }
+%* {INV-COM1                                                  }{INV-COM2                              }
+%REQUEST-PARAMETERS
+    DS          PIC (X(4))  TEXT 'District Code                 :'
+    LOW-RUN-NO  PIC (X(6))  TEXT 'From Run No                   :'
+    HIGH-RUN-NO PIC (X(6))  TEXT 'To   Run No                   :'
+    CUTOFF-DTE  PIC (9(8))  TEXT 'Cut off Date                  :'
+    REGONLY     PIC (X(1))  TEXT 'Print Register Only? Y/N      :'
+    SITEPRIN    PIC (X(1))  TEXT 'Print at site? Y/N/B (B=both) :'
+    WHI         PIC (X(2))  TEXT 'Warehouse Id                  :'
+    DEFPRIN     LIKE PRINTER1   OF MSF080
+    REQUESTBY   LIKE EMPLOYEE-ID OF MSF080
+%VARIABLES
+G     = OG 
+PREQ  = OPREQ 
+PI    = OPI 
+ININV = OININV
+C     = OC 
+XWARNING = OWARNING
+WARNING  = CALC (XWARNING * 1) 
+TX       = OTX 
+XU = OU  
+U = CALC (XU * 1)
+K = OK 
+E = OE 
+GST = CALC (OGST * 1) D-PIC ($(11)9.99-)
+XGSTSUM = OGSTSUM
+GSTSUM  = CALC (XGSTSUM * 1) D-PIC (S9(11)V99)
+DGSTS  = CALC (XGSTSUM * 1) D-PIC ($(11)9.99-)
+GSTV   = CALC (OGSTV * 1) D-PIC (S9(11)V99)
+XGSTVSUM = OGSTVSUM
+GSTVSUM  = CALC (XGSTVSUM * 1) D-PIC (S9(11)V99)
+DGSTV  = CALC (XGSTVSUM * 1) D-PIC ($(11)9.99-)
+M = OM
+N = TRO266-ON 
+R = TRO266-OR D-PIC (S9(11)V99)
+RD = TRO266-OR D-PIC ($(11)9.99-)
+S = OS D-PIC (S9(11)V99)
+SD = OS D-PIC ($9(11).99-)
+MODUSR = OMODUSR 
+O      = OO   
+W      = OW     
+P      = OP
+Q      = OQ        
+SIN    = OSIN 
+DDAT   = ODDAT                                                
+OIN    = OOIN 
+DC     = ODC  
+WH     = OWH     
+CUTDTE = OCUTDTE 
+LOW-RUN-NO = OLOW-RUN-NO 
+HIGH-RUN-NO = OHIGH-RUN-NO 
+DR = ODR                                               
+LD = OLD 
+V = '%'         CONSTANT
+VER-NO = '010E' CONSTANT                               
+WHI    = %WHI%  CONSTANT
+VER0 = SC0020-REC OF MSF000 -                          
+              WHERE (DSTRCT-CODE        = '    ', - 
+                     CONTROL-REC-TYPE = 'SC', -     
+                     CONTROL-REC-NO   = '0020') -   
+                    CONSTANT                              
+VER1 = substr (VER0,1,1) CONSTANT                      
+VER2 = substr (VER0,2,4) CONSTANT                      
+VER = catenate (VER1,'.',VER2,'.',VER-NO) CONSTANT     
+TODAY = DATE () CONSTANT                               
+%* V003 [Start]
+%* Define the display character for Page no field on report TRR265B 
+%*PGNO1 = PAGE ()                                        
+PGNO = PAGE () D-PIC (ZZ9)
+%*PGNO = CHOOSE (PGNO1 IF (PGNO1 <> 0), 0) I-PIC (9(5))
+%* V003 [End]
+EMPLOYEE1 = %REQUESTBY% CONSTANT
+REQID = hrget  (EMPLOYEE-ID from('MSF810,MSSEMP') key(EMPLOYEE-ID = EMPLOYEE1))
+REQUESTBY1 = FORMATTED-NAME VIA (REQID)                      
+L12 = 'Run on:' CONSTANT                               
+L13 = 'Req.By:' CONSTANT                              
+%* Other Constants
+LINE = '__________________________________________________________________' -
+        CONSTANT
+Z = '|' CONSTANT
+%* Note: Format (date) for variable cutdte1 with parameter of pic 9(8) 
+%*       strips off first digit, so use catenate instead.
+CUTDTE1 = %CUTOFF-DTE% FORMAT (DATE) CONSTANT
+CUTDTED = SUBSTR (CUTDTE1,7,2) CONSTANT
+CUTDTEM = SUBSTR (CUTDTE1,5,2) CONSTANT
+CUTDTEY = SUBSTR (CUTDTE1,3,2) CONSTANT
+INVLINE1 = 'IS THIS PURCHASE ORDER NOW CONSIDERED FULLY COMPLETE?    YES/NO' -
+           CONSTANT
+INVLINE2 = 'PERFORMANCE CERTIFIED:______________________SERVICE NO:_________' -
+           CONSTANT
+INVLINE3 = 'DESIGNATION:_________________________________DATE:______________' -
+           CONSTANT
+INVLINE4 = 'PERFORMANCE CERTIFYING OFFICER SHALL ENSURE RATES, QUANTITIES,' -
+           CONSTANT
+INVLINE5 = 'CALCULATIONS, ACCOUNT AND TAX CODES AND SERVICES PROVIDED ARE' -
+           CONSTANT
+
+%* MSF260 afile Invoice Item Details
+%* A = AUTHSD-BY FROM MSF26AA -
+%*  WHERE    (DSTRCT-CODE-2    = ODR, -            
+%*            APPR-STATUS     >= '05') -
+%*  REJECTIF (MSB265-RUN-NO  < LOW-RUN-NO) -
+%*  REJECTIF (MSB265-RUN-NO  > HIGH-RUN-NO) -
+%*  REJECTIF (NRPT-265-DATE    > WX-TODAYS-DATE) -
+%*  REJECTIF (APPR-STATUS     <> '05') -
+%*  REJECTIF (ITM-PMT-STATUS  <> '05') -
+%*  STOPIF   (APPR-STATUS      > '05')
+A  = OA                         
+DSTNAME = get (DISTRICT-NAME FROM ('MSS002') DISTRICT (DC)
+DSTNAM2 = get (DISTRICT-NAME FROM ('MSS002') DISTRICT (DR)
+F  = OF1           
+%* D = calc(ORG-VAL + ORG-DISC + ORG-STAX)
+D = CALC (OD * 1)                                         
+ACC = OO                        
+INVTYPE = OT                   
+%*
+%*  Read the Tax Details (MSF263) File
+%*
+%* TX = ATAX-CODE OF MSF263              -
+%*   WHERE (INV-DSTRCT-CODE = DC,     -
+%*          INV-SUPPLIER-NO = E,      -
+%*          INV-NO          = ININV,  -
+%*          INV-ITEM-NO     = K,      -
+%*          DEFAULTED-IND  >= SPACES) -
+%*          MAX (5)
+%*W00030683
+TAX2    = OTX          
+X2      = CHOOSE (TAX2  IF (TAX2 <> SPACES), SPACES)
+X       = CHOOSE ('/ '  IF (TAX2 <> SPACES), SPACES)
+%*
+%* Invoice Header Details 
+%*
+B = ACCOUNTANT OF MSF260 -
+    WHERE (DSTRCT-CODE = DC,-
+           SUPPLIER-NO = E,-
+           INV-NO      = ININV)
+
+INVDTE = INV-DATE VIA (B) FORMAT (DATE)
+EXTINV    = EXT-INV-NO   VIA (B)
+J = OJ                                             
+
+%* Invoice Amendment Details
+%* AMD-VAL = FOR-AMD-VAL OF MSF261 WHERE (DSTRCT-CODE = DC,-
+%*                               SUPPLIER-NO  = E,-
+%*                               INV-NO       = ININV,-
+%*                               INV-ITEM-NO  = K,-
+%*                               AMENDMENT-NO = U)
+
+%* L = calc (OAMD-VAL + OAMD-DISC + OAMD-STAX)
+L = CALC (OL * 1)                                           
+VAL-INVD = choose (L IF (U > 0),D) D-PIC (S9(11)V99)   
+DV-INVD = choose (L IF (U > 0),D) D-PIC ($(11)9.99-)  
+GSTINC = CALC(VAL-INVD + GSTSUM) D-PIC (S9(11)V99)   
+DGSTI = CALC(VAL-INVD + GSTSUM) D-PIC ($(11)9.99-)   
+%* W00030683 VAL-INVD1 = VAL-INVD D-PIC (Z(7)9.99-)
+VAL-INVD1 = CALC(VAL-INVD + GSTVSUM) D-PIC (S9(11)V99)  
+DV-INVD1 = CALC(VAL-INVD + GSTVSUM) D-PIC ($(11)9.99-)  
+%* W00030683 added the following
+VAL-INVD2 = CALC(VAL-INVD + GSTVSUM)
+
+%* Supplier Details
+%* The Address 1 of the supplier can be an extended description
+%*                  of the supplier name
+SUPP-NAME     = SUPPLIER-NAME OF MSF200 WHERE (SUPPLIER-NO = E)
+ADDR-NAME     = ORDER-ADDR-1 VIA (SUPP-NAME)
+SUP-ADR       = CATENATE (SUPP-NAME,' ',ADDR-NAME)
+SUPP-ADDR     = OUT-STRING OF MSSCNV     -
+                WHERE (OPTION     = 'P', -
+                       INP-STRING = SUP-ADR)
+ADD11         = SUBSTR (ADDR-NAME,1,1)  D-PIC (X(1))
+ADD12         = SUBSTR (ADDR-NAME,1,2)  D-PIC (X(2))
+ADD13         = SUBSTR (ADDR-NAME,1,3)  D-PIC (X(3))
+ADD14         = SUBSTR (ADDR-NAME,1,4)  D-PIC (X(4))
+ADD15         = SUBSTR (ADDR-NAME,1,5)  D-PIC (X(4))
+ADD-FLG       = CHOOSE ('N' IF (ADD11 >= '0',     -
+                                ADD11 <= '9'),    - 
+                        'N' IF (ADD12  = 'DX'),   -
+                        'N' IF (ADD12  = 'C/'),   -
+                        'N' IF (ADD13  = 'GPO'),  -
+                        'N' IF (ADD13  = '***'),  -
+                        'N' IF (ADD13  = 'CNR'),  -
+                        'N' IF (ADD14  = 'PO B'), -
+                        'N' IF (ADD14  = 'P.O.'), -
+                        'N' IF (ADD14  = 'UNIT'), -
+                        'N' IF (ADD14  = 'LOCK'), -
+                        'N' IF (ADD14  = 'THIS'), -
+                        'N' IF (ADD15  = 'LEVEL'),-
+                        'N' IF (ADD15  = 'SUITE'),-
+                        'Y')
+SUPP-PMT-NAME = PAYMENT-NAME VIA (SUPP-NAME)
+SUPP-ORD-NAME = CHOOSE (SUPP-ADDR IF (ADD-FLG = 'Y'), -
+                        SUPP-NAME)
+%* Order Details
+H = GROSS-PRICE-P OF MSF221 WHERE (PO-NO = F,-
+                                   PO-ITEM-NO = G) D-PIC ($(8)9.99-)    
+I = VAL-APPR VIA (H) D-PIC ($(12)9.99-) 
+F2 = catenate(F ,'-',WH) I-PIC (X(9))
+F3 = catenate(F ,'   ')      I-PIC (X(9))
+FW= choose(F2 IF(F <> SPACES), F3) I-PIC (X(9))
+WHOK = choose('N' IF(OWH <> WHI, WHI <> SPACES), 'Y')
+CNTR = choose(DR IF(WHOK = 'Y'), SPACES)
+DCA  = choose(DC IF(WHOK = 'Y'), SPACES)
+C1   = choose(C IF(WHOK = 'Y'), SPACES)
+B1   = choose(B IF(WHOK = 'Y'), SPACES)
+E1   = choose(E IF(WHOK = 'Y'), SPACES)
+INVT = choose(INVTYPE IF(WHOK = 'Y'), SPACES)
+F1   = choose(F IF(WHOK = 'Y'), SPACES)
+G1   = choose(G IF(WHOK = 'Y'), SPACES)
+INVN = choose(ININV IF(WHOK = 'Y'), SPACES)
+PRQ  = choose(PREQ IF(WHOK = 'Y'), SPACES)
+%*
+%* Retrieve the Warehouse ID Description
+   MSF010     = ASSOC-REC OF MSF010         -
+                WHERE   (TABLE-TYPE = 'WH', -
+                         TABLE-CODE =  DC & WH)
+
+   WHDESC     = TABLE-DESC VIA (MSF010) 
+%* Settlement Discount
+SETA = SETTLE-PC-A VIA (H)
+SETDAYSA = SETTLE-DAYS-A VIA (H)
+SETVAL = CALC (SETA / 100 * VAL-INVD) FORMAT (BWZ)
+SETDUE1 = DATE2 OF MSSDAT WHERE (OPTION = '1', DATE1 = INVDTE, DAYS = SETDAYSA) FORMAT (DATE)
+SETDUE = CHOOSE (SETDUE1 IF (SETA > 0), SPACES) FORMAT (DATE)
+SETDISCTXT = CHOOSE ('SETTLEMENT DISCOUNT: $' IF (SETA > 0), SPACES)
+SETDISCUL = CHOOSE ('-----------------------------------------------' IF (SETA > 0), SPACES)
+ST = CHOOSE ('due' IF (SETA > 0), SPACES)
+
+%* Purchase Req Item Details
+DESC1 = ITEM-DESC1 OF MSF231 WHERE (DSTRCT-CODE = DC,-
+                                       PREQ-NO = PREQ,-
+                                       PREQ-ITEM-NO = PI)
+DESC2  = ITEM-DESC2 VIA (DESC1) 
+DESC3  = ITEM-DESC3 VIA (DESC1) 
+DESC4  = ITEM-DESC4 VIA (DESC1) 
+EXT-DESC = GET (READ-TEXT FROM ('MSF096') CODE ('PR') -
+           KEY (DC,PREQ,PI)) MAX (99)
+
+DESSIZE = SIZE (EXT-DESC)
+%* Purchase Req Header Details
+REQBY1 = REQUESTED-BY OF MSF230 WHERE (DSTRCT-CODE = DC,-  
+                                          PREQ-NO = PREQ)  
+%* DG Make function to try to avoid blank req-by on first record.
+REQBY = CHOOSE (REQBY1 IF (REQBY1 <> SPACES), REQBY1)    
+REQBYS = choose(REQBY IF(WHOK = 'Y'), SPACES)
+
+%* Table file descriptions
+       MODNME = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = MODUSR)
+       MODNAME = FORMATTED-NAME via (MODNME)
+%*
+       ANAME1X = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = A)
+       ANAME1  = FORMATTED-NAME via (ANAME1X)
+
+ANAME = substr (ANAME1, 1, 48)
+       ACNAME1X = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = B)
+       ACNAME1  = FORMATTED-NAME via (ACNAME1X)
+
+ACNAME = substr (ACNAME1, 1, 48)
+       RNAME1X = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = REQBY)
+       RNAME1  = FORMATTED-NAME via (RNAME1X)
+RNAME = substr (RNAME1,1,48)
+
+%* Invoice Commentary
+%* INV-COMM  = GET (READ-TEXT FROM ('MSF096') CODE ('II') -
+%*          KEY (DC,E,ININV)) MAX (99)
+%* COMSIZE   = SIZE (INV-COMM)
+INV-COMM = '       '         
+INV-COM1 = TRO266-1-INV-COMM
+INV-COM2 = TRO266-2-INV-COMM
+
+%* Accounts
+ACCTNO1    = GL-ACCOUNT-1 OF MSS232 WHERE (OPTION = 'R',-
+                                         DSTRCT-CODE = DC,-
+                                         REQ-TYPE-IND = 'P',-
+                                         REQ-NO      = PREQ,-
+                                         PREQ-ITEM   = PI) -
+            IF (OT = '2')
+SI-WO     = WORK-ORDER   VIA (ACCTNO1)
+SI-PNO    = PROJECT-NO   VIA (ACCTNO1)
+SI-ENO    = EQUIP-NO     VIA (ACCTNO1)
+SI-APC    = ALLOC-PC     VIA (ACCTNO1)
+T         = ALLOC-PC     VIA (ACCTNO1) D-PIC (ZZ9.99)
+SIWOP     = choose(SI-WO IF (SI-WO <> SPACES),SI-PNO)
+WOP-LIT   = choose('Work Ord:' IF (SI-WO <> SPACES),-
+                   'Proj No:' IF (SI-PNO <> SPACES), SPACES)
+ELIT   = choose('Eq.No:'  IF (SI-ENO <> SPACES), SPACES)
+ACCTNO2   = GL-ACCOUNT-2 VIA (ACCTNO1)
+ACCTNO3   = GL-ACCOUNT-3 VIA (ACCTNO1)
+ACCTNO4   = GL-ACCOUNT-4 VIA (ACCTNO1)
+ACCTNO5   = GL-ACCOUNT-5 VIA (ACCTNO1)
+ACCTNO6   = GL-ACCOUNT-6 VIA (ACCTNO1)
+ACCTNO7   = GL-ACCOUNT-7 VIA (ACCTNO1)
+WO1       = WORK-ORDER-1 VIA (ACCTNO1)
+PO1       = PROJECT-NO-1 VIA (ACCTNO1)
+WP1       = choose(WO1 IF (WO1 <> SPACES), PO1)
+WO2       = WORK-ORDER-2 VIA (ACCTNO1)
+PO2       = PROJECT-NO-2 VIA (ACCTNO1)
+WP2       = choose(WO2 IF (WO2 <> SPACES), PO2)
+WO3       = WORK-ORDER-3 VIA (ACCTNO1)
+PO3       = PROJECT-NO-3 VIA (ACCTNO1)
+WP3       = choose(WO3 IF (WO3 <> SPACES), PO3)
+WO4       = WORK-ORDER-4 VIA (ACCTNO1)
+PO4       = PROJECT-NO-4 VIA (ACCTNO1)
+WP4       = choose(WO4 IF (WO4 <> SPACES), PO4)
+WO5       = WORK-ORDER-5 VIA (ACCTNO1)
+PO5       = PROJECT-NO-5 VIA (ACCTNO1)
+WP5       = choose(WO5 IF (WO5 <> SPACES), PO5)
+WO6       = WORK-ORDER-6 VIA (ACCTNO1)
+PO6       = PROJECT-NO-6 VIA (ACCTNO1)
+WP6       = choose(WO6 IF (WO6 <> SPACES), PO6)
+WO7       = WORK-ORDER-7 VIA (ACCTNO1)
+PO7       = PROJECT-NO-7 VIA (ACCTNO1)
+WP7       = choose(WO7 IF (WO7 <> SPACES), PO7)
+EQUIP1    = EQUIP-NO-1   VIA (ACCTNO1)
+EQUIP2    = EQUIP-NO-2   VIA (ACCTNO1)
+EQUIP3    = EQUIP-NO-3   VIA (ACCTNO1)
+EQUIP4    = EQUIP-NO-4   VIA (ACCTNO1)
+EQUIP5    = EQUIP-NO-5   VIA (ACCTNO1)
+EQUIP6    = EQUIP-NO-6   VIA (ACCTNO1)
+EQUIP7    = EQUIP-NO-7   VIA (ACCTNO1)
+T1        = ALLOC-PC-1   VIA (ACCTNO1)
+T2        = ALLOC-PC-2   VIA (ACCTNO1)
+T3        = ALLOC-PC-3   VIA (ACCTNO1)
+T4        = ALLOC-PC-4   VIA (ACCTNO1)
+T5        = ALLOC-PC-5   VIA (ACCTNO1)
+T6        = ALLOC-PC-6   VIA (ACCTNO1)
+T7        = ALLOC-PC-7   VIA (ACCTNO1)
+
+%* Display warning if order value < (val invoiced + previous approved)
+%* ie. If warning < 0.
+%* WARNING = CALC (H - VAL-INVD - I)
+
+%*-----------------------------------------------------------------------------------------
+%* Dynamic Printing  **** TEMPORARILY DISABLED **** 
+%* ================                                             
+%*   'A'- MAIN APPROVAL  REPORT- Report only prints if %regonly% <> 'Y'                                              
+%*   'B'- REGISTER       REPORT- Report always prints           
+%*   'C'- (H/O) REGISTER REPORT- Report only prints if %siteprin% = 'B'                                              
+%*                             - ('B'= both site & head office) 
+%*                             - Only prints at request-printer(NO DYNAMIC PRTR)                              
+%*    Note: Request printer should always be DISB (ie. H/O disb printer)                                                      
+%* 1. Overnight Report (created by msb265)  :                   
+%*    Overnight (blank dist always prints at all sites,incl register)                                                     
+%*    Note: TRR265 request is created by msb265 with run nos = eg. 0000, 001092                                              
+%*          where 001092 is the current run. ALL OTHER PARAMETERS ARE BLANK.                                         
+%* 2. Requested Online                                          
+%*       Note: A report will not print if %regonly% = 'Y'       
+%*    2a.Normal    (%CUTOFF-DTE% = spaces)   :                 
+%*       (Prints at site               (A,B) if %SITEPRIN% = 'Y')                                                       
+%*       (Prints at request printer    (A,B) if %SITEPRIN% = 'N')                                                       
+%*       (Prints at request printer    (C)   if %SITEPRIN% = 'B')                                                       
+%*    2b.Exemption (%CUTOFF-DTE% <> spaces)  :               
+%*       (Prints at site               (A,B) if %SITEPRIN% = 'Y')                                                       
+%*       (Prints at request printer    (A,B) if %SITEPRIN% = 'N')                                                       
+%*       (Prints at request printer    (C)   if %SITEPRIN% = 'B')                                                      
+%*EF0702   DSTFIN = CATENATE (DC, 'FINANCE')
+%*EF0702   PRINFIN = PRINTER OF MSF010 WHERE (TABLE-TYPE = 'PR',-
+%*EF0702                                      TABLE-CODE = DSTFIN)
+%*EF0702   PRIN = CHOOSE (PRINFIN IF (%SITEPRIN%  = ' '), -
+%*EF0702                  PRINFIN IF (%SITEPRIN%  = 'Y'), -
+%*EF0702                  PRINFIN IF (%DEFPRIN% = SPACES), -
+%*EF0702                  %DEFPRIN%)
+%*EF0702   PRINX = PRINTER (PRIN)
+%*-----------------------------------------------------------------------------------------
+
+%* Totals:
+%* DG Was printing blank invoices in 'b' report so ensure J (Invoice) <> spaces.
+PRINT = CHOOSE ('Y' IF (CUTDTE1 = SPACES, OININV <> SPACES), -
+                'Y' IF (CUTDTE1 <> SPACES, INVDTE <= CUTDTE1, ININV <> SPACES), 'N')
+CNT1 = CHOOSE (1 IF (PRINT = 'Y', WHOK = 'Y'),0)
+%* W00030683 VAL1 = CHOOSE (VAL-INVD IF (PRINT = 'Y'),0)
+VAL1 = CHOOSE (VAL-INVD2 IF (PRINT = 'Y', WHOK = 'Y'),0)
+CNT = TOTAL (CNT1)
+VAL = TOTAL (VAL1) D-PIC ($(12)9.99-)

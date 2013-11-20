@@ -1,0 +1,198 @@
+%*** TRR22P.rdl
+%***
+%*** Revision History ***
+%*** 02-Aug-12 a9jw6280   MO164 (Version 0001)
+%*** ...................  Reset version number to 0001 for E8 upgrade.
+%*** 04-Aug-05 AIesho     WCHG107741
+%**  ....................Initial Coding. 
+%PROGRAM-ID
+       TRR22P
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      This program will report any Price or Quantity changes 
+      for a purchase order
+%FILES
+        MFILE = MSF222A
+        LFILE = MSF221
+        LFILE = MSF220
+        LFILE = MSF170
+        LFILE = MSF100
+        LFILE = MSF231
+        LFILE = MSF010
+        RFILE = TRR22PA
+%ROUTINES
+        MSSDAT
+%VERSION
+        0001
+%SELECTION
+<IF DC = SPACES>
+         WHERE (DSTRCT-CODE >= SPACES)
+         REJECTIF (CREATION-DATE < STD)
+         REJECTIF (CREATION-DATE > ENDD)
+         REJECTIF (PO-HIST-TYPE <> '1', PO-HIST-TYPE <> '2')
+<ELSE>
+         WHERE (DSTRCT-CODE  = DC , -  
+                CREATION-DATE >= STD, -
+                CREATION-DATE <= ENDD)
+         REJECTIF (PO-HIST-TYPE <> '1', PO-HIST-TYPE <> '2')
+<ENDIF>
+%REPORT
+      A
+%ORDER
+      DSTRCT TEXT DISTRICT-CODE
+      PONO   TEXT PURCHASE-ORDER
+      PONOI  TEXT PURCHASE-ORDER-ITEM
+      CRDT   TEXT CHANGE-DATE
+%BREAK-FIELDS
+      DSTRCT
+      PONO
+%TITLE
+                'Purchase order Price/Quantity Change'
+%PAGE HEADING
+'Dist Order Date/ Stock code/  Ware   Order  Item    Current    Original    Changed      Current    Original     Changed    '
+'Code Change Date Employee     House   No     No    Quantity    Quantity    Quantity       Price       Price       Price     '
+%BREAK DSTRCT HEADING ON NEW-PAGE
+%DETAIL
+<IF (ORQ <> CURQ OR ORP <> CURP) AND PRNTOK = 'Y'>
+{DS} {OD    }    {STC    }     WW     {PNO } III {CURQS    } {ORQS     } {QTYC     } {CURPS    } {ORPS     } {PRIC     } 
+     {CD    } {EMP     } {EMPNM                                 }
+ <IF STC <> SPACES>
+<SUPPRESS>
+                                  {NAM                                   }
+<SUPPRESS>
+                                  {DSC1                                  }
+<SUPPRESS>
+                                  {DSC2                                  }
+<SUPPRESS>
+                                  {DSC3                                  }
+<SUPPRESS>
+                                  {DSC4                                  }
+ <ELSE>
+<SUPPRESS>
+                                  {RDSC1                                 }
+<SUPPRESS>
+                                  {RDSC2                                 }
+<SUPPRESS>
+                                  {RDSC3                                 }
+<SUPPRESS>
+                                  {RDSC4                                 }
+  <ENDIF>
+<ENDIF>
+%BREAK PONO FOOTING
+<IF ROKT > 0>
+  <IF SZ > 0>
+                   'Narrative:' 
+  <ENDIF>
+<REPEAT>
+<SUPPRESS>
+                                  {HNARR                                                     }
+<ENDREPEAT>
+
+<ENDIF>
+%REQUEST-PARAMETERS
+       DC     PIC (X(4))                TEXT District Code  (Spaces for All) :
+       WHI    PIC (X(2))                TEXT Warehouse Id                    :
+       DATEFR PIC (X(8))  FORMAT (DATE) TEXT Select Modified Date from       :
+       DATETO PIC (X(8))  FORMAT (DATE) TEXT Select Modified Date to         :
+       CTYPE  PIC (X(1))                TEXT Select (D)aily or (M)onthly     :
+%VARIABLES
+       TDATE     = date()                              CONSTANT
+       TTIME     = time()                              CONSTANT
+       DATEFR    = %DATEFR%                            CONSTANT
+       DATETO    = %DATETO%                            CONSTANT
+       DC        = %DC%                                CONSTANT
+       WHI       = %WHI%                               CONSTANT
+       TYP       = %CTYPE%                             CONSTANT
+       YRM       = substr(TDATE, 3,4)  I-PIC (X(4))    CONSTANT
+       YESTD     = DATE2-X OF MSSDAT -
+                   WHERE (OPTION = '1', -
+                          DATE1  = TDATE, -
+                          DAYS   = -1)                 CONSTANT
+
+       PREVMSD   = STARTING-DATE-1-9 OF MSSDAT -
+                   WHERE (OPTION = 'I', -
+                          PERIOD-YRMN  = YRM, -
+                          DAYS   = -1)                 CONSTANT
+       PREVMED   = ENDING-DATE-1-9 VIA (PREVMSD)       CONSTANT
+       STD       = choose(DATEFR IF(DATEFR <> SPACES), -
+                          YESTD  IF(TYP = 'D'), -
+                          PREVMSD IF(TYP = 'M'), TDATE)  CONSTANT
+       ENDD      = choose(DATETO IF(DATETO <> SPACES), -
+                          DATEFR IF(DATEFR <> SPACES), -
+                          YESTD  IF(TYP = 'D'), -
+                          PREVMED IF(TYP = 'M'), TDATE)  CONSTANT
+
+       PNO       = PO-NO
+       PNOI      = PO-ITEM    
+       X         = substr(PO-NO,1,1)  
+       CD        = CREATION-DATE FORMAT (DATE)
+       CRU       = CREATION-USER
+       STRU      = STOREMAN-ID
+       EMP       = choose(CRU IF(STRU = SPACES), STRU) I-PIC (X(10))
+       EMPN      = HRGET( EMPLOYEE-ID from('MSSEMP,MSF810')  KEY(EMPLOYEE-ID = EMP)
+       EMPNM     = FORMATTED-NAME VIA(EMPN)
+%*get MSF221 details
+       I         = PO-ITEM-NO OF MSF221 -
+                   WHERE (PO-NO       = PNO ,-
+                          PO-ITEM-NO  = PNOI)    
+  
+       S         = STATUS-221       VIA (I)
+       PO        = PO-NO            VIA (I)
+       DS        = DSTRCT-CODE      VIA (I)
+       STK       = STOCK-CODE       VIA (I)
+       W         = WHOUSE-ID        VIA (I)
+       ORQ       = ORIG-QTY-I       VIA (I)
+       ORP       = ORIG-NET-PR-I    VIA (I)
+       CURQ      = CURR-QTY-I       VIA (I)
+       CURP      = CURR-NET-PR-I    VIA (I)
+       CURPS     = choose(CURP IF(ORP <> CURP), ZEROS) FORMAT (BWZ)
+       ORPS      = choose(ORP  IF(ORP <> CURP), ZEROS) FORMAT (BWZ)
+       CURQS     = choose(CURQ IF(ORQ <> CURQ), ZEROS) FORMAT (BWZ)
+       ORQS      = choose(ORQ  IF(ORQ <> CURQ), ZEROS) FORMAT (BWZ)
+       QTYC      = calc(CURQ - ORQ) FORMAT (BWZ)
+       PRIC      = calc(CURP - ORP) FORMAT (BWZ)
+       REQH      = PURCH-REQ        VIA (I)
+       REQI      = PREQ-ITEM        VIA (I)
+%*get MSF220 details
+       HDS       = STATUS-220 OF MSF220 -
+                   WHERE (PO-NO       = PNO)
+       OD        = ORDER-DATE       VIA (HDS) FORMAT (DATE)
+%*get MSF231 details
+       RDSC1     = ITEM-DESC1 OF MSF231 -
+                   WHERE (DSTRCT-CODE  = DS, -
+                          PREQ-NO      = REQH, -
+                          PREQ-ITEM-NO = REQI)
+       RDSC2     = ITEM-DESC2       VIA (RDSC1)
+       RDSC3     = ITEM-DESC3       VIA (RDSC1)
+       RDSC4     = ITEM-DESC4       VIA (RDSC1)
+%* Get MSF100 Details
+       DSC1      = DESC-LINE-1 OF MSF100 -
+                   WHERE (STOCK-CODE = STK)
+       DSC2      = DESC-LINE-2  VIA (DSC1)
+       DSC3      = DESC-LINE-3  VIA (DSC1)
+       DSC4      = DESC-LINE-4  VIA (DSC1)
+       NAM       = ITEM-NAME    VIA (DSC1)
+       BRKF      = catenate(PO,I)
+       QINS      = QUAL-INSP OF MSF170 -
+                   WHERE (DSTRCT-CODE  = DS, -
+                          STOCK-CODE = STK)
+       STC       = STOCK-CODE       VIA (QINS)
+       QIN       = TABLE-CODE OF MSF010 -
+                   WHERE (TABLE-TYPE = '#QI', -
+                          TABLE-CODE = QINS)
+       ASSOCV    = ASSOC-REC   VIA (QIN)
+       PRNTOK    = choose('N' IF(HDS = '3'), -
+                          'N' IF(S = '3'), -
+                          'N' IF(W <> WHI, WHI <> SPACES), 'Y')
+       DSTRCT    = choose(SPACES IF((PRNTOK = 'N') OR (ORQ = CURQ, ORP = CURP)), DS)
+       PONO      = choose(SPACES IF((PRNTOK = 'N') OR (ORQ = CURQ, ORP = CURP)), PO)
+       PONOI     = choose(SPACES IF((PRNTOK = 'N') OR (ORQ = CURQ, ORP = CURP)), PNOI)
+       CRDT      = choose(SPACES IF((PRNTOK = 'N') OR (ORQ = CURQ, ORP = CURP)), CD)
+
+       HNARR    = GET (READ-TEXT FROM ('MSF096') CODE ('NT') -
+                      KEY ('7', PNO)) MAX (100)
+       SZ       = size(HNARR)
+       ROK      = choose(1 IF((ORQ <> CURQ OR ORP <> CURP) AND PRNTOK = 'Y'), 0)
+       ROKT     = total(ROK)
+%* End Program

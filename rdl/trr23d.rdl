@@ -1,0 +1,230 @@
+%*** TRR23D.RDL
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%*** 
+%*** Revision History ***
+%*** 03-Aug-12 a9ir6369   MO164 (Version 0001)
+%*** .................... Reset version number to 0001 for E8 upgrade.
+%*** .................... Added quote for words after TEXT
+%*** 09-Nov-05 E Fredeluces  P05110870
+%***                         Fix compilation errors in Ellipse 5.2.3.7.
+%*** 27-Jun-05  Amanda N.    P05060270
+%***                         Added Warehouse request parameter
+%*** 08-Feb-02  L Nee        WCHG001130 
+%***                         Initial coding.
+%***
+%PROGRAM-ID
+       TRR23D
+%AUTHOR
+       Laura Nee     
+%NARRATIVE
+      **  This will extract the Purchase Requisitions in the 
+      **  MSF230 file for a given month or position.
+%VERSION
+        0001
+%FILES
+        MFILE = MSF230
+        AFILE = MSF231
+        LFILE = MSF875
+        LFILE = MSF878
+        LFILE = MSF878A
+        LFILE = MSF232
+        OFILE = TRT23DA
+%ROUTINES
+        MSSDAT
+        MSSCNV
+        MSS232
+%SELECTION
+       WHERE    (DSTRCT-CODE  = %DISTRICT-CODE%, -
+                 PREQ-NO     >=  SPACES)            
+       REJECTIF (AUTHSD-DATE  = SPACES)             
+       REJECTIF (AUTHSD-DATE <> SPACES AND AUTHSD-DATE < DATEFR)             
+       REJECTIF (AUTHSD-DATE <> SPACES AND AUTHSD-DATE > DATETO)          
+%CONTROL
+       COPY-REQUEST = TRR23E
+%OUTPUT-FILE
+       A
+%DETAIL
+<IF PFLAG = 'Y' AND RFLAG = 'Y' AND WHFLG = 'Y'>
+  <IF C = 'M'>
+{ST-DTE}{EN-DTE}{SUPID   }{AUTBY   }{SUPPOS  }{AUTPOS  }{PREQ}AAA{DESC                                  }-
+{ACCTNO                }{AUTDTE}{PQTY     }{PRICE        }{VALUE        }
+  <ENDIF>
+  <IF C = 'D'>
+{DEYT  }{DEYT  }{SUPID   }{AUTBY   }{SUPPOS  }{AUTPOS  }{PREQ}AAA{DESC                                  }-
+{ACCTNO                }{AUTDTE}{PQTY     }{PRICE        }{VALUE        }
+  <ENDIF>
+  <IF C = 'F'>
+{FNFR  }{DEYT  }{SUPID   }{AUTBY   }{SUPPOS  }{AUTPOS  }{PREQ}AAA{DESC                                  }-
+{ACCTNO                }{AUTDTE}{PQTY     }{PRICE        }{VALUE        }
+  <ENDIF>
+  <IF C = SPACES>
+{DTE1  }{DTE2  }{SUPID   }{AUTBY   }{SUPPOS  }{AUTPOS  }{PREQ}AAA{DESC                                  }-
+{ACCTNO                }{AUTDTE}{PQTY     }{PRICE        }{VALUE        }
+  <ENDIF>
+<ENDIF>
+%REQUEST-PARAMETERS
+       DATE1 PIC (X(8))  TEXT  'From Date                                     : '
+       DATE2 PIC (X(8))  TEXT  'To   Date                                     : '
+       POS   PIC (X(10)) TEXT  'Position-Id                                   : '
+       SUM   PIC (X(1))  TEXT  'Summary Report (Y/N)                          : '
+       CYCLE PIC (X(1))  TEXT  'Cycle: M-onthly D-daily F-Fortnightly (M/D/F) : '
+       WHOUSE PIC (X(2)) TEXT  'Warehouse Code                                : '
+%VARIABLES
+       Z     = '/'         CONSTANT
+       C     = %CYCLE%     CONSTANT
+       DTE1  = %DATE1%     CONSTANT
+       DTE2  = %DATE2%     CONSTANT 
+
+       DC    = DSTRCT-CODE
+%*
+%* Determine the Previous Month
+%*
+       CP1   = WX-STORES-CP CONSTANT
+       LP    = PERIOD-YRMN OF MSSDAT        -
+                   WHERE (OPTION = 'I',     -
+                          PERIOD-YRMN = CP1,-
+                           DAYS = -1)       -
+                           CONSTANT FORMAT PERIOD
+       LP2   = PERIOD-YRMN OF MSSDAT        -
+                   WHERE (OPTION = 'H',     -
+                          PERIOD-YRMN = LP) -
+                           CONSTANT FORMAT PERIOD
+       ST-DTE  = STARTING-DATE-1-9 VIA (LP2) CONSTANT
+       EN-DTE  = ENDING-DATE-1-9   VIA (LP2) CONSTANT
+%*
+%* Determine the Previous Day
+%*
+       TODAY     = DATE ()        CONSTANT 
+       YESTERDAY = DATE2 OF MSSDAT        -
+                   WHERE (OPTION = '1',   -
+                          DATE1  = TODAY, -
+                          DAYS   = -1) CONSTANT 
+%*   To determine the DAY today
+       DY        = DAYS OF MSSDAT       -
+                   WHERE (OPTION = '6', -
+                         DATE1  = TODAY) CONSTANT
+%*   DAY Values
+       D              = choose ('MON' IF (DY = 1), -
+                                'TUE' IF (DY = 2), -
+                                'WED' IF (DY = 3), -
+                                'THU' IF (DY = 4), -
+                                'FRI' IF (DY = 5), -
+                                'SAT' IF (DY = 6), -
+                                'SUN' IF (DY = 7), -
+                                '   ')
+%*
+%*    To choose the Friday Date if today is Sunday in the Approved Loaded Date
+%*
+      SUNDAY          = DATE2 OF MSSDAT         -
+                        WHERE (OPTION = '1',    -
+                               DATE1  = TODAY,  -
+                               DAYS   = -2)     -
+                               CONSTANT 
+%*
+%*    To choose the Friday date if today is Monday in the Approved Loaded Date
+%*
+      MONDAY          = DATE2 OF MSSDAT         -
+                        WHERE (OPTION = '1',    -
+                               DATE1  = TODAY,  -
+                               DAYS   = -3)     -
+                               CONSTANT
+%*
+      DEYT            = CHOOSE (SUNDAY IF (DY = 7), -
+                                MONDAY IF (DY = 1), -
+                                YESTERDAY)          -
+                                CONSTANT I-PIC (9(8))
+%*
+%* Determine the Start of the Previous Fortnight
+%*           the End   of the Fortnight will be the Date of Daily Cycle  
+%*
+      FNFR            = DATE2 OF MSSDAT         -
+                        WHERE (OPTION = '1',    -
+                               DATE1  = DEYT,   -
+                               DAYS   = -13)    -
+                               CONSTANT
+%*
+%* Display dates for printing in Page Heading
+%*
+       DATEFR    = CHOOSE (ST-DTE  IF (C = 'M'),    -
+                           DEYT     IF (C = 'D'),    -
+                           FNFR     IF (C = 'F'),    -
+                           DTE1) CONSTANT
+%*
+       DATETO    = CHOOSE (EN-DTE IF (C = 'M'),    -
+                           DEYT     IF (C = 'D'),    -
+                           DEYT     IF (C = 'F'),    -
+                           DTE2) CONSTANT
+%**    variables
+
+       PREQ      = PREQ-NO         
+       AUTBY     = AUTHSD-BY
+       REQBY     = REQUESTED-BY 
+       AUTDTE    = AUTHSD-DATE 
+
+       MSF231    = PREQ-NO FROM MSF231         -
+                   WHERE (DSTRCT-CODE  = DC,   -
+                          PREQ-NO      = PREQ, -
+                          PREQ-ITEM-NO >= SPACES)
+       A         = PREQ-ITEM-NO VIA (MSF231)
+       DESC      = ITEM-DESC1   VIA (MSF231)
+       B         = REQ-TYPE     VIA (MSF231)
+       PQTY      = PR-QTY-REQD  VIA (MSF231)        D-PIC (--------9.99)
+       PRICE     = EST-PRICE    VIA (MSF231)        D-PIC (----------9.9999)
+       VAL       = CALC(PQTY * PRICE)               D-PIC (----------9.9999)
+       VALUE     = CHOOSE (VAL IF (B = 'G'), PRICE) D-PIC (----------9.9999)
+       WHID1     = WHOUSE-ID    VIA (MSF231)
+       WHID      = substr (WHID1, 1, 2)
+       WHFLG     = CHOOSE ('N' IF (%WHOUSE% <> SPACE AND WHID <> %WHOUSE%), -
+                           'Y')
+       ACCTNO    = GL-ACCOUNT-1 OF MSS232 -
+                   WHERE (OPTION       = 'R',-
+                          DSTRCT-CODE  = DC,-
+                          REQ-TYPE-IND = 'P',-
+                          REQ-NO       = PREQ,-
+                          PREQ-ITEM    = A)
+
+       RFLAG     = CHOOSE ('Y' IF (REQBY = AUTBY), 'N')
+
+       AUTPOS    = POSITION-ID OF MSF878A                      -
+                        WHERE    (EMPLOYEE-ID-1    = AUTBY,    -
+                                  PRIMARY-POS-1    = '0',      -
+                                  INV-STR-DATE-1  >= SPACES)   -
+                        REJECTIF (POS-STOP-DATE-1 <> '00000000') -
+                        MAX      (1)
+%*
+%*     Retrieve the Employee's Current Position
+%*
+       HTYVER    = catenate ('C','001')   D-PIC (X(4))
+       SUPPOS    = SUPERIOR-ID OF MSF875              -
+                   WHERE    (HIER-DETAILS   = HTYVER, -
+                             POSITION-ID    = AUTPOS)
+%*
+       PFLAG     = choose ('Y'    IF (SUPPOS  = %POS%),  - 
+                           'Y'    IF (%POS%   = SPACES), -
+                           'N')
+%*
+%*     Team Leader's Primary Position and Name
+%*
+       SUPIDP    = EMPLOYEE-ID OF MSF878                       -
+                        WHERE    (POSITION-ID    = SUPPOS,     -
+                                  EMPLOYEE-ID   >= SPACES)     -
+                        REJECTIF (PRIMARY-POS   <> '0')        -
+                        REJECTIF (POS-STOP-DATE <> '00000000') -
+                        MAX      (1)
+%*
+%*     Team Leader's Secondary Position and Name
+%*
+       SUPIDS    = EMPLOYEE-ID OF MSF878                       -
+                        WHERE    (POSITION-ID    = SUPPOS,     -
+                                  EMPLOYEE-ID   >= SPACES)     -
+                        REJECTIF (PRIMARY-POS   <> '1')        -
+                        REJECTIF (POS-STOP-DATE <> '00000000') -
+                        MAX      (1)
+%*
+       SUPID     = choose (SUPIDP IF (SUPIDP <> SPACES),       -
+                           SUPIDS) 
+%*
+%*                   *****  End of Program  *****
+%*

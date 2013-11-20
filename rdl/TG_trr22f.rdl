@@ -1,0 +1,827 @@
+%*** $Id: esr150.rdl,v7.0 8/6/2012 11:00:00 Exp $
+%*** TRR22F.rdl
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 16-Jan-13 a9nh4814      MO164
+%*** ......................  Modified requistion detail
+%*** 13-Sep-12 N Perry
+%*** ......................  Changed variable S to read ALLOC-PC from MSS232
+%*** ......................  instead of INVENT-CAT from MSF1HD
+%*** 06-Sep-12 N Perry
+%*** ......................  Reset version number to 0001 for E8 upgrade
+%*** ......................  WX-MULTIWHOUSE no longer exists. Set to 'Y'.
+%*** 31-Aug-12 N Perry
+%*** ......................  MSF190 no longer exists.
+%*** ......................  Now use MSF1CS and MSF1HB
+%*** 30-Aug-12 N Perry
+%*** ......................  Changed getting WHOUSE SOH to be from 
+%*** ......................  MSSSOH
+%*** 08-Aug-12 N Perry 
+%*** ......................  EQUIP-TRACE-IND no longer held in MSF170.
+%*** ......................  Now read from MSF68X and MSF600.
+%*** ......................  Needed to add ' to the TEXT fields  
+%*** ......................  Replaced ESR150 with TRR22F      
+%*** ......................  Replace PIC Statements with D-PIC.    
+%*** ......................  Convert to Ellipse 8 format.
+%**  08-Jun-12  E Fredeluces SC3965993
+%*** .................... Only process warehouse items, where the 
+%*** .................... warehouse is the same as that on the 
+%*** .................... Purchase Order Item.  The TransGrid's 
+%*** .................... part number will be included in the report.  
+%*** .................... It will be retrieved from MSF110 
+%*** .................... (Part No./Stock-Code) table where the 
+%*** .................... status code is '-GENL'.
+%*** 22-Apr-04  R Yeung   WHD0238167
+%*** .................... Expand the DLIN to 20 lines.Fac1
+%*** 21-Apr-04  R Yeung   WHD0238167
+%*** .................... Display discrepancy details.
+%*** 27-Oct-00  E Fredeluces  W00100171
+%*** .................... Include Category Type.
+%*** 17-Sep-1999 E Fredeluces W99090400
+%*** .................... To pick-up the Purchare Reqn description
+%*** .................... from the District of the originating 
+%*** .................... Purchase Order instead of the requesting
+%*** .................... district.
+%*** 16-DEC-1998 NeelC    W812110049.
+%*** .................... The msf141 lookup upto MAX of 20 could not 
+%*** .................... accomodate where items were more than 20.
+%*** .................... modified the MAX on this file to 25.
+%*** 
+%*** 16-Apr-96 Mincom     Replace 'RC' table access with HRGET macro.
+%*** 15-NOV-95 Peter Lacey
+%*** .................... Converted from 3.010 to 3.013. Changed PRIME-LOCATION
+%*** .................... to BIN-DETAILS for MSF190.
+%*** 13-Jan-94 MaryW..... Amend report number and add msf221-whouse-id for multi
+%*** .................... warehouse districts. Version 006.
+%*** 19-Jul-93 DavidG     Don't print fully received items unless item entered.
+%***....................... DCPR desc lines 2,3,4 were not printing.
+%***....................... DCPR desc increased to 60 chars.
+%***....................... Print extended desc of stock items.
+%***....................... Don't print std-headings - Hard code in page heading,
+%***.......................       so that userid is correct.
+%***....................... Version 005.
+%*** 09-DEC-92 DavidG     Print UN Transport and Hazardous goods codes/desc.
+%*** 14-APR-92 DavidG     Remove rejectif for completed items 
+%*** 26-OCT-91 DavidG	  Change to allow selection on a range of PO items.
+%*** 26-OCT-91 DavidG	  Changes specifically for ECNSW as follows:-
+%***....................... Lookup msf140,msf141 to print o/s pick slip details for items.
+%***....................... print p/no's which appear on order (from msf210 not msf110)
+%***....................... don't select/print items which have already been rec'd
+%***....................... print purch off before o/no in page heading to assist filing clerks
+%***....................... dont print offsite due in
+%***....................... print rec rep item narr (spcomm1)
+%***....................... k1,k2,k3,k4 variables - use 180 wh or 170 wh or wx wh if 170 wh is spaces
+%*** 30-Jul-90 Rozie      Complete the following:
+%***.......................1. Restart page numbering for each order (ie on PO-NO break)
+%***.......................2. READ-TEXT for SCOMM (Supplier Commentary Global and District)
+%***.......................                 NARR (Header level narrative)
+%***.......................                 STKCOMM (Stock code/Supplier Comm Global & District)
+%***.......................                 SPCOMM (Item level receiving report narrative)
+%***.......................3. Serial Number underlines to be repeated J times.
+%***.......................4. For Stock codes - Get warehouse, bin, SOH info from various
+%***.......................   combinations of MSF170, MSF180, MSF190 depending on Stock-at-bin
+%***.......................   flag at the various levels (K, BIN, M)
+%***.......................5. N/A Delivery Instructions (DELIV2) needs split in DD.
+%***.......................6. Concatenated Mnemonic and Part Numbers
+%***.......................7. Add AFILE - msf180
+%*** 25-Jul-90 Rozie      C25053 Version 003. 3.001B to 3.004/8.
+%*** 11-Apr-90 Chrisj     CSB150 Version 002A. From M3000C to M3001A.
+%*** 20-Mar-90 Ross       C99548 Version 002. From M3000 to M3000C.
+%*** 05-Feb-90 Barbara   Initial Coding
+%***                  Generated by Version 002 of NEWRDL.MAC
+%***
+%PROGRAM-ID
+       TRR22F
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report is used to view material delivered against
+      **  orders by suppliers, for both catalogued and non-catalogued
+      **  items.
+      **  The printer is set up and passed to MSO080 via MSO150.
+      **
+%*%VERSION
+%*       The version number is stored in variable VER-NO.
+       0001
+%MODULE
+       3140
+%FILES
+        MFILE = MSF221
+        AFILE = MSF180
+        LFILE = MSF000
+        LFILE = MSF010
+        LFILE = MSF100
+        LFILE = MSF110A
+        LFILE = MSF140
+        LFILE = MSF141B
+        LFILE = MSF170
+        LFILE = MSF180
+%*        LFILE = MSF190
+        LFILE = MSF1CSA
+	 LFILE = MSF1HB
+    	 LFILE = MSF1HD
+        LFILE = MSFX68
+        LFILE = MSF200
+        LFILE = MSF210
+        LFILE = MSF220
+        LFILE = MSF230
+        LFILE = MSF231
+        LFILE = MSF232
+        LFILE = MSF245
+        LFILE = MSF246
+        AFILE = MSF062
+        LFILE = MSF600
+%*        RFILE = ESR150A
+        RFILE = TRR22FA
+%ROUTINES
+       MSS232
+       MSSSOH
+%SELECTION
+       WHERE    (PO-NO = %PO-NO%, PO-ITEM-NO >= %PO-ITEM-FROM%)
+       STOPIF   (%PO-ITEM-TO%   <> SPACES AND %PO-ITEM-TO% <> '000' AND PO-ITEM-NO > %PO-ITEM-TO%)
+       REJECTIF (%PO-ITEM-FROM% <= '000', RECEIPT-STATUS = 2)
+       REJECTIF (%PO-ITEM-FROM% <= '000', STATUS-221 = 3)
+       REJECTIF (PO-ITEM-TYPE    = 'S')
+%CONTROL-BREAKS
+       PO-NO
+       PO-ITEM-NO
+%TITLE
+       'Receiving Report'
+%BREAK PO-NO HEADING
+%PAGE HEADING
+{UNDERLINE                                                                                                                         }
+{L1       }        'Supplier Name'            '| Purchasing |  Order   | Storeman Id.|Delivery No.|Delivery Date|Supplier Docket #'X
+X'Number  |'                                  '| Officer    |   No.    |'            X            X             X                  X
+X AAAAAA  X {SNAME                         }   X CCCCCCCCCC X BBBBBB   X             X            X             X                  X
+{UNDERLINE                                                                                                                         }
+<IF S1 > 0 OR S2 > 0>
+          'Note for this Supplier:' {SUPGLOB                                                            }
+<ENDIF>
+<REPEAT>
+<SUPPRESS>
+                                    {SUPGLOB                                                            }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                    {SUPDST                                                             }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                    {SUPGLOB1                                                           }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                    {SUPDST1                                                            }
+<ENDREPEAT>
+<IF N1 > 0>
+          'Note for this P/Order :' {NARR                                                               }
+<REPEAT>
+<SUPPRESS>
+                                    {NARR                                                               }
+<ENDREPEAT>
+<ENDIF>
+
+'Item No.  Name/Description                          Part Number(s) (appearing on order)    Inspection'
+%BREAK PO-ITEM-NO HEADING TEST-PAGE (7)
+<IF STK = 'Y'>
+    DDD    {INAME                                  } {MMA   } {PPA                         }{INSP                                  }
+<SUPPRESS>
+           {IDESC1                                 } {PART                        } {MNEM  } 
+<SUPPRESS>
+           {IDESC2                                 } {MMB   } {PPB                         }
+%*    <IF TN <> SPACES>
+%*        {IDESC3                                 }            '***** UN Trpt code  :'{TN} {TNDESC                                }
+%*    <ELSE>
+    <SUPPRESS>
+           {IDESC3                                 } {MMC   } {PPC                         } 
+%*    <ENDIF>
+    <IF HZ <> SPACES>
+           {IDESC4                                 }            '***** Hazardous Mat.:'{HZ} {HZDESC                                }
+                                                                                          '****************************************'
+    <ELSE>
+    <SUPPRESS>
+           {IDESC4                                 } 
+    <ENDIF>
+    <IF TN <> SPACES>
+                                                                '***** UN Trpt code  :'{TN} {TNDESC                                }
+
+    <ENDIF>
+    <REPEAT>
+    <SUPPRESS>
+           {IDESCEXT                               } 
+    <ENDREPEAT>
+<ELSE>
+    DDD    {RDESC                                  } {MN    } {PN                          }{INSP                                  }
+<REPEAT>
+<SUPPRESS>
+           {RDESC                                                     }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+           {RDESC1                                                    }
+<ENDREPEAT>
+<ENDIF>
+<IF SER = 'Y'>
+
+              'Serial Numbers required for these items:'
+
+<REPEAT J>
+              '---------------------------'
+<ENDREPEAT>
+<ENDIF>
+<IF STK = 'Y'>
+          'Stock Code/  DuesOut (UOI)  Inv  Reservation/    UOP UOI/    |Due In(UOP)|'{W4}'    Quantity      Quantity        New'
+          '  Locations    Price (UOI)  Cat  Stock on Hand  Conv.Fact    |           |'{W5}'    Received      Returned      Location'
+             EEEEEEEEE   FFFFFFFFFF    MM   GGGGGGGGG       HHH IIII    XOOOOOOOOOO X {WH}
+                        {PR          }      {SOH1   }      NNNNNNNNN    X           X
+<ELSE>
+          'Purch. Req./  Delivery   Information/                        |Due In(UOP)|'{W4}'    Quantity      Quantity        New'
+          '       UOP    Accounting Information                         |           |'{W5}'    Received      Returned      Location'
+            PPPPPPYQQQ   {RBY                                   }       XJJJJJJJJJJ X {WH}
+                  HHHH   {DELIV1                                }       X           X
+                         {DELIV2            } 'Price:'{PR          }    X           X
+     <IF AC-FLAG = 'Y'>
+                       'Account Code  Ind   Proj/WO   PC'               X           X
+     <ENDIF>
+     <IF AC1 <> SPACES>
+                        {AC1       }  {TY1} {WPRJ1 }  {PC1 }Z           X           X
+     <ENDIF>
+     <IF AC2 <> SPACES>
+                        {AC2       }  {TY2} {WPRJ2 }  {PC2 }Z           X           X
+     <ENDIF>
+     <IF AC3 <> SPACES>
+                        {AC3       }  {TY3} {WPRJ3 }  {PC3 }Z           X           X
+     <ENDIF>
+     <IF AC4 <> SPACES>
+                        {AC4       }  {TY4} {WPRJ4 }  {PC4 }Z           X           X
+     <ENDIF>
+     <IF AC5 <> SPACES>
+                        {AC5       }  {TY5} {WPRJ5 }  {PC5 }Z           X           X
+     <ENDIF>
+     <IF AC6 <> SPACES>
+                        {AC6       }  {TY6} {WPRJ6 }  {PC6 }Z           X           X
+     <ENDIF>
+     <IF AC7 <> SPACES>
+                        {AC7       }  {TY7} {WPRJ7 }  {PC7 }Z           X           X
+     <ENDIF>
+<ENDIF>
+%DETAIL TEST-PAGE (5)
+<IF STK = 'Y'>
+  <IF BINS > 0 >
+
+    <REPEAT>
+    <SUPPRESS>
+           KKKK {BIN       }           SS   {BINSOH }                   X           X
+    <ENDREPEAT>
+
+  <ELSE>
+           KKKK                             {X2     }                   X           X
+  <ENDIF>
+  <IF PSSIZE > 0>
+                             'P/Slip /Item   Qty O/S Req by  Date Req Instructions'
+    <REPEAT>
+                              {PS  }  {PI} {QTYOS  } {RQBY } {DTEREQ} {INST                                                      }
+    <ENDREPEAT>
+  <ENDIF>
+<ENDIF>
+
+
+<IF DRNO <> SPACES>
+
+                        'Report No./Item  Contact Name/Description  Reference  +--Discrepancy Type--+  Status'
+'Discrepancy Details : ' {DRNO}Y{DIN}     {SCNTACT           }      {REF     } RR {DDESC            }   {ST   }
+     <IF DESC <> SPACES>
+                                          {DESC                                                         }
+     <ENDIF>
+     <REPEAT>
+       <SUPPRESS>
+                                          {DLIN                                                         }
+     <ENDREPEAT>
+
+<ENDIF>
+
+
+%BREAK PO-ITEM-NO FOOTING
+<IF STK1 > 0>
+              'Note for this Stock Code:'
+<ENDIF>
+<REPEAT>
+<SUPPRESS>
+                {STKGLOB                                                   }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                {STKDST                                                    }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                {STKGLOB1                                                  }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                {STKDST1                                                   }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                {SUPSTKG                                                   }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                {SUPSTKD                                                   }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                {SUPSTKG1                                                  }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                {SUPSTKD1                                                  }
+<ENDREPEAT>
+<IF SP1 > 0>
+              'Note for this Order/Item:'
+<ENDIF>
+<REPEAT>
+<SUPPRESS>
+                {SPCOMM                                                    }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                {SPCOMM1                                                   }
+<ENDREPEAT>
+<IF T <> 0 AND V <> 0>
+              '***** Settlement Terms:'TTT'days'UUUUUUZ'or'VVV'days'WWWWWWZ'*****'
+<ELSE>
+   <IF T <> 0>
+              '***** Settlement Terms:'TTT'days'UUUUUUZ'*****'
+   <ENDIF>
+<ENDIF>
+%REPORT-SUMMARY 
+              {UNDERLINE                                       }         {UNDERLINE                                       }
+             '|      | Storeman/ |'        '|Discrepancy Report|'       '|      | Storeman/ |'        '|Discrepancy Report|'
+             '| Init |  Supv.No. |   Date   |     Notation     |'       '| Init |  Supv.No. |   Date   |     Notation     |'
+  '-----------|------|-----------|----------|------------------|---------|------|-----------|----------|------------------|'
+   'Check By  |'    '|           |          |'                '|Q/C By   |      |'         '|          |                  |'
+             '|      |           |          |'                '|         |      |'         '|          |                  |'
+   'Bin By    |      |           |          |'                '|Recvd.By |      |'         '|          |                  |'
+             '|      |           |          |'                '|         |      |'         '|          |                  |'
+   'Deliv.To  |      |           |          |'                '|Sign Off |      |'         '|          |                  |'
+   {UNDERLINE                                                                                                             }
+%CONTROL
+       TRIM-REPORT
+       MULTI-REQUEST = 10
+       DYNAMIC-PRINTER
+%REQUEST-PARAMETERS
+       PO-NO LIKE PO-NO TEXT 'Purchase Order Number'
+       PO-ITEM-FROM LIKE PO-ITEM-NO TEXT 'Purchase Order Item Number: from'
+       PO-ITEM-TO LIKE PO-ITEM-NO   TEXT '                              to'
+       DEFPRIN LIKE PRINTER1 OF MSF080
+       USERID LIKE USER-ID OF MSF080
+%VARIABLES
+%* Constants
+       VER-NO = '0001' CONSTANT
+       VER0 = SC0020-REC OF MSF000 -
+                        WHERE (DSTRCT-CODE        = '    ', -
+                               CONTROL-REC-TYPE = 'SC', -
+                               CONTROL-REC-NO   = '0020') -
+                        CONSTANT
+       VER1 = SUBSTR (VER0,1,1) CONSTANT
+       VER2 = SUBSTR (VER0,2,4) CONSTANT
+       VER = CATENATE (VER1,'.',VER2,'.',VER-NO) CONSTANT
+       TODAY = DATE () CONSTANT
+       PGNO1 = PAGE () 
+       PGNO = CHOOSE (PGNO1 IF (PGNO1 <> 0), 0) I-PIC (9(5)) 
+       USERID1 = %USERID% CONSTANT
+       DSTNAME = GET (DISTRICT-NAME FROM ('MSS002') -
+                      DISTRICT (DSTRCT-CODE)
+%* recsrv not valid until 3.010
+%*       RECSRV = WX-RCPT-SERV-IND CONSTANT
+       L = '|' CONSTANT
+       L12 = 'Run on:' CONSTANT
+       L13 = 'Req.By:' CONSTANT
+       PRINX = PRINTER (%DEFPRIN%)
+       L1 = '|Supplier |' CONSTANT
+       X = '|' CONSTANT
+       Y = '/' CONSTANT
+%*******************
+
+       B = PO-NO
+       E = STOCK-CODE
+       D = PO-ITEM-NO-9
+       H = UNIT-OF-PURCH
+       I = UNIT-OF-ISSUE
+       M = INVENT-CAT
+       N = CONV-FACTOR
+       P = PURCH-REQ
+       Q = PREQ-ITEM
+       PR = CURR-NET-PR-I
+       T = SETTLE-DAYS-A PIC (ZZ9)
+       U = SETTLE-PC-A PIC (ZZ9.99)
+       V = SETTLE-DAYS-B PIC (ZZ9)
+       W = SETTLE-PC-B PIC (ZZ9.99)
+       W1 = WHOUSE-ID 
+%*       WH = CHOOSE (W1 IF(WX-MULTIWHOUSE = 'Y'), SPACES) 
+       WH = W1
+       W2 = 'Ord.'
+       W3 = 'WH'
+%*       W4 = CHOOSE (W2 IF(WX-MULTIWHOUSE = 'Y'), SPACES) 
+       W4 = W2
+%*       W5 = CHOOSE (W3 IF(WX-MULTIWHOUSE = 'Y'), SPACES) 
+       W5 = W3
+       DC = DSTRCT-CODE
+ 
+       A = SUPPLIER-NO OF MSF220 -
+                     WHERE (PO-NO = PO-NO)
+       SNAME = SUPPLIER-NAME OF MSF200 -
+                     WHERE (SUPPLIER-NO = A)
+       C = PURCH-OFFICER VIA (A)
+       SUPGLOB = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('RG') -
+                      SUPPLIER-VALUE (A))
+       S1 = SIZE(SUPGLOB)
+
+%* Must be using the originating Purchase Order District
+       SUPDST  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('RD') -
+                      DISTRICT-VALUE (DC) -
+                      SUPPLIER-VALUE (A))
+       SUPGLOB1 = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('PC') -
+                      SUPPLIER-VALUE (A))
+       S2 = SIZE(SUPGLOB1)
+
+%* Must be using the originating Purchase Order District
+       SUPDST1  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('PC') -
+                      DISTRICT-VALUE (DC) -
+                      SUPPLIER-VALUE (A))
+
+       NARR   = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('NT') -
+                      KEY ('4', B))
+       N1 = SIZE(NARR)
+       STK  = CHOOSE ('Y' IF (PO-ITEM-TYPE = 'O' OR PO-ITEM-TYPE = 'C'),'N')
+       INAME = ITEM-NAME OF MSF100 -
+                     WHERE (STOCK-CODE = STOCK-CODE)
+       IDESC1 = DESC-LINE-1 VIA (INAME)
+       IDESC2 = DESC-LINE-2 VIA (INAME)
+       IDESC3 = DESC-LINE-3 VIA (INAME)
+       IDESC4 = DESC-LINE-4 VIA (INAME)
+       IDESCEXT = GET (READ-TEXT FROM ('MSF096') -
+                       CODE ('SC') -
+                       KEY (STOCK-CODE)) MAX (99)
+       HZ = HAZARD-MAT VIA (INAME)
+       HZDESC = TABLE-DESC OF MSF010 -
+                       WHERE (TABLE-TYPE = 'HZ',TABLE-CODE = HZ)
+       TN = UN-TRANSP-CODE VIA (INAME)
+       TR = TRACKING-IND VIA (INAME)
+       TNDESC = TABLE-DESC OF MSF010 -
+                       WHERE (TABLE-TYPE = 'TN',TABLE-CODE = TN)
+
+       MMA = MAN-MNEMONIC-A OF MSF210 WHERE (DSTRCT-CODE   = DSTRCT-CODE, -
+                                            STOCK-CODE    = STOCK-CODE, -
+                                            SUPPLIER-NO   = A, -
+                                            PRICE-CODE    >= PRICE-CODE) MAX (1)
+       PPA = MAN-PART-A VIA (MMA)
+       PPB = MAN-PART-B VIA (MMA)
+       PPC = MAN-PART-C VIA (MMA)
+       MMB = MAN-MNEMONIC-B VIA (MMA)
+       MMC = MAN-MNEMONIC-C VIA (MMA)
+
+%* Must be using the originating Purchase Order District
+       PS = IREQ-NO OF MSF141B -
+                     WHERE (ISS-DSTRCT-CDE-2 = DC, -
+                            STOCK-CODE       = STOCK-CODE, -
+                            WHOUSE-ID-2      = W1,         -
+                            REQ-BY-DATE     >= SPACES)     -       
+                            SELECTIF (ITEM-141-STAT < 4) MAX (25)
+       PSSIZE = SIZE (PS)
+       PI = IREQ-ITEM VIA (PS)
+       QTYREQ = QTY-REQ VIA (PS)
+       QTYISS = QTY-ISSUED VIA (PS)
+       QTYOS = CALC (QTYREQ - QTYISS)
+
+%* Must be using the originating Purchase Order District
+       REQBY = REQUESTED-BY OF MSF140 -
+                     WHERE (DSTRCT-CODE = DC, -
+                            IREQ-NO = PS)
+       DTEREQ1 = REQ-BY-DATE       VIA (REQBY)
+       DTEREQ  = GET (DISPLAY-DATE FROM (DTEREQ1))
+       INST    = DELIV-INSTR-A     VIA (REQBY)
+       RQBY    = SUBSTR(REQBY,5,10) 
+
+%* Must be using the originating Purchase Order District
+%*     F      = DUES-OUT OF MSF170
+       MSF170 = DUES-OUT OF MSF170 -
+                     WHERE (DSTRCT-CODE = DC, -
+                            STOCK-CODE  = STOCK-CODE)
+
+%*     SOH1 = SOH VIA (F)
+%*     G = RESERVED VIA (F)
+%*     SB = STOCK-AT-BIN VIA (F)
+%*       CT = EQUIP-TRACE-IND VIA (MSF170)
+       B27 = EQUIP-NO OF MSFX68 -
+             WHERE (STOCK-CODE = STOCK-CODE, -
+             EQUIP-NO         >= SPACES) MAX (1)
+       CT = TRACEABLE-FLG OF MSF600 -
+            WHERE (EQUIP-NO = B27)
+       SER = CHOOSE ('Y' IF (CT = 'Y' AND TR = 'S'), -
+                     'N')
+
+       J1 = calc (CURR-QTY-I - QTY-RCV-OFST-I - QTY-RCV-DIR-I)
+       J = calc (J1 / N)
+       O1 = calc (CURR-QTY-I - QTY-EX-OFST-I - QTY-RCV-DIR-I)
+       O = calc (O1 / N)
+%*
+%* AFILE - get SOH from warehouse or bin level
+%* Must be using the originating Purchase Order District
+
+%* 8/612 Amended to LFILE due to single district 
+%*
+       K = WHOUSE-ID OF MSF180 -
+                     WHERE (DSTRCT-CODE = DC, -
+                            STOCK-CODE  = STOCK-CODE, -
+                            WHOUSE-ID   = W1)
+       F    = DUES-OUT     VIA (K)
+%*       SOH1 = SOH          VIA (K)
+%* Get SOH from MSSSOH 
+       SOH1   = OWN-CON-SOH OF MSSSOH -
+                WHERE (OPTION-SOH  = '2', -
+                       DSTRCT-CODE = DC, -
+                       STOCK-CODE  = STOCK-CODE, -
+                       WHOUSE-ID   = W1)
+                       
+       G    = RESERVED     VIA (K)
+
+%* DavidG 25/09/90 added 'K1','K2','K3','K4' variables to allow for
+%*             bin locations to print from msf170, WX or msf180
+%*             (NOTE K3 accounts for some 170 records having a blank warehouse)
+%*   K1 = HOME-WHOUSE VIA (F)
+     K1 = WHOUSE-ID VIA (K)
+     K2 = WX-WHOUSE-ID CONSTANT
+     K3 = CHOOSE (K2 IF (K1 = SPACES), K1)
+%*     K4 = CHOOSE (K IF (WX-MULTIWHOUSE = 'Y'), K3)
+     K4 = K
+%*
+     X1 = STOCK-AT-BIN VIA (K)
+%*     X2 = SOH VIA (K) FORMAT (BWZ)
+     X2 = SOH1 FORMAT (BWZ)
+
+%* DavidG 25/09/90 changed 'K' to 'K4' in following lookup
+%* Must be using the originating Purchase Order District
+%*******************************************************************	   
+%* This has been modified as MSF190 no longer exists.
+%* We now use MSF1CS to get the Custodian ID
+%* We then use the Custodian ID to obtain the Bin from MSF1HB
+%* and the Inventory Category from MSF1HD.
+%*       BIN = BIN-CODE OF MSF190                                -
+%*                     WHERE (DSTRCT-CODE     = DC, -
+%*                            STOCK-CODE      = STOCK-CODE,      -
+%*                            WHOUSE-ID       = K4,              -
+%*                            PRIME-LOCATION >= SPACES)          -
+%*                            MAX (50)
+       B91 = CUSTODIAN-ID OF MSF1CSA -
+             WHERE (DSTRCT-CODE = DC, -
+                    WHOUSE-ID   = K4) -
+             MAX(1)
+
+       BIN = BIN-CODE OF MSF1HB -
+             WHERE (CUSTODIAN-ID = B91, -
+                    STOCK-CODE   = STOCK-CODE, -
+                    BIN-CODE   >= SPACES) -
+    MAX(50)
+%*       L = choose ('/' IF (WX-STOCK-AT-BIN = 'Y' OR SB = 'Y' -
+%*                                                 OR X1 = 'Y'), ' ')
+
+       BINS   = SIZE (BIN)
+%*       BINSOH = SOH VIA (BIN)
+       BINSOH   = OWNED-SOH OF MSSSOH -
+                  WHERE (OPTION-SOH  = '2', -
+                         DSTRCT-CODE = DSTRCT-CODE, -
+                         STOCK-CODE  = STOCK-CODE, -
+                         WHOUSE-ID   = K4, -
+                         BIN-CODE    = BIN)		
+	   
+%*      S      = INVENT-CAT VIA (BIN)
+%*	S = INVENT-CAT OF MSF1HD -
+%*        WHERE (CUSTODIAN-ID = B91, -
+%*               STOCK-CODE   = STOCK-CODE, -
+%*               BIN-CODE     = BIN) -
+%*	    MAX(1)
+%*******************************************************************	   
+%* 
+%* To Retrieve the Part No.
+       PART  = PART-NO OF MSF110A -
+               WHERE    (DSTRCT-CODE    = '    ',  -
+                         STOCK-CODE     = E,       -
+                         PREF-PART-IND >= '97')    -
+               SELECTIF (MNEMONIC       = '-TRAN') -
+               SELECTIF (MNEMONIC       = '-GENL') -
+               STOPIF   (PREF-PART-IND  > '97')    -
+               MAX (1)
+       MNEM  = MNEMONIC VIA (PART)
+
+%* Changed to pickup the originating Purchase Order District
+%* and not the requesting District (requested via MSO150)
+       RDESC = ITEM-DESC OF MSF231 -
+                     WHERE (DSTRCT-CODE  = DC, -
+                            PREQ-NO      = PURCH-REQ, -
+                            PREQ-ITEM-NO = PREQ-ITEM)
+       RDESC1  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('PR') -
+                      KEY (DC, PURCH-REQ, PREQ-ITEM)) MAX (99)
+
+       MN = MNEMONIC VIA (RDESC)
+       PN = PART-NO  VIA (RDESC)
+       INSP1 = INSPECT-CODE
+
+       INSP = TABLE-DESC OF MSF010 -
+                     WHERE (TABLE-TYPE = 'QI', -
+                            TABLE-CODE = INSP1)
+
+%* Must be using the originating Purchase Order District
+       RBY1 = REQUESTED-BY OF MSF230 -
+                     WHERE (DSTRCT-CODE = DC, -
+                            PREQ-NO     = PURCH-REQ)
+
+       RBY11 = HRGET  (EMPLOYEE-ID -
+                        FROM ('MSSEMP,MSF810') -
+                        KEY  (EMPLOYEE-ID = RBY1)
+       RBY  = FORMATTED-NAME via (RBY11)
+
+       DELIV1 = DELIV-INSTR VIA (RBY1)
+       DELIV2 = SUBSTR(DELIV1,41,40)
+%*
+%*MSS232 - from the originating Purchase Order District
+       ALC = ALLOC-PC OF MSS232 -
+                     WHERE (OPTION         = 'R', -
+                            DSTRCT-CODE    = DC, -
+                            REQ-TYPE-IND   = 'P', -
+                            REQ-NO         = PURCHASE-REQ, -
+                            PREQ-ITEM      = PREQ-ITEM)
+       S = ALC
+
+       AC1 = GL-ACCOUNT-1 VIA (ALC)
+       AC2 = GL-ACCOUNT-2 VIA (ALC)
+       AC3 = GL-ACCOUNT-3 VIA (ALC)
+       AC4 = GL-ACCOUNT-4 VIA (ALC)
+       AC5 = GL-ACCOUNT-5 VIA (ALC)
+       AC6 = GL-ACCOUNT-6 VIA (ALC)
+       AC7 = GL-ACCOUNT-7 VIA (ALC)
+       AC-FLAG = CHOOSE ('Y' IF (AC1 <> SPACES), -
+                         'Y' IF (AC2 <> SPACES), -
+                         'Y' IF (AC3 <> SPACES), -
+                         'Y' IF (AC4 <> SPACES), -
+                         'Y' IF (AC5 <> SPACES), -
+                         'Y' IF (AC6 <> SPACES), -
+                         'Y' IF (AC7 <> SPACES), -
+                         'N')
+       PRJ1 = PROJECT-NO-1 VIA (ALC)
+       PRJ2 = PROJECT-NO-2 VIA (ALC)
+       PRJ3 = PROJECT-NO-3 VIA (ALC)
+       PRJ4 = PROJECT-NO-4 VIA (ALC)
+       PRJ5 = PROJECT-NO-5 VIA (ALC)
+       PRJ6 = PROJECT-NO-6 VIA (ALC)
+       PRJ7 = PROJECT-NO-7 VIA (ALC)
+       WO1  = WORK-ORDER-1 VIA (ALC)
+       WO2  = WORK-ORDER-2 VIA (ALC)
+       WO3  = WORK-ORDER-3 VIA (ALC)
+       WO4  = WORK-ORDER-4 VIA (ALC)
+       WO5  = WORK-ORDER-5 VIA (ALC)
+       WO6  = WORK-ORDER-6 VIA (ALC)
+       WO7  = WORK-ORDER-7 VIA (ALC)
+       TY1 = CHOOSE('W' IF (WO1 <> SPACES), -
+                      'P')
+       TY2 = CHOOSE('W' IF (WO2 <> SPACES), -
+                      'P')
+       TY3 = CHOOSE('W' IF (WO3 <> SPACES), -
+                      'P')
+       TY4 = CHOOSE('W' IF (WO4 <> SPACES), -
+                      'P')
+       TY5 = CHOOSE('W' IF (WO5 <> SPACES), -
+                      'P')
+       TY6 = CHOOSE('W' IF (WO6 <> SPACES), -
+                      'P')
+       TY7 = CHOOSE('W' IF (WO7 <> SPACES), -
+                      'P')
+       WPRJ1 = CHOOSE(PRJ1 IF (TY1 = 'P'), -
+                      WO1)
+       WPRJ2 = CHOOSE(PRJ2 IF (TY1 = 'P'), -
+                      WO2)
+       WPRJ3 = CHOOSE(PRJ3 IF (TY1 = 'P'), -
+                      WO3)
+       WPRJ4 = CHOOSE(PRJ4 IF (TY1 = 'P'), -
+                      WO4)
+       WPRJ5 = CHOOSE(PRJ5 IF (TY1 = 'P'), -
+                      WO5)
+       WPRJ6 = CHOOSE(PRJ6 IF (TY1 = 'P'), -
+                      WO6)
+       WPRJ7 = CHOOSE(PRJ7 IF (TY1 = 'P'), -
+                      WO7)
+       PC1 = ALLOC-PC-1 VIA (ALC) D-PIC --9.99
+       PC2 = ALLOC-PC-2 VIA (ALC) D-PIC --9.99
+       PC3 = ALLOC-PC-3 VIA (ALC) D-PIC --9.99
+       PC4 = ALLOC-PC-4 VIA (ALC) D-PIC --9.99
+       PC5 = ALLOC-PC-5 VIA (ALC) D-PIC --9.99
+       PC6 = ALLOC-PC-6 VIA (ALC) D-PIC --9.99
+       PC7 = ALLOC-PC-7 VIA (ALC) D-PIC --9.99
+       STEST = RETURN-STATUS VIA (ALC)
+       Z = '%' CONSTANT
+
+       STKGLOB = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('RG') -
+                      STOCK-CODE-VALUE (E))
+       STK1 = SIZE(STKGLOB)
+
+%*  From the originating Purchase Order District 
+       STKDST  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('RD') -
+                      DISTRICT-VALUE (DC) -
+                      STOCK-CODE-VALUE (E))
+
+       SPCOMM  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('NT') -
+                      KEY ('1', B, PO-ITEM-NO))
+       SP1 = SIZE(SPCOMM)
+       SPCOMM1  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('NT') -
+                      KEY ('5', B, PO-ITEM-NO))
+
+       STKGLOB1 = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('PC') -
+                      STOCK-CODE-VALUE (E))
+       STK2 = SIZE(STKGLOB1)
+
+%*  From the originating Purchase Order District 
+       STKDST1  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('PC') -
+                      DISTRICT-VALUE (DC) -
+                      STOCK-CODE-VALUE (E))
+
+       SUPSTKG  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('RG') -
+                      SUPPLIER-VALUE (A) -
+                      STOCK-CODE-VALUE (E))
+
+%*  From the originating Purchase Order District 
+       SUPSTKD  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('RD') -
+                      DISTRICT-VALUE (DC) -
+                      SUPPLIER-VALUE (A) -
+                      STOCK-CODE-VALUE (E))
+       SUPSTKG1  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('PC') -
+                      SUPPLIER-VALUE (A) -
+                      STOCK-CODE-VALUE (E))
+
+%*  From the originating Purchase Order District 
+       SUPSTKD1  = GET (READ-TEXT FROM ('MSF096') -
+                      CODE ('CS') TYPE ('PC') -
+                      DISTRICT-VALUE (DC) -
+                      SUPPLIER-VALUE (A) -
+                      STOCK-CODE-VALUE (E))
+
+%* discrepancy details
+%*
+   DC062 = DSTRCT-CODE-DR FROM MSF062 -
+           WHERE  (PART-1-062      = 'PO', -
+                   PART-2-062      = 'DR', -
+                   DATA-1-062      =  B & D, -
+                   REVSD-XREF-062  = 'DRPO', -
+                   DATA-2-062     >=  DC) -
+           STOPIF (DSTRCT-CODE-DR <>  DC)
+
+  DRNO062   = DR-NO-DR      VIA (DC062)
+  DRITEM062 = DR-ITEM-NO-DR VIA (DC062)
+%*
+  DRNO      = DR-NO OF MSF245 -
+              WHERE (DSTRCT-CODE = DC062, -
+                     DR-NO       = DRNO062)
+  SCNTACT   = SUPP-CTACT VIA (DRNO)
+  STAT      = DR-STATUS  VIA (DRNO)
+  ST        = CHOOSE ('Raised ' IF (STAT = '0'),-
+                      'Printed' IF (STAT = '1'),-
+                      'Closed ' IF (STAT = '9'),-
+                      'Unknown')
+%*
+  DIN       = DR-ITEM-NO OF MSF246 -
+              WHERE (DSTRCT-CODE = DC062, -
+                     DR-NO       = DRNO062, -
+                     DR-ITEM-NO  = DRITEM062)
+  REF       = DR-REF          VIA (DIN)
+  DESC      = DR-DESC         VIA (DIN)
+  DISTYP    = DISCREP-TY-DATA VIA (DIN)
+  R         = SUBSTR (DISTYP,1,2)
+  DDESC     = TABLE-DESC OF MSF010 -
+              WHERE (TABLE-TYPE = 'F1', -
+                     TABLE-CODE = R)
+
+%*
+  DRKEY     = CATENATE (DC062,DRNO062,DRITEM062)
+  DLIN      = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('DC')     -
+                             KEY  (DRKEY))   -
+                             MAX(20) TEXT-WIDTH (60)
+

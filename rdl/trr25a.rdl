@@ -1,0 +1,92 @@
+%*** TRR25A.RDL
+%***
+%*** Revision History ***
+%***
+%*** 08-Aug-12  a9ir6369     MO164 (Version 0001)
+%*** ....................... Reset version number to 0001 for E8 upgrade.
+%*** 14-Sep-04 A Iesho       WHD0286539
+%*** ......................  When QTY equals Zero default 1
+%*** ......................  Added logic and an idicator for when QTY is ZERO
+%*** ......................  in all districts for a stock code
+%*** 08-Oct-02 E Fredeluces  WCHG007160   Initial Coding.
+%***
+%PROGRAM-ID
+       TRR25A
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  Request for FPA Quotation 
+      **
+      **  This program will extract records in the MSF251 and MSF250
+      **  tables and creates a file.  This will be read by the next
+      **  program TRR25B to generate the Request for FPA Quotation Report.
+      **
+%VERSION
+       0002
+%MODULE
+       3250
+%FILES
+       MFILE = MSF251
+       LFILE = MSF251
+       OFILE = TRT25AA
+%SELECTION
+<IF %DBD% = 'Y'>
+       WHERE    (FPA-REC-TYPE   = 'F',   -
+                 FPA-GROUP      = %FPA%, -
+                 FPA-ITEM-NO   >= SPACES)
+       REJECTIF (FPA-ITEM-NO    = SPACES)
+       REJECTIF (DSTRCT-CODE    = SPACES)
+       REJECTIF (QTY-TEND-UOI  <= 0, %NOUSG% = 'Y')
+<ELSE>
+       WHERE    (FPA-REC-TYPE   = 'F',   -
+                 FPA-GROUP      = %FPA%, -
+                 FPA-ITEM-NO   >= SPACES)
+       REJECTIF (FPA-ITEM-NO    = SPACES)
+       REJECTIF (QTY-TEND-UOI  <= 0, %NOUSG% = 'Y')
+       REJECTIF (DSTRCT-CODE    = SPACES)
+<ENDIF>
+%OUTPUT-FILE
+       A
+%BREAK-FIELDS
+       SRTKEY 
+%CONTROL
+       COPY-REQUEST  = TRR25B
+       RECORD-LENGTH = 31
+%BREAK SRTKEY FOOTING 
+<IF STKS > 0>
+{STK    }DDDD{FI}{TQTY       }H
+<ELSE>
+{STK    }DDDD{FI}{TQTY       }S
+<ENDIF>
+%REQUEST-PARAMETERS
+       FPA       PIC (X(5))  TEXT  'FPA Number                    :'
+       SUP       PIC (X(6))  TEXT  'Supplier                      :'
+       NOUSG     PIC (X(1))  TEXT  'Exclude No Usage        (Y/N) :'
+       DBD       PIC (X(1))  TEXT  'District Breakdown Reqd (Y/N) :'
+%VARIABLES
+%* The star will indicate all districts have zero values
+%* the Hash with indicate at least one district has non zero value
+       S       = '*'         CONSTANT
+       H       = '#'         CONSTANT
+       STK     = STOCK-CODE     
+       FI      = FPA-ITEM-NO
+       DC      = DSTRCT-CODE
+       QTY     = QTY-TEND-UOI     
+       CQTY    = CHOOSE   (QTY IF (QTY <> 0), 1)
+       TQTY    = TOTAL    (CQTY)   D-PIC (S9(9)V9(4))
+       FIDC    = CATENATE (FI,DC)
+       SRTKEY  = CHOOSE   (FIDC IF (%DBD% = 'Y'), STK)
+       D       = CHOOSE   (DC   IF (%DBD% = 'Y'), SPACES)
+       STKN    = STOCK-CODE OF MSF251 -
+                 WHERE    (FPA-REC-TYPE   = FPA-REC-TYPE,   -
+                           FPA-GROUP      = FPA-GROUP, -
+                           FPA-ITEM-NO    = FPA-ITEM-NO, -
+                           DSTRCT-CODE   >= SPACES) -
+                 REJECTIF (DSTRCT-CODE    = SPACES) -
+                 REJECTIF (STOCK-CODE   <> STOCK-CODE) -
+                 SELECTIF (QTY-TEND-UOI  <> 0) -
+                 MAX (2)
+       STKS   = size(STKN)
+%*
+%*  End of Program
+%*

@@ -1,0 +1,450 @@
+%*** TRR23G.RDL
+%*** Revision History ***
+%*** ...................................................................
+%*** 23-Apr-13 AIT IG        Migrate E5:TRR23G to Ellipse 8 (v001)
+%*** ....................... Modified program to only print output header 
+%*** ....................... once and removed any reference to ReportA
+%*** ....................... which was previously commented out.
+%************************************************************************
+%*  
+%PROGRAM-ID
+       TRR23G
+%AUTHOR
+       AIT
+%NARRATIVE
+      **  This program reports Period Orders (denoted by DCPR price code)
+      **  The Price Codes which denote period orders are : WP
+%VERSION
+       001
+%MODULE
+       3210
+%FILES
+       MFILE = MSF220C
+       AFILE = MSF221  
+       AFILE = MSF26A  
+       AFILE = MSFX27   
+       LFILE = MSF231
+       LFILE = MSF230
+       LFILE = MSF200
+       LFILE = MSF220
+       LFILE = MSF260
+       LFILE = MSF261
+%*     RFILE = TRR23GA
+       OFILE = TRT23GB
+%ROUTINES
+       MSS232
+       MSSDAT
+%SELECTION
+       WHERE    (STATUS-220-2  >= SPACES)
+       STOPIF   (STATUS-220-2   > '2')
+       REJECTIF (DSTRCT-CODE-2 <> DSCD, -
+                 DSCD <> SPACES)
+%*       REJECTIF (LIVE-CONF-IND <> 'L')
+%*       REJECTIF (ORDER-DATE     < DTE1)
+%*       REJECTIF (ORDER-DATE     > DTE2)
+%*BREAK-FIELDS
+%*    DSTRCT-CODE
+%*    ORDER-DATE
+%*    PNOI
+%*CONTROL
+%*    INCLUDE-EMPTY-SUMMARY
+%OUTPUT-FILE
+      B 
+%CONTROL
+      RECORD-LENGTH = 3400 
+%ORDER
+    DUM
+    DSTRCT-CODE
+    ORDER-DATE
+    PNOI
+%BREAK-FIELDS
+      DUM
+      PNOI
+%BREAK DUM HEADING
+'Order,Item,Order-Date,District,Warehouse' -
+',Requested-By,Authorised-By,Original-Price'  -
+',Current-Price,Approved-Value,Cur-Due-Date,Preqn'   -
+',Item,Supplier-No,Supplier-Name,Contact,Phone,Address' -
+',Description,Narrative-Text-Non-Printing,'
+%DETAIL
+%BREAK PNOI FOOTING
+<IF PRINT = 1 AND WHFLG = 'Y'>
+{PNO }ZAAAZ{OD    }Z{DC}ZWWZQ{RNAME                  }QZQ{ANAME                  }QZQ{ORNET        }QZ-
+Q{AUTHVAL      }QZQ{TOTAPP       }QZ-
+{DUE   }Z{PREQWH }Z{PI}Z{SNO }ZQ{SNAME                         }QZQ-
+{OCN                           }QZQ{OPH           }QZQ-
+{OADDR                                                                                           }QZQ- 
+{EXTDCSV                                                                                            -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -      
+                                                                        }QZQ-
+{NPDCSV                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    - 
+                                      }QZ
+<ENDIF>
+%SUMMARY    
+'---------------- <<<<<<<<<<<<<<<<< END OF REPORT >>>>>>>>>>>>>>>>>> ----------------'
+%REQUEST-PARAMETERS
+      DIST     PIC (X(4))                TEXT  'District Code  : '
+      WHOUSE   PIC (X(2))                TEXT  'Warehouse Code : '
+%*       DATE1    PIC (X(8)) FORMAT (DATE)  TEXT  'Order Date Fr :'
+%*       DATE2    PIC (X(8)) FORMAT (DATE)  TEXT  'Order Date To : '
+%VARIABLES
+%*Constants
+       Z          = ',' CONSTANT
+       DUMMY      = 'Y' CONSTANT
+       Q          = '"' CONSTANT
+       DUM        = CHOOSE ('Y' IF (Z <> SPACES), DUMMY) CONSTANT
+%*Dates
+       DSCD      = %DIST%                     CONSTANT
+%*       DTE1      = %DATE1%                    CONSTANT FORMAT (DATE)
+%*       DTE2      = %DATE2%                    CONSTANT FORMAT (DATE)    
+       TODAY     = DATE ()                    CONSTANT FORMAT (DATE)
+%*******************************************************************
+       CP1       = WX-STORES-CP               CONSTANT
+       LP        = PERIOD-YRMN OF MSSDAT -
+                   WHERE (OPTION = 'J', -
+                          PERIOD-YRMN = CP1, -
+                          DAYS = -1)          CONSTANT FORMAT PERIOD
+       ST-DATE   = STARTING-DATE-1-9 VIA (LP) CONSTANT FORMAT (DATE)
+       END-DATE  = ENDING-DATE-1-9   VIA (LP) CONSTANT FORMAT (DATE)
+
+%*******************************************************************
+%* Data from MSF220 master file
+       DC       =  DSTRCT-CODE
+       PO220    =  PO-NO
+       PURCH    =  PURCH-OFFICER
+       OD       =  ORDER-DATE      FORMAT (DATE)
+
+%*HDG1       = 'Cost-Centre1,Cost-Centre2,Cost-Centre3,'      CONSTANT
+%*HDG2       = 'Cost-Centre4,Cost-Centre5,Cost-Centre6,'      CONSTANT
+%*HDG3       = 'Cost-Centre7,Order,Item,Order-Date,District,' CONSTANT
+%*HDG6       = 'Item,Supplier,Contact,Phone,Address1,'        CONSTANT
+
+%* Afile msf221
+       PNO      =  PO-NO FROM MSF221 -
+                   WHERE    (PO-NO        = PO220, -
+                             PO-ITEM-NO  >= SPACES) -
+                   SELECTIF (PRICE-CODE = 'WH') -
+                   SELECTIF (PRICE-CODE = 'WP') -
+                   REJECTIF (STATUS-221  = '3') -
+                   REJECTIF (STATUS-221  = '9') -
+                   REJECTIF (DSTRCT-CODE <> DC)
+       POI      =  PO-ITEM-NO      VIA (PNO)
+       A        =  POI
+       PT       =  PO-ITEM-TYPE    VIA (PNO)
+       PNOI     =  CATENATE (PNO,POI)
+       DUE      =  CURR-DUE-DATE   VIA (PNO) FORMAT (DATE)
+       OP       =  ORIG-NET-PR-I   VIA (PNO) PIC (ZZZZZZ9.99)
+       PC       =  PRICE-CODE      VIA (PNO)
+       WHID2    =  WHOUSE-ID       VIA (PNO)
+       WH2      =  SUBSTR (WHID2, 1, 2)
+%*              
+       PTFLAG   = choose ('Y' IF (PT = 'P'), -
+                          'Y' IF (PT = 'S'), -
+                          'N')
+%*
+       PRSTK    =  PREQ-STK-CODE VIA (PNO)
+       PREQ     =  substr (PRSTK, 1, 6)
+       PI       =  substr (PRSTK, 7, 3)
+%*
+       TAX      =  TAX-CODE        VIA (PNO)
+       TP       =  TAX-PERCENT     VIA (PNO) PIC (ZZ9.99)
+       LT       =  SUPP-LEAD-TIME  VIA (PNO)
+%*
+       AUTHVAL1 =  CURR-NET-PR-I   VIA (PNO)
+       TOTAPP1  =  VAL-APPR        VIA (PNO)
+%*
+%* Test whether this Purchase Order is to be extracted
+
+   PRINT    = choose (1 IF (PNO   <> SPACES, -
+                            POI   <> SPACES, -
+                            PTFLAG = 'Y'), -
+                      0)
+   CNT      = TOTAL  (PRINT)
+%* MSF231 Item Details
+       EP       = EST-PRICE OF MSF231 -
+                  WHERE    (DSTRCT-CODE  = DC, -
+                            PREQ-NO      = PREQ, -
+                            PREQ-ITEM-NO = PI)   -
+                  IF PRINT = 1
+       QR       = PR-QTY-REQD      VIA (EP)
+       DESC1    = ITEM-DESC1       VIA (EP)
+       DESC2    = ITEM-DESC2       VIA (EP)
+       DESC3    = ITEM-DESC3       VIA (EP)
+       DESC4    = ITEM-DESC4       VIA (EP)
+       QRCV     = PR-QTY-RCVD      VIA (EP) PIC (Z(7)9)
+       AP       = ACT-GROSS-PR     VIA (EP)
+       ST231    = STATUS-231       VIA (EP)
+       RT231    = REQ-TYPE         VIA (EP)
+       WHID1    = WHOUSE-ID        VIA (EP)
+       WH1      = SUBSTR (WHID1, 1, 2)
+
+%* choose PR warehouse id if PO warehouse is blank ...
+       W        = CHOOSE (WH2 IF (WH2 <> SPACES), WH1)
+       WHFLG    = CHOOSE ('N' IF (%WHOUSE% <> SPACES AND W <> %WHOUSE%), -
+                          'Y')
+       WH       = CATENATE (PREQ, '-', W) 
+       PREQWH   = CHOOSE (WH IF (DC = 'GRID'), -
+                          PREQ)
+%*
+%* Lfile MSF230 - Get information
+       RBY      =  REQUESTED-BY OF MSF230 -
+                   WHERE (DSTRCT-CODE = DC, -
+                          PREQ-NO     = PREQ)
+       AUTH     =  AUTHSD-BY      VIA (RBY)
+       CD       =  CREATION-DATE  VIA (RBY) FORMAT (DATE)
+       RB       =  REQ-BY-DATE    VIA (RBY) FORMAT (DATE)
+       DELIV    =  DELIV-INSTR    VIA (RBY)
+       BUD      =  OTHER-ANSWER-1 VIA (RBY)
+%*
+%* Lfile MSF810 - Get Req-By and Auth-By names.
+       RNAME11  = hrget (EMPLOYEE-ID -
+                   from ('MSSEMP,MSF810') -
+                    key (EMPLOYEE-ID = RBY)
+       RNAME1   = FORMATTED-NAME VIA (RNAME11)
+
+       RNAME    = substr (RNAME1,1,25)
+       ANAME11  = hrget (EMPLOYEE-ID -
+                   from ('MSSEMP,MSF810') -
+                    key (EMPLOYEE-ID = AUTH)
+       ANAME1   = FORMATTED-NAME VIA (ANAME11)
+
+       ANAME    = SUBSTR (ANAME1,1,25)
+%*
+%* Lfile MSF096 - get extended description.
+       EXTDESC  = GET  (READ-TEXT FROM ('MSF096') -
+                  CODE ('PR') -
+                  KEY  (DC,PREQ,PI)) MAX (10) TEXT-WIDTH (40)
+       EXTD     = PUT (EXTDESC) MAX (10)
+       EXTD1    = SINGLE (EXTD (1))
+       EXTD2    = SINGLE (EXTD (2))
+       EXTD3    = SINGLE (EXTD (3))
+       EXTD4    = SINGLE (EXTD (4))
+       EXTD5    = SINGLE (EXTD (5))
+       EXTD6    = SINGLE (EXTD (6))
+       EXTD7    = SINGLE (EXTD (7))
+       EXTD8    = SINGLE (EXTD (8))
+       EXTD9    = SINGLE (EXTD (9))
+       EXTD10   = SINGLE (EXTD (10))
+       EXTDCSV  = CATENATE (DESC1, ' ', DESC2, ' ', DESC3, ' ', DESC4, ' ', -
+                            EXTD1, ' ', EXTD2, ' ', EXTD3, ' ', EXTD4, ' ', -
+                            EXTD5, ' ', EXTD6, ' ', EXTD7, ' ', EXTD8, ' ', -
+                            EXTD9, ' ', EXTD10)
+%*
+%* Lfile MSF096 - get Narrative Text - Non Printing
+       NPKEY   = CATENATE ('7', PNO)
+       NPDESC  = GET  (READ-TEXT FROM ('MSF096') -
+                 CODE ('NT') -
+                 KEY (NPKEY)) MAX (40) TEXT-WIDTH (60)
+       NPD     = PUT (NPDESC) MAX (40)
+       NPD1    = SINGLE (NPD (1))
+       NPD2    = SINGLE (NPD (2))
+       NPD3    = SINGLE (NPD (3))
+       NPD4    = SINGLE (NPD (4))
+       NPD5    = SINGLE (NPD (5))
+       NPD6    = SINGLE (NPD (6))
+       NPD7    = SINGLE (NPD (7))
+       NPD8    = SINGLE (NPD (8))
+       NPD9    = SINGLE (NPD (9))
+       NPD10   = SINGLE (NPD (10))
+       NPD11   = SINGLE (NPD (11))
+       NPD12   = SINGLE (NPD (12))
+       NPD13   = SINGLE (NPD (13))
+       NPD14   = SINGLE (NPD (14))
+       NPD15   = SINGLE (NPD (15))
+       NPD16   = SINGLE (NPD (16))
+       NPD17   = SINGLE (NPD (17))
+       NPD18   = SINGLE (NPD (18))
+       NPD19   = SINGLE (NPD (19))
+       NPD20   = SINGLE (NPD (20))
+       NPD21   = SINGLE (NPD (21))
+       NPD22   = SINGLE (NPD (22))
+       NPD23   = SINGLE (NPD (23))
+       NPD24   = SINGLE (NPD (24))
+       NPD25   = SINGLE (NPD (25))
+       NPD26   = SINGLE (NPD (26))
+       NPD27   = SINGLE (NPD (27))
+       NPD28   = SINGLE (NPD (28))
+       NPD29   = SINGLE (NPD (29))
+       NPD30   = SINGLE (NPD (30))
+       NPD31   = SINGLE (NPD (31))
+       NPD32   = SINGLE (NPD (32))
+       NPD33   = SINGLE (NPD (33))
+       NPD34   = SINGLE (NPD (34))
+       NPD35   = SINGLE (NPD (35))
+       NPD36   = SINGLE (NPD (36))
+       NPD37   = SINGLE (NPD (37))
+       NPD38   = SINGLE (NPD (38))
+       NPD39   = SINGLE (NPD (39))
+       NPD40   = SINGLE (NPD (40))
+       NPDCSV1  = CATENATE (NPD1, ' ', NPD2, ' ', NPD3, ' ', NPD4, ' ', -
+                               NPD5, ' ', NPD6, ' ', NPD7, ' ', NPD8, ' ', -
+                            NPD9, ' ', NPD10, ' ')
+       NPDCSV2  = CATENATE (NPD11, ' ', NPD12, ' ', NPD13, ' ', NPD14, -
+                            ' ', NPD15, ' ', NPD16, ' ', NPD17, ' ', NPD18, -
+                            ' ', NPD19, ' ', NPD20, ' ')
+       NPDCSV3  = CATENATE (NPD21, ' ', NPD22, ' ', NPD23, ' ', NPD24, ' ', -
+                            NPD25, ' ', NPD26, ' ', NPD27, ' ', NPD28, ' ', -
+                            NPD29, ' ', NPD30, ' ')
+       NPDCSV4  = CATENATE (NPD31, ' ', NPD32, ' ', NPD33, ' ', NPD34, ' ', -
+                            NPD35, ' ', NPD36, ' ', NPD37, ' ', NPD38, ' ', -
+                            NPD39, ' ', NPD40)
+       NPDCSV   = CATENATE (NPDCSV1, NPDCSV2, NPDCSV3, NPDCSV4)
+%*
+%* Lfile MSF220 - Get Supplier No.
+       DL       =  DELIV-LOCATION OF MSF220 -
+                   WHERE (PO-NO = PNO)
+       SNO      =  SUPPLIER-NO    VIA (DL)
+%*
+%* Lfile MSF200 - get Supplier Name
+       SNAME    =  SUPPLIER-NAME OF MSF200  -
+                   WHERE (SUPPLIER-NO = SNO)
+       OADD1    =  ORDER-ADDR-1 VIA (SNAME)
+       OADD2    =  ORDER-ADDR-2 VIA (SNAME)
+       OADD3    =  ORDER-ADDR-3 VIA (SNAME)
+       OCN      =  ORDER-CONTACT  VIA (SNAME)
+       OPH      =  ORDER-PHONE VIA (SNAME)
+       OADDR    = CATENATE (OADD1, ' ', OADD2, ' ', OADD3)
+%*
+%* MSS232 - Header account
+   ACH1   = GL-ACCOUNT-1 OF MSS232      -
+            WHERE (OPTION       = 'R',  -
+                   DSTRCT-CODE  = DC,   -
+                   REQ-TYPE-IND = 'P',  -
+                   REQ-NO       = PREQ, -
+                   PREQ-ITEM    = '000')
+   ACH2   =  GL-ACCOUNT-2 VIA (ACH1)
+   ACH3   =  GL-ACCOUNT-3 VIA (ACH1)                  
+   ACH4   =  GL-ACCOUNT-4 VIA (ACH1)
+   ACH5   =  GL-ACCOUNT-5 VIA (ACH1)
+   ACH6   =  GL-ACCOUNT-6 VIA (ACH1)
+   ACH7   =  GL-ACCOUNT-7 VIA (ACH1)
+   APH1   =  ALLOC-PC-1   VIA (ACH1) PIC (ZZZ)
+   APH2   =  ALLOC-PC-2   VIA (ACH1) PIC (ZZZ)
+   APH3   =  ALLOC-PC-3   VIA (ACH1) PIC (ZZZ)
+   APH4   =  ALLOC-PC-4   VIA (ACH1) PIC (ZZZ)
+   APH5   =  ALLOC-PC-5   VIA (ACH1) PIC (ZZZ)
+   APH6   =  ALLOC-PC-6   VIA (ACH1) PIC (ZZZ)
+   APH7   =  ALLOC-PC-7   VIA (ACH1) PIC (ZZZ)
+   GTEST  =  RETURN-STATUS VIA (ACH1)
+%*
+%* item account
+   ACI1   = GL-ACCOUNT-1 OF MSS232      -
+            WHERE (OPTION       = 'R',  -
+                   DSTRCT-CODE  = DC,   -
+                   REQ-TYPE-IND = 'P',  -
+                   REQ-NO       = PREQ, -
+                   PREQ-ITEM    = PI)
+   ACI2   =  GL-ACCOUNT-2 VIA (ACI1)
+   ACI3   =  GL-ACCOUNT-3 VIA (ACI1)
+   ACI4   =  GL-ACCOUNT-4 VIA (ACI1)
+   ACI5   =  GL-ACCOUNT-5 VIA (ACI1)
+   ACI6   =  GL-ACCOUNT-6 VIA (ACI1)
+   ACI7   =  GL-ACCOUNT-7 VIA (ACI1)
+   API1   =  ALLOC-PC-1 VIA (ACI1) PIC (ZZZ)
+   API2   =  ALLOC-PC-2 VIA (ACI1) PIC (ZZZ)
+   API3   =  ALLOC-PC-3 VIA (ACI1) PIC (ZZZ)
+   API4   =  ALLOC-PC-4 VIA (ACI1) PIC (ZZZ)
+   API5   =  ALLOC-PC-5 VIA (ACI1) PIC (ZZZ)
+   API6   =  ALLOC-PC-6 VIA (ACI1) PIC (ZZZ)
+   API7   =  ALLOC-PC-7 VIA (ACI1) PIC (ZZZ)
+   GITEST =  RETURN-STATUS VIA (ACI1)
+%*
+%* AFILE MSFX27
+   INV      = INV-NO FROM MSFX27 -
+              WHERE (PO-NO        = PNO, -
+                     PO-ITEM-NO   = POI, -
+                     DSTRCT-CODE  = DC, -
+                     SUPPLIER-NO >= SPACE) -
+              MAX (1000)
+   INI      = INV-ITEM-NO VIA (INV)
+%*
+%* LFILE MSF260
+%* EF0702 - added the REJECTIF if the invoice is cancelled
+%*
+   PS       = PMT-STATUS OF MSF260         -
+              WHERE    (DSTRCT-CODE = DC,  -
+                        SUPPLIER-NO = SNO, -
+                        INV-NO      = INV)
+   AD       = APPROVED-DATE VIA (PS) FORMAT (DATE)
+   260FLG   = CHOOSE ('Y' IF (PS <> '60'), 'N')
+%*
+%* EF0702  Read the Invoice Item file
+   MSF26A   = INV-ITEM-NO FROM MSF26A            -
+              WHERE (DSTRCT-CODE = DC,           -
+                     SUPPLIER-NO = SNO,          -
+                     INV-NO      = INV,          -
+                     INV-ITEM-NO >= SPACES)
+   I        = INV-ITEM-NO   VIA (MSF26A)
+   VAL-O    = LOC-VAL-INVD  VIA (MSF26A)
+   LAN      = LAST-AMEND-NO VIA (MSF26A)
+%*
+%* EF0702 Read the Invoice Amendment file
+   MSF261   = AMENDMENT-NO OF MSF261     -
+              WHERE (DSTRCT-CODE  = DC,  -
+                     SUPPLIER-NO  = SNO, -
+                     INV-NO       = INV, - 
+                     INV-ITEM-NO  = I,   -
+                     AMENDMENT-NO = LAN) -
+              MAX   (1)
+
+   VAL-A   = LOC-AMD-VAL    VIA (MSF261)
+%*
+%* EF0702 Determine value to pick-up
+   INVAL    = CHOOSE (VAL-A IF (VAL-A <> 0, 260FLG = 'Y'),-
+                      VAL-O IF (VAL-A  = 0, 260FLG = 'Y'),-
+                      0)
+%* Values & Totals
+%*   PRINT    = choose (0 IF (DUE  < TODAY), 1)
+%*   PRINT    = choose (1 if (PNO <> SPACES, POI <> SPACES, -
+%*                            ST231 <> '3', ST231 <> '9',   -
+%*                            RT231 = 'S'),                 -
+%*                      0)
+%*   CNT      = TOTAL  (PRINT)
+%*
+%* 221 values
+   AUTHVAL  = CHOOSE (AUTHVAL1 IF (PRINT = 1), 0) PIC (ZZZ,ZZZ,ZZ9.99-)
+   ORNET    = CHOOSE (OP IF (PRINT = 1), 0)       PIC (ZZZ,ZZZ,ZZ9.99-)
+%*
+%*EF0702 it should accumulate the invoice value not the order item value
+   TOTAPP   = CHOOSE (TOTAPP1  IF (PRINT = 1), 0) PIC (ZZZ,ZZZ,ZZ9.99-)
+%*   TOTAPP   = CHOOSE (INVAL    IF (PRINT = 1), 0) PIC (ZZZ,ZZZ,ZZ9.99-)
+   TOTAPPT  = TOTAL (TOTAPP)                      PIC (ZZZ,ZZZ,ZZ9.99-)
+   AUTHVALT = TOTAL (AUTHVAL)                     PIC (ZZZ,ZZZ,ZZ9.99-)
+   ORNETT   = TOTAL (ORNET)                       PIC (ZZZ,ZZZ,ZZ9.99-)
+
+   AUTHBAL  = CALC   (AUTHVAL - TOTAPPT)          PIC (ZZZ,ZZZ,ZZ9.99-)
+%*   AUTHBALT = TOTAL  (AUTHBAL)                    PIC (ZZZ,ZZZ,ZZ9.99-)
+%*
+%* Create flags to exclude Districts with no data.
+   FLG1     = choose (1 IF (AUTHVAL <> 0), -
+                      1 IF (TOTAPP  <> 0), -
+                      0)
+   FLG2     = total (FLG1)
+%*  
+%*-----------------------  End  of  the  Program  ------------------------

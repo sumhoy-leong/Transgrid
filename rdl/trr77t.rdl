@@ -1,0 +1,360 @@
+%*** Revision History:
+%*** 05-Feb-2013  AIT IGianakis Phase 1 New requirements
+%***                            Attendance Sign on Sheet 
+%*
+%PROGRAM-ID
+    TRR77T
+%AUTHOR
+    AIT 
+%NARRATIVE
+    This report will be used to review employees and non employees 
+    who have attended training and the result/outcome of that     
+    training.
+    V001 - AIT Initial Code
+    V002 - AIT include up to 5 trainers (E/N)
+    V003 - AIT Add output file (csv) requesting in 
+           URS.Attendance.Sign.On.Sheet.D05.docx
+    V004 - AIT when excluding ZO category only exclude emps with 
+         - ZO category and DUMMY position;
+         - print number of chars in Employee id. No leading zeros.
+    V005 - AIT changes head literal course (Deliv method) to Session 
+%MODULE
+    3770
+%VERSION
+    005
+%FILES
+    MFILE = MSF771 
+    AFILE = MSF772A
+    LFILE = MSF010
+    LFILE = MSF760
+    LFILE = MSF770
+    LFILE = MSF771
+    LFILE = MSF811
+    LFILE = MSF810
+    LFILE = MSF820
+    LFILE = MSF878A
+    RFILE = TRR77TA
+    OFILE = TRT77TA
+%ROUTINES
+    MSSDAT
+    MSSCNV
+%SELECTION
+%** Course Id is mandatory should always search for a course 
+<IF %SESSNO% <> SPACES>
+       WHERE    (COURSE-ID   = %CRSID%, -
+                 SESSION-NO  = %SESSNO%)
+<ELSE >
+       WHERE    (COURSE-ID   = %CRSID%, -
+                 SESSION-NO  >= SPACES)
+<ENDIF>
+%ORDER
+    DUM                     TEXT General-Header
+    ASCENDING   COURSE-ID   TEXT Course-Id
+    ASCENDING   SESSION-NO  TEXT Session-No
+    ASCENDING   NAME        TEXT Attendee-Name
+%REPORT 
+    A
+%BREAK-FIELDS
+    DUM
+    SESSION-NO
+%TITLE
+'TRAINING ATTENDANCE SHEET'
+%PAGE HEADING
+'----------------------------------------------------------------------------------------------------------------------------------'
+'Employee|Employee Name                 |Cost Code/  |Signature                                       |  Results  '
+'ID      |                              |Work Order  |                                                |  C  |  NYC '
+'----------------------------------------------------------------------------------------------------------------------------------'
+%BREAK SESSION-NO HEADING ON NEW-PAGE SUPPRESS-PAGE-HEADING
+
+%*       1         2         3         4         5         6         7         8         9         10        11        12        13 
+%*3456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012
+    'Course Id: '       {CID     }                      'Course Name: '           {CRS-TTL                                         }
+    'Session Id: '      {SSD}                           'Session Delivery Method:'{DELM-DESC                                       }
+    'Location:   '      {TLOC-DESC                    } 'Venue: '                 {SESS-VEN                                        }
+    'Trainer/Assessor: '{TRNAME1                               } 
+ <SUPPRESS>
+                        {TRNAME2                               }
+ <SUPPRESS>
+                        {TRNAME3                               } 
+ <SUPPRESS>
+                        {TRNAME4                               }
+ <SUPPRESS>
+                        {TRNAME5                               }
+ <SUPPRESS>
+    'Start Date: '      {SDATE }                        'Finish Date: '           {ENDT  }
+    'Start Time: '      {STM}                           'Finish Time: '           {FTM}
+
+'----------------------------------------------------------------------------------------------------------------------------------'
+'Employee|Employee Name                 |Cost Code/  |Signature                                       |  Results  '
+'ID      |                              |Work Order  |                                                |  C  |  NYC '
+'----------------------------------------------------------------------------------------------------------------------------------'
+%DETAIL
+<IF (SELSW = 'Y')> 
+ {EMPID }Z{NAME                        }Z            Z                                                Z     Z 
+'----------------------------------------------------------------------------------------------------------------------------------'
+%*for testing A {STAT} {SCAT} {POSX              }{POS     }
+<ENDIF>
+%REPORT-SUMMARY
+<IF TTL = ZERO>
+
+
+    'No Courses/Attendees Met the Selection Criteria'
+<ENDIF>
+
+
+'                                                      ***  End Of Report  ***'
+%OUTPUT-FILE 
+    A
+%CONTROL
+    RECORD-LENGTH = 200
+%BREAK-FIELDS
+    DUM
+%BREAK DUM HEADER
+'Course ID,Course Name,Session ID,Employee Type,Employee ID,Surname,Firstname,Email'
+%DETAIL
+<IF (SELSW = 'Y')> 
+{CID     }V{CRS-TTL                                         }V{SSD}V-
+{ETYP      }V{EMPID }V{SNAME                       }V{FNAME     }V-
+{EMAIL                                           }V
+<ENDIF>
+%REQUEST-PARAMETERS
+    CRSID   PIC (X(10))              TEXT 'Training Course ID               :'
+    SESSNO  PIC (X(5))               TEXT 'Session ID                       :'
+%VARIABLES               
+    Z = '|'
+    V = ','
+    Q = '"'
+    DUMMY = 'Y'
+    DUM = CHOOSE ('Y' IF (1 = 1), DUMMY)
+    TDY = WX-TODAYS-DATE CONSTANT
+    
+%* MSF771 Training Session fields
+    CID  = COURSE-ID
+    TLOC = TRN-LOCATION
+    SES  = SESSION-NO
+    SESS-VEN = TRAINING-VENUE
+    SES9 = CHOOSE (SESSION-NO IF (SESSION-NO <> SPACES), 0) I-PIC 9(5)
+    SSD  = CHOOSE (SES9 IF (SES9 <> 0), 0) D-PIC 9(5)
+
+%*    ADM  = ADMINISTRATOR
+%*    AEMP = HRGET  ( EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+%*                       KEY (EMPLOYEE-ID = ADM ))
+%*    ADM-NAME = FORMATTED-NAME VIA (AEMP)
+
+    DM    = DELIVERY-METHOD
+    ENDT  = STOP-DATE-9 FORMAT (DATE)
+    ISDT9 = INV-STR-DATE-9               
+    STM9  = COMM-TIME  I-PIC (99.99)  
+    FTM9  = COMP-TIME  I-PIC (99.99)
+    STMHH = SUBSTR(STM9,3,2) 
+    STMMM = SUBSTR(STM9,6,2)    
+    STM = CATENATE(STMHH,':',STMMM))
+    FTMHH = SUBSTR(FTM9,3,2)
+    FTMMM = SUBSTR(FTM9,6,2)
+    FTM = CATENATE(FTMHH,':',FTMMM)
+    
+    TRNER1 = TRAINER-1
+    TRNTYP1 = TRAINER-1-TYPE
+    TRNER2 = TRAINER-2
+    TRNTYP2 = TRAINER-2-TYPE
+    TRNER3 = TRAINER-3
+    TRNTYP3 = TRAINER-3-TYPE
+    TRNER4 = TRAINER-4
+    TRNTYP4 = TRAINER-4-TYPE
+    TRNER5 = TRAINER-5
+    TRNTYP5 = TRAINER-5-TYPE
+%* trainer 1
+    TRNAME1X  = HRGET  (EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+                          KEY (EMPLOYEE-ID = TRNER1))
+    TRNAME1E  = FORMATTED-NAME VIA (TRNAME1X)
+    TRF1        = FIRST-NAME OF MSF811 -
+                  WHERE (NON-EMPL-ID = TRNER1)
+    TRS1        = SURNAME VIA (TRF1)
+    TRNAME1NX = CATENATE (TRS1,' ', TRF1)
+    TRNAME1N = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION = 'P', -
+                        INP-STRING = TRNAME1NX)
+    TRNAME1 = CHOOSE (TRNAME1E IF (TRNTYP1 = '1'), -
+                      TRNAME1E IF (TRNTYP1 = '2'), -
+                      TRNAME1E IF (TRNTYP1 = '3'), -
+                      TRNAME1N)             
+%* trainer 2                     
+    TRNAME2X = HRGET  (EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+                       KEY (EMPLOYEE-ID = TRNER2))
+    TRNAME2E = FORMATTED-NAME VIA (TRNAME2X)
+    TRF2 = FIRST-NAME OF MSF811 -
+                WHERE (NON-EMPL-ID = TRNER2)
+    TRS2 = SURNAME VIA (TRF2)
+    TRNAME2NX = CATENATE (TRS2,' ', TRF2)
+    TRNAME2N = OUT-STRING OF MSSCNV -
+              WHERE (OPTION = 'P', -
+                     INP-STRING = TRNAME2NX)
+    TRNAME2 = CHOOSE (TRNAME2E IF (TRNTYP2 = '1'), -
+                      TRNAME2E IF (TRNTYP2 = '2'), -
+                      TRNAME2E IF (TRNTYP2 = '3'), -
+                      TRNAME2N)             
+%* trainer 3                     
+    TRNAME3X = HRGET  (EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+                       KEY (EMPLOYEE-ID = TRNER3 ))
+    TRNAME3E = FORMATTED-NAME VIA (TRNAME3X)
+    TRF3 = FIRST-NAME OF MSF811 -
+                WHERE (NON-EMPL-ID = TRNER3)
+    TRS3 = SURNAME VIA (TRF3)
+    TRNAME3NX = CATENATE (TRS3,' ', TRF3)
+    TRNAME3N = OUT-STRING OF MSSCNV -
+              WHERE (OPTION = 'P', -
+                     INP-STRING = TRNAME3NX)
+    TRNAME3 = CHOOSE (TRNAME3E IF (TRNTYP3 = '1'), -
+                      TRNAME3E IF (TRNTYP3 = '2'), -
+                      TRNAME3E IF (TRNTYP3 = '3'), -
+                      TRNAME3N)             
+%* trainer 4                     
+    TRNAME4X = HRGET  (EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+                       KEY (EMPLOYEE-ID = TRNER4 ))
+    TRNAME4E = FORMATTED-NAME VIA (TRNAME4X)
+    TRF4 = FIRST-NAME OF MSF811 -
+                WHERE (NON-EMPL-ID = TRNER4)
+    TRS4 = SURNAME VIA (TRF4)
+    TRNAME4NX = CATENATE (TRS4,' ', TRF4)
+    TRNAME4N = OUT-STRING OF MSSCNV -
+              WHERE (OPTION = 'P', -
+                     INP-STRING = TRNAME4NX)
+    TRNAME4 = CHOOSE (TRNAME4E IF (TRNTYP4 = '1'), -
+                      TRNAME4E IF (TRNTYP4 = '2'), -
+                      TRNAME4E IF (TRNTYP4 = '3'), -
+                      TRNAME4N)             
+%* trainer 5                     
+    TRNAME5X = HRGET  (EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+                       KEY (EMPLOYEE-ID = TRNER5 ))
+    TRNAME5E = FORMATTED-NAME VIA (TRNAME5X)
+    TRF5 = FIRST-NAME OF MSF811 -
+                WHERE (NON-EMPL-ID = TRNER5)
+    TRS5 = SURNAME VIA (TRF5)
+    TRNAME5NX = CATENATE (TRS5,' ', TRF5)
+    TRNAME5N = OUT-STRING OF MSSCNV -
+              WHERE (OPTION = 'P', -
+                     INP-STRING = TRNAME5NX)
+    TRNAME5 = CHOOSE (TRNAME5E IF (TRNTYP5 = '1'), -
+                      TRNAME5E IF (TRNTYP5 = '2'), -
+                      TRNAME5E IF (TRNTYP5 = '3'), -
+                      TRNAME5N)    
+        
+    SDATE = DATE2 OF MSSDAT  -
+            WHERE (OPTION     = '1',            -
+                   DATE1      = ISDT9,          -
+                   DAYS       = ZERO,           -
+                   REV-FORMAT = '1') FORMAT (DATE)
+
+%* MSF770 Training Course fields
+    CRS-TTL = COURSE-TITLE OF MSF770          -
+                WHERE (COURSE-ID     = CID,   -
+                       MAJ-REV-RVSD >= '000') -
+                MAX   (1)
+
+%* MSF772 Training Attendance Fields
+
+    A = ATTENDEE-TY FROM MSF772A          -
+                WHERE (COURSE-ID-2    = CID, -
+                       SESSION-NO-2   = SES, -
+                       ATTEND-STATUS >= SPACES)
+                       
+    EMP      = EMPLOYEE-ID-2 VIA (A)
+
+    EEMP = HRGET  (EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+                       KEY(EMPLOYEE-ID = EMP ))
+    EF = FIRST-NAME VIA (EEMP)
+    ES = SURNAME VIA (EEMP)
+    EMP-NAMEX = CATENATE (ES,',', EF)
+    EMP-NAME = OUT-STRING OF MSSCNV -
+              WHERE (OPTION = 'P', -
+                     INP-STRING = EMP-NAMEX)
+%* MSF811 Non employee details
+
+    NEF = FIRST-NAME OF MSF811 -
+                WHERE (NON-EMPL-ID = EMP)
+    NES = SURNAME        VIA (NEF)
+    NE-NAMEX = CATENATE (NES,',', NEF)
+    NE-NAME = OUT-STRING OF MSSCNV -
+              WHERE (OPTION = 'P', -
+                     INP-STRING = NE-NAMEX)
+
+    NAME = CHOOSE   (EMP-NAME IF (A = 'E'), -
+                     NE-NAME  IF (A = 'N'), -
+                     SPACES )
+                     
+    FNAME = CHOOSE (EF IF (A = 'E'), -
+                    NEF  IF (A = 'N'), -
+                    SPACES )
+    SNAME = CHOOSE (ES IF (A = 'E'), -
+                    NES  IF (A = 'N'), -
+                    SPACES )
+                      
+    EEMAIL = EMAIL-ADDRESS OF  MSF810 -
+             WHERE (EMPLOYEE-ID = EMP)
+    NEMAIL = EMAIL-ADDRESS VIA (NEF)
+             
+    EMAIL = CHOOSE (EEMAIL IF (A = 'E'), -
+                    NEMAIL  IF (A = 'N'), -
+                    SPACES )
+%* Employee Position
+    POS     = POSITION-ID OF MSF878A           -
+              WHERE (EMPLOYEE-ID-1     = EMP, -
+                     PRIMARY-POS-1     = '0')  -  
+                     INV-STR-DATE-1   >= SPACES)  - 
+              REJECTIF (POS-STOP-DATE-1 <> '00000000', -
+                        POS-STOP-DATE-1 < TDY) -                     
+              MAX (1)
+    POSX = SUBSTR (POS,1,5)
+%* Emp Status /Validation
+    STAT  = EMP-STATUS OF MSF760 -
+            WHERE   (EMPLOYEE-ID = EMP)
+    SCAT  = STAFF-CATEG VIA (STAT)
+    SEL760 = CHOOSE ('N' IF (A = 'E', -
+	                         STAT <> 'A'), -
+	                 'N' IF (A = 'E', -
+                             SCAT = 'ZO', -
+                             POSX = 'DUMMY'), -
+                     'N' IF (A = 'E', -
+                             SCAT = 'WC'), -
+                     'N' IF (A = 'E', -
+                             SCAT = 'ZA'), -
+                     'Y' IF (A = 'N'), -
+                     'Y')
+
+%* Pay Group  & PRC MSF820
+    PGRP  = PAY-GROUP OF MSF820 -
+            WHERE   (EMPLOYEE-ID = EMP)
+%*    EMP5  = SUBSTR (EMP,6,5)
+%*    EMP6  = SUBSTR (EMP,5,6)
+    EMP9 = NUMERIC (EMP) I-PIC (Z(9)9)
+    EMPX = CHOOSE (EMP9 IF (EMP9 <> ZEROS), EMP9) 
+    PEMP  = CATENATE ('P',EMPX)
+    CEMP  = CATENATE ('C',EMPX)
+    EMPIDX = CHOOSE (PEMP IF (PGRP <> SPACES), -
+                     CEMP IF (EMP9 <> ZEROS), SPACES)
+    EMPID = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION = 'S', -
+                        INP-STRING = EMPIDX)
+                          
+    ETYP = CHOOSE ('Employee' IF (PGRP <> SPACES), -
+                   'Non-Employee')     
+%* MSF010 table descriptions
+
+    TLOC-DESC = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE  = 'TRNL', -
+                       TABLE-CODE  = TLOC)
+
+    DELM-DESC = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE  = 'DELM', -
+                       TABLE-CODE  = DM)
+
+%* Totals
+
+    SELSW = CHOOSE ('Y' IF (SEL760 = 'Y'),    -
+                    'N')
+    CNT = CHOOSE (1 IF (SELSW = 'Y'), 0)
+    TTL = TOTAL  (CNT )
+
+%*
+%*      ***  End of Program  ***
+%*

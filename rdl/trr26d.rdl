@@ -1,0 +1,270 @@
+%*** $Id: trr26d.rdl,v3.0 2008/09/29 10:20:00 EFredeluces Exp $
+%*** Revision History:
+%*** 29-Nov-12 a9jw6280        MO164 ---
+%***                           Modify report to get ABN No from TAX-FILE-NO
+%***                           of MSF203 instead of TAX-REG-NO.
+%*** 27-Jul-12 a9nh4814        MO164 (Version 0001)
+%***                           Refined report to pass Transgrid RDL compiler:
+%***                           - Changed 'underline' in report layout to 'UNDERLINE'.
+%***                           - Changed all function calls in %VARIABLES section
+%***                             to uppercase.
+%***                           - Reset version number to 0001 for E8 upgrade.
+%*** 29-Sep-2008 E Fredeluces  SC2018015
+%***                           Amend to run for all Districts.
+%*** 12-Aug-2008 E Fredeluces  SC1949397
+%***                           1.  The report will only be used for Workers Comp.
+%***                           2.  Amend report title to List of Loaded Invoice 
+%***                               for Workers Compensation.
+%***                           3.  Add another Tax Code parameter.
+%***                           4.  Add Supplier's ABN Number.
+%***                           5.  Add Emplployee Service Number.
+%***                           6.  Remove District & Approval Status fields.
+%***                           7.  Reduce Account field by 7 characters.
+%***                           8.  Added the Extended Comments
+%*** 26-Sep-2001 E Fredeluces  W01080180
+%***                           Added Supplier Name on the report.
+%*** 21-Jul-2000 D Diolas      W00070161
+%***                           Initial Coding.
+%PROGRAM-ID
+       TRR26D
+%AUTHOR
+       D Diolaso
+%NARRATIVE
+      **  Cloned from TRR26C
+      **  This will generate the List of Invoices with
+      **  for inclusive loaded dates and selected tax code.
+%VERSION
+       0001
+%MODULE
+       3140
+%FILES
+        MFILE = MSF260
+        AFILE = MSF26A
+        AFILE = MSF096
+        LFILE = MSF200
+        LFILE = MSF203
+        LFILE = MSF261
+        LFILE = MSF263
+        LFILE = MSF810
+        RFILE = TRR26DA
+%SELECTION
+       WHERE    (DSTRCT-CODE  = %DISTRICT-CODE%, -
+	             SUPPLIER-NO >= SPACES)
+       REJECTIF (LOADED-DATE   < DATEFR)
+       REJECTIF (LOADED-DATE   > DATETO)
+%ROUTINES
+       MSSDAT
+       MSSCNV
+%TITLE
+'List of Loaded Invoices for Workers Compensation'
+%PAGE HEADING
+'                                     Invoice Load Date Range : ' {DATEFR }'To'{DATETO }
+
+{UNDERLINE                                                                                                                         }
+'Invoice                                                              Order    Load                          Tax'
+'No./Item       +-------- Supplier Name -------+ +-- ABN No.--+ EmpId   No.    Date   +---- Accountant ----+ Code   GST Incl Value'
+%DETAIL
+<IF PRT2 = 'Y'>
+ {INV         } {SUP } {SUPNAME                } {ABN-NO      } {EMP} {ORD } {MDATE } {ACTN}{NAME          } TTTT {INVVAL         }
+  <IF EXLN1 <> SPACES>
+'               Claim Number: '{CLMNO   }       'Claimant: ' {CLMANT                                                              } 
+  <ENDIF>
+
+<ENDIF>
+%SUMMARY
+
+{UNDERLINE                                                                                                                         }
+
+'                                           Total Number of Loaded Invoice  --> ' {TCNT }
+                                        
+
+
+'                                                     ***  End Of Report  ***'
+%REQUEST-PARAMETERS
+       RUN      PIC (X(1))                TEXT 'D-aily or M-onthly         - defaults to Daily if blank           :'
+       DATEFR   PIC (X(8)) FORMAT (DATE)  TEXT 'Invoice Load Date From     - defaults to Prev Month/Day if blank  :' 
+       DATETO   PIC (X(8)) FORMAT (DATE)  TEXT 'Invoice Load Date To       - defaults to Prev Month/Day if blank  :'
+       TCDE1    PIC (X(4))                TEXT 'Process Atax Code1         - defaults to ALL if blank             :'
+       TCDE2    PIC (X(4))                TEXT 'Process Atax Code2                                                :'
+%VARIABLES
+%*
+       TODAY           = DATE ()        CONSTANT 
+       YESTERDAY       = DATE2 OF MSSDAT -
+                         WHERE (OPTION = '1', -
+                                DATE1  = TODAY, -
+                                DAYS   = -1) CONSTANT 
+       YESDIS          = DISPLAY-DATE VIA (YESTERDAY) CONSTANT
+%*   To determine the DAY today
+      DY              = DAYS OF MSSDAT       -
+                        WHERE (OPTION = '6', -
+                               DATE1  = TODAY)  CONSTANT
+%*   DAY Values
+      D               = CHOOSE ('MON' IF (DY = 1), -
+                                'TUE' IF (DY = 2), -
+                                'WED' IF (DY = 3), -
+                                'THU' IF (DY = 4), -
+                                'FRI' IF (DY = 5), -
+                                'SAT' IF (DY = 6), -
+                                'SUN' IF (DY = 7), -
+                                '   ')    CONSTANT
+%*
+%*    To choose the Friday Date if today is Sunday
+%*
+      SUNDAY          = DATE2 OF MSSDAT      -
+                        WHERE (OPTION = '1', -
+                               DATE1  = TODAY,  -
+                               DAYS   = -2)     -
+                        CONSTANT
+      SUNDIS          = DISPLAY-DATE VIA (SUNDAY) CONSTANT
+%*
+%*    To choose the Friday date if today is Monday
+%*
+      MONDAY          = DATE2 OF MSSDAT      -
+                        WHERE (OPTION = '1', -
+                               DATE1  = TODAY,  -
+                               DAYS   = -3)     -
+                        CONSTANT
+      MONDIS          = DISPLAY-DATE VIA (MONDAY) CONSTANT
+      YESTYY          = SUBSTR (YESDIS,7,2)       CONSTANT
+      SUNYY           = SUBSTR (SUNDIS,7,2)       CONSTANT
+      MONYY           = SUBSTR (MONDIS,7,2)       CONSTANT
+      YESTMM          = SUBSTR (YESDIS,4,2)       CONSTANT
+      SUNMM           = SUBSTR (SUNDIS,4,2)       CONSTANT
+      MONMM           = SUBSTR (MONDIS,4,2)       CONSTANT
+      YESTDD          = SUBSTR (YESDIS,1,2)       CONSTANT
+      SUNDD           = SUBSTR (SUNDIS,1,2)       CONSTANT
+      MONDD           = SUBSTR (MONDIS,1,2)       CONSTANT
+      YESTCC          = CHOOSE ('20' IF (YESTYY < '25'), '19') CONSTANT
+      SUNCC           = CHOOSE ('20' IF (SUNYY  < '25'), '19') CONSTANT
+      MONCC           = CHOOSE ('20' IF (MONYY  < '25'), '19') CONSTANT
+      YEST            = CATENATE (YESTCC,YESTYY,YESTMM,YESTDD) CONSTANT
+      MON             = CATENATE (MONCC,MONYY,MONMM,MONDD)     CONSTANT
+      SUN             = CATENATE (SUNCC,SUNYY,SUNMM,SUNDD)     CONSTANT
+%*
+      DTE             = CHOOSE (SUN IF (DY = 7), -
+                                MON IF (DY = 1), -
+                                YEST) CONSTANT
+%*
+       CP      = WX-STORES-CP                              CONSTANT
+       LP      = PERIOD-YRMN OF MSSDAT     -
+                 WHERE (OPTION      = 'I', -
+                        PERIOD-YRMN = CP,  -
+                        DAYS        = -1)                  CONSTANT
+      DTESTR   = STARTING-DATE-1-9 OF MSSDAT   -
+                 WHERE (OPTION      = 'G',    -
+                        PERIOD-YRMN = LP)                  CONSTANT
+      DTEEND   = ENDING-DATE-1-9 VIA (DTESTR)              CONSTANT
+      DATEFX   = DTESTR  D-PIC (X(8))                      CONSTANT
+      DATETX   = DTEEND  D-PIC (X(8))                      CONSTANT
+%*
+%* Determine Date From/To
+      DATEFR   = CHOOSE (DTE    IF (%RUN%    = 'D',     -
+                                    %DATEFR% = SPACES), -
+                         DATEFX IF (%RUN%    = 'M',     -
+                                    %DATEFR% = SPACES), -
+                         DTE    IF (%RUN%    = ' ',     -
+                                    %DATEFR% = SPACES), -
+                         %DATEFR%)  FORMAT (DATE)    CONSTANT 
+      DATETO   = CHOOSE (DTE    IF (%RUN%    = 'D',     -
+                                    %DATETO% = SPACES), -
+                         DATETX IF (%RUN%    = 'M',     -
+                                    %DATETO% = SPACES), -
+                         DTE    IF (%RUN%    = ' ',     -
+                                    %DATETO% = SPACES), -
+                         %DATETO%)  FORMAT (DATE)    CONSTANT 
+%*
+      DC       = DSTRCT-CODE
+      ORD      = PO-NO
+      INVC     = INV-NO
+      SUP      = SUPPLIER-NO
+      MDATE    = LAST-MOD-DATE  FORMAT (DATE)
+%*
+%*    Some of the Accountant fields are not filled with leading zeros
+      ACCT1    = ACCOUNTANT
+      ACT15    = SUBSTR    (ACCT1,1,5)
+      ACCT2    = CATENATE  ('00000',ACT15)
+      ACCTNT   = CHOOSE (ACCT1 IF (ACT15 = '00000'), -
+                            ACCT2)
+      ACTN     = SUBSTR (ACCTNT,6,5)
+      SNAME    = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = ACCTNT)
+      F        = FIRST-INITIAL VIA (SNAME)
+      FNAME    = CATENATE (SNAME,' ',F)
+      NAME     = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION    = 'P', -
+                       INP-STRING = FNAME)
+%*   Supplier Name
+     SUPNAME   = SUPPLIER-NAME OF MSF200 -
+                 WHERE (SUPPLIER-NO = SUP)
+%*   ABN Number  
+     ABN-NO    = TAX-FILE-NO OF MSF203     -
+                 WHERE (DSTRCT-CODE = DC, -
+                        SUPPLIER-NO = SUP)
+%*   Invoice Item Details 
+      MSF26A   = LOC-VAL-INVD FROM MSF26A      -
+                 WHERE (DSTRCT-CODE  = DC,     -
+                        SUPPLIER-NO  = SUP,    -
+                        INV-NO       = INVC,   -
+                        INV-ITEM-NO >= SPACES) 
+      ATAX     = ATAX-AMT-LOC  VIA (MSF26A)
+      VAL      = LOC-VAL-INVD  VIA (MSF26A)
+      ORGVAL   = CALC (VAL + ATAX)
+      I        = INV-ITEM-NO   VIA (MSF26A)
+      INV      = CATENATE (INVC,'/'I)
+      AMDNO    = LAST-AMEND-NO VIA (MSF26A)
+      EMPID    = RECEIVED-BY   VIA (MSF26A)
+      EMP      = SUBSTR(EMPID,6,5)
+%*   Retrieve the Tax Code from MSF263
+     T         = ATAX-CODE OF MSF263              -
+                 WHERE (INV-DSTRCT-CODE = DC,     -
+                        INV-SUPPLIER-NO = SUP,    -
+                        INV-NO          = INVC,   -
+                        INV-ITEM-NO     = I,      -
+                        DEFAULTED-IND  >= SPACES) -
+                 MAX  (1)
+
+     PRT2      = CHOOSE ('Y' IF (%TCDE1% > SPACES AND %TCDE1% = T), -
+                         'Y' IF (%TCDE2% > SPACES AND %TCDE2% = T), -
+                         'Y' IF (%TCDE1% = SPACES), 'N')
+
+%*   The Original Invoice Quantity must be retrieved from MSF261 where               
+%*       the Mod Ref = 'INV. LOAD'
+      OQTY     = AMEND-QTY OF MSF261               -
+                 WHERE    (DSTRCT-CODE   = DC,     -
+                           SUPPLIER-NO   = SUP,    -
+                           INV-NO        = INVC,   -
+                           INV-ITEM-NO   = I,      -
+                           AMENDMENT-NO >= SPACES) -
+                 REJECTIF (AMEND-REF    <> 'INV. LOAD') -
+                 MAX      (1)  D-PIC -----,--9.99
+%*
+%*    Invoice Amendement Dtails
+      AQTY     = AMEND-QTY OF MSF261 -
+                 WHERE (DSTRCT-CODE  = DC,     -
+                        SUPPLIER-NO  = SUP,    -
+                        INV-NO       = INVC,   -
+                        INV-ITEM-NO  = I,      -
+                        AMENDMENT-NO = AMDNO)  -
+                               D-PIC -----,--9.99
+      AVAL     = LOC-AMD-VAL VIA (AQTY)
+      AMDVAL   = CALC (AVAL + ATAX)
+      INVVAL   = CHOOSE (ORGVAL IF (AMDVAL = 0), AMDVAL) -
+                         D-PIC --,---,---,--9.99
+%*
+      CNT      = CHOOSE ( 1  IF (PRT2 = 'Y'), 0)
+      TCNT     = TOTAL  (CNT)  D-PIC ZZZ,ZZ9
+%*  
+%*  Retrive the Extended Text containing the Claim Number
+%*  and Claimant Name
+      M096     = GET (READ-TEXT FROM ('MSF096') CODE ('IX') -
+                      KEY (DC,SUP,INVC))                  -
+                      MAX (2)                             -
+                      TEXT-WIDTH (60)
+      EXLINE    = PUT (M096) MAX (2) 
+      EXLN1     = SINGLE (EXLINE (1))
+      EXLN2     = SINGLE (EXLINE (2))
+      CLMNO     = SUBSTR (EXLN1,13,10)
+      CLMANT    = SUBSTR (EXLN2,5,40)
+%*
+%*     End of Program
+%*

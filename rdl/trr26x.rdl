@@ -1,0 +1,230 @@
+%*** TRR26X.rdl
+%***
+%*** Revision History ***
+%*** 19-Feb-13 a9ll4261     Converted to ellipse 8.
+%*** ...................... Modify APPR-STATUS and ITM-PMT-STATUS
+%*** ...................... from 05 to 00.
+%*** 23-Oct-12 a9dd3230     Add format to T1, T2, T3, T4, T5, T6, T7
+%*** ...................... Change SETVAL to not use BWZ format.
+%*** 05-Oct-12 a9zr4751     Delete blank space after T variable to prevent 
+%*** ...................... shifting in output file (reset version 0001)
+%*** 28-Sep-07 Janak Barar  SC1540632
+%*** ...................... Created OUTPUT FILE instead of report.
+%*** 27-Jul-07 EFredeluces  SC1540632
+%*** ...................... Added the Warehouse-Id to the heading and
+%*** ...................... the last modified user to the sub-heading.
+%*** 22-Dec-05 LNee         WCHG108750
+%*** ...................... Re-instated Aneeta's amendment- as held in RCS under
+%*** ...................... revision 1.8
+%*** 18-Jun-05 AIesho       WCHG108750
+%*** ...................... Modified program to select by Warehouse-id
+%*** 06-Jun-05 AIesho       P05060270
+%*** ...................... Modified program to cope with district consolidation
+%*** ...................... into GRID. Append Warehouse id to purchase order
+%*** ...................... Added the Warehouse in the Report "A" heading.
+%*** 02-Jul-03 RYeung       WCHG023260
+%***                        Additional change to Supplier name and returned.
+%*** 25-Jun-03 RYeung       WCHG023260
+%***                        Add date loaded, returned. Remove service number, invoice item, tax code
+%*** 25-Jul-02 EFredeluces  WCHG004106
+%*** ...................... Commented-out the actual print command.
+%*** 11-Jul-02 LNee         WCHG004106
+%*** ...................... Removed Dynamic printing
+%*** 04-Jul-02 LNee         WCHG003566
+%*** ...................... To change the layout of the report, including
+%*** ...................... displaying a max of 2 tax codes (instead of 5).
+%*** 17-May-02 LNee         WCHG002543
+%*** ...................... To display a maximum of five tax codes
+%*** ...................... instead of one.
+%*** 02-May-01 RCasagrande  WO : See Elizabeth Fredeluces
+%*** ...................... Disabled dynamic printing functionality.
+%*** ...................... With dynamic printing enabled RDL would halt
+%*** ...................... with run-time error: MSSPRT Fatal-Error,
+%*** ...................... Mssprt-Option : C
+%*** 29-Dec-00 DDiolaso     W00120593 
+%*** .....................  Program amendment so that report prints for all
+%*** .....................  dstricts regardless of zero values in exemption
+%*** .....................  report (REPORT B)
+%*** 05-Sep-00 EFredeluces  W00090076
+%***                        Include the second line of the supplier details.
+%*** 30-Mar-00 DDIOLASO     W00030683
+%***                        Reflected GST
+%*** 21-Feb-00 EFredeluces  W00020537
+%***                        To inclide additional tax code from MSF263.
+%*** 07-Apr-99 JN           Change run numbers to alphabetic
+%*** 12-Jan-99 G Presser    Fix reading of MSF26A file
+%*** 12-Nov-98 Brandon      Fix for MIMS 4.3. Invoice header - MSF260,
+%*** ...................... Invoice details - MSF26A.
+%*** 06-Apr-98 Saraht       W803180044
+%*** ...................... Change the format of the report to allow more lines
+%*** ...................... of the extended description. New format of the
+%*** ...................... report provided by the user.
+%*** 03-Apr-98 SarahT       W801130054
+%*** ...................... In CHOOSE statement to choose between work order
+%*** ...................... and project, change the variable SI-WO to WO1,
+%*** ...................... WO2, WO3, WO4, WO5, WO6 & WO7 to correctly report
+%*** ...................... work order and project numbers.
+%*** 23-Dec-97 Whitley      W711200034
+%*** ...................... Amended program to include Project No to be 
+%*** ...................... display for inv-type '2' records. Their could
+%*** ...................... be from 1 to 7 different project no's for this
+%*** ...................... inv-type.
+%*** 19-Jun-97 Whitley      W703180024
+%*** ...................... Amended program to display the order value as
+%*** ...................... $99999999.99 as previous it was 999999.9999.
+%*** ....................
+%*** 16-Apr-96 Mincom        Replace 'RC' table access with HRGET macro.
+%*** ....................
+%*** 16-NOV-95 Peter Lacey
+%*** ...................... Converted from 3.010 to 3.013. Changed field
+%*** ...................... MSF260-AUTH-BY to MSF260-AUTHSD-BY.
+%*** 15-Sep-94 DavidG.... Ver 010D. Fix page heading- date/time were truncating.
+%*** .................... add "by   /  /  ." to footing literal.
+%*** 20-Apr-93 DavidG.... Ver 010C. NO CHANGE. - However do not need to edit cbl anymore.
+%*** 20-Sep-93 DavidG.... Ver 010C. Repeat ext. desc max of 6 lines.           
+%*** 06-Sep-93 DavidG.... Ver 010B. First rec has blank req-by?                
+%*** .................... sort by reqby function variable.                     
+%*** 06-Sep-93 DavidG.... Ver 010A. Change sort from auth-by to req-by as      
+%*** .................... requested by Mal Harris.                             
+%*** 25-Aug-93 DavidG.... Ver 009E Added 'C' report - register to print at H/O 
+%*** .................... if siteprin 'B' (both)                               
+%*** 18-Aug-93 MaryW..... Ver 009D Moved INVTYPE from Header to Item level.   
+%*** 05-Aug-93 DavidG.... Ver 009C Remove wording "ARE FURTHER PAYMENTS 
+%*** .................... ANTICIPATED OR" from footing.
+%*** .................... Add 3 columns to register for referred, reqd, returned
+%*** 03-Aug-93 DavidG.... Ver 009B Edit cbl file to prevent fatal errors on
+%*** .................... blank district. This change should not be required 
+%*** .................... in MIMS 3.010. IT IS NOT REQUIRED IN V3.010K. DG 20/4/94.
+%*** EDIT CBL FILE AS FOLLOWS :
+%*           IF  NOT ESS266A-EOF
+%*           AND W70-MSF260A1-DSTRCT-CODE NOT = W50-DSTRCT-CODE
+%*      ** DG add following line!
+%*           AND NOT = SPACES
+%*      ** DG
+%*               MOVE W50-DSTRCT-CODE TO W50-PREV-DSTRCT-CODE
+%*               MOVE W70-MSF260A1-DSTRCT-CODE TO W50-DSTRCT-CODE
+%*                                          WX-DISTRICT
+%*               EXEC GET COMMAREA
+%*                        FROM (MSS001)
+%***
+%*** 03-Aug-93 DavidG.... Ver 009A Change: INVDTE <= CUTDTE to 
+%*** ....................                  INVDTE <= CUTDTE1 in PRINT variable
+%*** .................... Add siteprin and regonly params to allow for only
+%*** .................... printing register and printing @ H/O or site for 
+%*** .................... global requests.
+%*** .................... Only print if Invoice (J) <> spaces - was printing
+%*** .................... blank invoices in register.
+%*** 15-Jul-93 DavidG.... Ver 008C Rewrite to run more efficiently for global
+%*** .................... requests IE. make mfile msf000 & don't read any 
+%*** .................... completed invoices.
+%*** 12-Jul-93 DavidG.... Version 007B Rewrite to allow exemption report option.
+%*** 13-May-93 Mary_W.... Version 006A Modifications for ECNSW as follows:
+%*** .................... Amended A & B report layout as per M. Harris.
+%*** .................... A report, amended certification statement to 3 
+%*** .................... points and added full description of order.
+%*** .................... B report, deleted Dcpr & item columns and added  
+%*** .................... Requesting Officers name.
+%*** 01-Apr-93 Mary_W.... Version 6 Modifications for ECNSW as follows:
+%*** .................... Amending A report to print > 20 lines of commentary.
+%*** 14-Nov-92 Mary_W.... Version 5/Modifications for ECNSW as follows:
+%*** .................... Amending B Report so correct value prints.
+%*** .................... Was printing zero if value had been amended.
+%*** 14-Nov-91 DavidG     Modifications for ECNSW as follows:
+%*** .................... Add Date next to designation
+%*** .................... Include Report B - Register of service invoices
+%*** 04-oct-91 DavidG     Modifications for ECNSW as follows:
+%*** .................... add page footing 'pls return to Stn Acct/Fin Off'
+%*** 24-Sep-91 DavidG     Modifications for ECNSW as follows:
+%*** .................... New parameter 'cutoff-dte' to only report invoices
+%*** ....................     prior to a nominated date. ie Exception report
+%*** 16-Sep-91 DavidG     Modifications for ECNSW as follows:
+%*** .................... print supplier in page heading NOT supplier brk hdg
+%*** .................... add lfile msf230 for req-by variable
+%*** .................... print "requested by" code & name from msf010 in hdg
+%*** .................... change "department" to "section"
+%*** .................... print purchase req/itm
+%*** .................... control break/page break for invoice no footing
+%*** .................... add various text to page header
+%*** .................... add the following text at bottom of detail:
+%*** .................... Is this purchase order now considered complete? YES/NO
+%*** .................... Has a Purchase Order Amendment been requested?  YES/NO
+%*** .................... 'Approval Comments:' 
+%*** .................... 
+%*** 03-Sep-90 Philr      C19254 Version 004. 3.004 to 3.005/4.
+%*** 07-Aug-90 Merc       Change REQ-TYPE to REQ-TYPE-IND.
+%*** 07-Aug-90 Merc       CSS232 Version 003. 3.003 to 3.004/3.
+%*** 01-Jun-90 Kris       C99548 Version 002A. From M3002A to M3002C.
+%*** 23-Apr-90 Philr      CSB266 Version 002. From M3001A to M3002/4.
+%*** 06-Apr-90 PHILR      BREAK ON CHANGE OF DISTRICT.
+%*** 06-Apr-90 Philr      CSB266 Version 001B. From M3000C to M3001A.
+%*** 21-Mar-90 Ross       C99548 Version 001A. From M3000 to M3000C.
+%*** 08-Dec-89 PHILR   Initial Coding
+%***                  Generated by Version 001 of NEWRDL.MAC
+%***
+%PROGRAM-ID
+       TRR26X
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  Invoice approval report.
+%* Only edit version no. in variable 'VER'
+%MODULE      
+        3260
+%VERSION     
+        0003
+%ROUTINES
+        MSS232
+        MSSDAT
+        MSSCNV
+%FILES
+        MFILE = MSF000
+        AFILE = MSF26AA
+        LFILE = MSF000
+        LFILE = MSF010
+        LFILE = MSF200
+        LFILE = MSF220
+        LFILE = MSF221
+        LFILE = MSF230
+        LFILE = MSF231
+        LFILE = MSF260
+        LFILE = MSF261
+        LFILE = MSF263
+        OFILE = TRT266A
+%SELECTION
+ <IF %DS% = SPACES>
+%*DD <IF %DISTRICT-CODE% = SPACES>
+     WHERE     (DSTRCT-CODE = SPACES, -
+                CONTROL-REC-TYPE = 'AD', -
+                CONTROL-REC-NO >= SPACES)
+     REJECTIF  (DSTRCT-STATUS <> 'A')
+ <ELSE>
+     WHERE     (DSTRCT-CODE = SPACES, -
+                CONTROL-REC-TYPE = 'AD', -
+                CONTROL-REC-NO >= %DS%, -
+                CONTROL-REC-NO <= %DS%)
+ <ENDIF>
+%OUTPUT-FILE
+     A
+%CONTROL
+     RECORD-LENGTH = 871
+%DETAIL 
+<IF FW > SPACES>
+%*       1         2         3         4         5         6         7
+%* 4567890123456789012345678901234567890123456789012345678901234567890123456
+{FW     }{F   }{G}{H       }{PREQ}{Y}{ININV   }{J                 }{C   }-
+{WARNING    }{VAL-INVD   }{D          }{TX}XX{X2}{GSTINC     }-
+{L          }UU{K}{I          }{E   }{A       }{GST        }T-
+{DR}{V-INVD1    }{LD    }{GSTSUM     }{GSTV       }{GSTVSUM    }-
+{DC}{WH}{CUTDTE}{LRUN}{HRUN}{SETDISCTXT          }{SETVAL}{ST}{SETDUE}-
+{ACCTNO1 }{T1  }{WP1   }{EQUIP1    }{ACCTNO2 }{T2  }{WP2   }{EQUIP2    }-
+{ACCTNO3 }{T3  }{WP3   }{EQUIP3    }{ACCTNO4 }{T4  }{WP4   }{EQUIP4    }-
+{ACCTNO5 }{T5  }{WP5   }{EQUIP5    }{ACCTNO6 }{T6  }{WP6   }{EQUIP6    }-
+{ACCTNO7 }{T7  }{WP7   }{EQUIP7    }{SIN               }{DDAT  }{OIN     }-
+%*       1         2         3         4         5         6         7
+%* 4567890123456789012345678901234567890123456789012345678901234567890123456
+{M   }{N       }{R          }{S          }{MODUSR  }-
+{O                     }{W     }{P     }{Q          }-
+{INV-1-COMM                                                }-
+{INV-2-COMM                                                }-
+{CNT    }{VAL            } 
+<ENDIF>

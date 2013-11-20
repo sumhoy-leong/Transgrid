@@ -1,0 +1,31 @@
+%*** trrref.rdl
+%PROGRAM-ID
+    TRRREF
+%AUTHOR
+    Mincom PTY LTD
+%NARRATIVE
+    Unloads MIMS tables from MSF803, for load to GUI files on PCs.
+%MODULE
+    3001
+%VERSION
+    001A
+%FILES
+    MFILE = MSF803
+    OFILE = TRTREFG
+%SELECTION
+    WHERE (AWARD-CODE            = 'ST05')
+%OUTPUT-FILE
+    G
+%CONTROL
+    RECORD-LENGTH = 80
+%DETAIL
+{A0}A{A00 }A{A01   }A{A02                         }ABA{A03           }A{A1}
+%VARIABLES
+    A   = ';'
+    A03 = FREQ-RATE D-PIC(----------9.9999)
+    B   = FREQ-TYPE
+    A1  = RATE-REASON
+    A0  = AWARD-CODE
+    A00 = RATE-REF-CODE
+    A02 = TABLE-NAME
+    A01 = CALC ( 99999999 - INVERSE-DATE-9 )  I-PIC (9(8)) FORMAT (DATE)

@@ -1,0 +1,44 @@
+%*
+%* Report Description        :  Testing
+%*
+%PROGRAM-ID
+    TRRTES
+%AUTHOR
+    Jeane
+%NARRATIVE
+%MODULE
+    3001
+%VERSION
+    001
+%* REVISION HISTORY
+%FILES
+    MFILE = MSF221
+    RFILE = TRRTESA
+%SELECTION
+    WHERE (PO-NO >= SPACES)
+    SELECTIF (CURR-DUE-DATE >= '20121001')	
+%BREAK-FIELDS
+    PNO	
+%REPORT
+    A
+%TITLE
+    'TESTING REPORT'
+%HEADING 
+     'PO NUMBER'         ' QTY'            'PRICE'      'ZERO1'   'ZERO2'  'VALUE APPROVED'  
+%BREAK PNO FOOTING
+  <IF AINVQTY <> 0>
+      {PNO  }            {AINVQTY     }   {GRPRICE    }  {ZERO}   {ZERO2}    {VALUE       }    
+  <ENDIF>      
+%SUMMARY
+  '=========================================================================='
+  {PNO  }                {AINVQTY     }   {GRPRICE    }  {ZERO}   {ZERO2}    {VALUE       }              
+%VARIABLES
+    PNO = PO-NO
+	AINVQTY = TOTAL (CURR-QTY-P) D-PIC (SZ(8)9.99)
+	GRPRICE = TOTAL (GROSS-PRICE-P) D-PIC (SZ(12)9.99)
+	ZERO1   = CALC (1 * 0)
+	ZERO12  = CALC (5 * 0)
+	ZERO    = TOTAL (ZERO1)
+	ZERO2   = TOTAL (ZERO12)
+	VALUE   = TOTAL (VAL-APPR) D-PIC (SZ(12)9.99)
+	

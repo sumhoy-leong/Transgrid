@@ -1,0 +1,298 @@
+%******************************************************************************
+%*** Revision History ***
+%***---------------------
+%***
+%*** 10-08-12 a9nh4814    MO164 (Version 0001)
+%***                      - Changed report from WAR400 to TRR400.
+%***                      - Replaced tabs with spaces to pass El8 RDL compiler. 
+%***                      - Reset version number to 0001 for E8 upgrade.
+%*** 18-06-07 Assia Sahyoun Version 003
+%***                      Added daily average and MSF700 Maint Schedule Stats
+%***                      to CSV output file.
+%*** 13-08-03 RYeung      WCHG029139
+%***                      Add Stat-Type, Entry-Type, Min-Day, Max-Day from MSF617
+%***                      to CSV file.
+%*** 29-01-02 EFredeluces WCHG000985 
+%***                      To include a CSV output file.
+%*** 06-03-99 NChandra    A991531224. 
+%***                      Changes for Equipment list - using MSF607 instead
+%***                      MSF060 and made it to work correctly.
+%***                      "Cleanse"  the program so that it is readable.
+%*** 30-03-99 RKMahajan   Changes for Equipment list - using MSF607 instead
+%***                      MSF060.
+%*** 25-11-98 DDiolaso    Fix for MIMS 4.3
+%*** 20-04-93 ShaneR      Written as a means to report on statistical data
+%***                      entered at the MSO
+%*** 27-03-95 John Merl   Parameter added to select on equipment list as per
+%***                      FRS W-534302.
+%*** 20-12-96 L CAPPLE    Changed Request Parameters to Plant No to and From
+%***                      instead of EQuipment no, changed selection criteria
+%***                      and include to suit.
+%*** Program Function ***
+%***    Based on FRS W-485201 this program has been written as a means of
+%***    producing reports on the statistical data entered at the MSO400 screen.
+%***    This has become necessary as a fault in the processing of this
+%***    statistical information in MSS400 has made this information useless.
+%***    Thus the ability to produce a physical record of what was actually
+%***    entered will hopefully aid in the process of tracking down when and
+%***    where the corruption is occuring.
+%***
+%******************************************************************************
+%PROGRAM-ID
+         TRR400
+%MODULE
+         3430
+%VERSION
+         0001
+%*
+%FILES
+        MFILE = MSF400
+        AFILE = MSF607
+        LFILE = MSF600
+        LFILE = MSF617
+        LFILE = MSF700
+        RFILE = TRR400A
+        OFILE = TRT400A
+%*
+%SELECTION
+%*
+        WHERE    (STAT-TYPE   >= %STAT-TYPE%)
+        REJECTIF (%STARTDATE% <> SPACES, STAT-DATE  < %STARTDATE%)
+        REJECTIF (%SHIFT%     <> SPACES, SHIFT     <> %SHIFT%)
+        REJECTIF (%ENDDATE%   <> SPACES, STAT-DATE  > %ENDDATE%)
+        STOPIF   (STAT-TYPE    > %STAT-TYPE%)
+%*
+%ROUTINES
+        MSSCNV
+        MSS400 
+        MSS700 
+%*
+%ORDER
+        EQUIP-NO
+        MEM-EQUIP-NO VIA (LEQ1)
+        STATDATE
+        REC400-TYPE
+        STAT-VALUE
+        CUM-VALUE
+        METER-VALUE
+%*
+%BREAK-FIELDS
+        DUM
+        EQUIP-NO 
+%OUTPUT-FILE
+        A
+%*
+%CONTROL
+        RECORD-LENGTH =189 
+%*        MAX-RECORDS-SELECTED = 1000 
+%BREAK DUM HEADER
+{H1                                                    }-
+{H2                                              }-
+{H3                                           } 
+{H1A                                 }-
+{H2A                                           }-
+{H3A                   }
+%DETAIL
+<IF SLEQ1 = 'Y'>
+  <IF INCPLANT = 'Y'>
+{PLANTNO                       }X-
+{DESC1                                 }X-
+{EQUIPNUM  }X{STDTE }X{DA        }X{SH}XRX{STATVALD}X{CUMVALD  }X{METVALD}X-
+AAXBXCCCXDDD'        '
+  <ENDIF>
+<ENDIF>
+%BREAK  EQUIP-NO  FOOTER
+<IF SLEQ1 = 'Y'>
+  <IF INCPLANT = 'Y'>
+<REPEAT>
+{PLANTNO                       }X-
+{DESC1                                 }X-
+{EQUIPNUM   }',,,,,,,,,,,,'{CD}XMMX{MT}XSX{FREQ  }X{LSS   }X{LPS   }X{LSD   }X{LPD   }
+<ENDREPEAT>
+  <ENDIF>
+<ENDIF>
+%REPORT
+        A
+%CONTROL
+        PAGE-LENGTH = 55
+%*
+%REPORT-TITLE
+'Record Of Equipment Statistical Data'
+%*
+%PAGE HEADING
+<IF SLEQ1 = 'Y'>
+'Plant                            Equipment       Statistical         Record      Stats    Cumulative   Meter   '
+'Number                           Number          Date         Shift  Type        Value    Stats Value  Value   '
+<ENDIF>
+%*
+%DETAIL
+<IF SLEQ1 = 'Y'>
+  <IF INCPLANT = 'Y'>
+{PLANTNO                       }  {EQUIPNUM   } {STATDATE}   {SH}     R     {STATVAL } {CUMVAL   }  {METVAL }
+  <ENDIF>
+<ENDIF>
+%*
+%CONTROL-BREAKS
+        EQUIP-NO
+        MEM-EQUIP-NO VIA (LEQ1)
+
+%BREAK  EQUIP-NO  FOOTER
+<IF SLEQ1 = 'Y' , %EQLIST% = SPACES>
+  <IF INCPLANT = 'Y'>
+    {DESC1                                  }                              '-----------'
+    {DESC2                                  }                      'TOTAL' {CALCTOT  }                                      
+{UNDERLINE                                                                                                                         }
+  <ENDIF>
+<ENDIF>
+%BREAK  MEM-EQUIP-NO VIA (LEQ1)  FOOTER
+<IF SLEQ1 = 'Y', %EQLIST% <> SPACES>
+  <IF INCPLANT = 'Y'>
+    {DESC1                                  }                              '-----------'
+    {DESC2                                  }                      'TOTAL' {CALCTOT  }                                      
+{UNDERLINE                                                                                                                         }
+  <ENDIF>
+<ENDIF>
+%*
+%REPORT-SUMMARY
+
+'                                                       *** END OF REPORT ***'
+%*
+%REQUEST-PARAMETERS
+%*
+        STAT-TYPE      PIC(X(2))       TEXT 'Stat Type'
+        PLANTFROM      PIC(X(30))      TEXT 'Plant Number - From'
+        PLANTTO        PIC(X(30))      TEXT 'Plant Number - To'
+        STARTDATE      PIC(X(9))       TEXT 'Date - From'
+        ENDDATE        PIC(X(9))       TEXT 'Date - To'
+        SHIFT          PIC(X(2))       TEXT 'Shift'
+        EQLIST         PIC(X(6))       TEXT 'Equipment List'
+%*
+%VARIABLES
+
+
+ H1  = 'Plant,Desc,Equip,Stat,Daily,Shift,RecType,Stat,CummStat,' CONSTANT
+ H1A = ',,,Date,Average,,,Value,Value,' CONSTANT
+
+ H2 = 'Meter,Stat,Entry,Min,Max,Comp,Mod,Task,Schd,Sched,' CONSTANT
+ H2A = 'Value,Type,Type,Day,Day,Code,Code,Task,Ind,Freq,' CONSTANT
+
+ H3 = 'LastSched,LastPerf,LastSched,LastPerf' CONSTANT
+ H3A = 'Stat,Stat,Date,Date' CONSTANT
+
+%*
+%* MSF400
+%*
+        EQUIPNUM = EQUIP-NO
+        STDTE    = STAT-DATE FORMAT (DATE)
+        STATDATE = STAT-DATE FORMAT (DATE)
+        SH       = SHIFT
+        R        = REC400-TYPE
+        STATVAL  = STAT-VALUE
+        STATVALD = STATVAL D-PIC Z(8)9.99
+        CUMVAL   = CUM-VALUE
+        CUMVALD  = CUMVAL D-PIC Z(8)9.99
+        METVAL   = METER-VALUE
+        METVALD  = METVAL D-PIC Z(8)9.99
+        CALCTOT  = TOTAL (STATVAL)
+
+        STATFLG  = STAT-ENTRY-FLG
+        ST       = STAT-TYPE 
+
+        DA400    = DAILY-VALUE OF MSS400 -
+                   WHERE (OPTION-400 = '4', -
+                          STAT-TYPE = ST, -
+                          RECORD-TYPE-400 = 'E', -
+                          EQUIP-NO = EQUIPNUM, -
+                          START-DATE = STATDATE)
+
+        DA = choose (STATVAL IF (STATFLG = 'V'), -
+                     DA400) D-PIC Z(8)9.99 
+%*
+%* Dummy Header
+%*
+        DUMMY    = 'Y' CONSTANT
+        DUM      = CHOOSE ('Y' IF (EQUIPNUM = EQUIPNUM), DUMMY)
+        X        = ',' CONSTANT
+%*
+%* MSF600
+%*
+        PLANTNO  = PLANT-NO  OF MSF600 - 
+                             WHERE (EQUIP-NO = EQUIP-NO)
+
+        PLANTTO  = CHOOSE (%PLANTTO%   IF(%PLANTTO% > SPACES)  ,-
+                           HIGH-VALUES)          I-PIC(X(30))
+
+        PLANTFR  = CHOOSE (%PLANTFROM% IF(%PLANTFROM% > SPACES),-
+                           SPACES)               I-PIC(X(30))
+
+        INCPLANT = CHOOSE ('Y' IF(PLANTNO >= PLANTFR ,-
+                                  PLANTNO <= PLANTTO),-
+                           'N')
+
+        DESC1    = ITEM-NAME-1 VIA (PLANTNO)                             
+        DESC2    = ITEM-NAME-2 VIA (PLANTNO)
+        DESC     = CATENATE (DESC1,' ',DESC2)
+        PLDESC   = OUT-STRING OF MSSCNV     -
+                   WHERE (OPTION     = 'P', -
+                          INP-STRING = DESC)
+%*
+%* MSF607
+%*  
+        LEQ1     = MEM-EQUIP-NO FROM MSF607 -
+                    WHERE (LIST-TYP  = %EQLIST% ,-
+                           LIST-ID  >= %EQLIST% ,-
+                           LIST-ID  <= %EQLIST%) -
+                             REJECTIF (LIST-TYP  = SPACES)
+
+        LT       = LIST-TYP  VIA (LEQ1)
+        LD       = LIST-ID   VIA (LEQ1)
+%*
+           SLEQ1 = CHOOSE ('Y' IF (%EQLIST%  = SPACES)   ,-
+                           'Y' IF (%EQLIST% <> SPACES    ,-
+                                   LEQ1      = EQUIPNUM) ,-
+                           'N')
+%*
+%* MSF617
+%*
+   ST1 = STAT-TYPE-1 OF MSF617 -
+        WHERE (EGI-REC-TYPE           = 'E', -
+               EQUIP-GRP-ID           = EQUIPNUM, -
+               REC-617-TYPE           = 'O')
+   ST3    = STAT-TYPE-3 VIA (ST1)
+   ET1    = ENTRY-TYPE-1 VIA (ST1)
+   ET3    = ENTRY-TYPE-3 VIA (ST1)
+   MI1    = MIN-AV-DAY9-1 VIA (ST1)  
+   MI3    = MIN-AV-DAY9-3 VIA (ST1)  
+   MA1    = MAX-AV-DAY9-1 VIA (ST1) 
+   MA3    = MAX-AV-DAY9-3 VIA (ST1) 
+%*
+   DI1 = CHOOSE ('D' IF (ET1 = 'Y'), 'I')
+   DI3 = CHOOSE ('D' IF (ET3 = 'Y'), 'I') 
+   A =  CHOOSE (ST1 IF (%STAT-TYPE% = 'OP'), ST3)
+   B =  CHOOSE (DI1 IF (%STAT-TYPE% = 'OP'), DI3)
+   C =  CHOOSE (MI1 IF (%STAT-TYPE% = 'OP'), MI3)  I-PIC (9(3))
+   D =  CHOOSE (MA1 IF (%STAT-TYPE% = 'OP'), MA3)  I-PIC (9(3))
+
+%*
+%* MSF700
+%*
+   S = SCHED-IND-700 OF MSF700 -
+       WHERE    (REC-700-TYPE = 'ES', -
+                 EQUIP-NO     >= EQUIPNUM, -
+                 EQUIP-NO     <= EQUIPNUM) -
+       SELECTIF (SCHED-IND-700 = '2') -
+       SELECTIF (SCHED-IND-700 = '4') -
+       SELECTIF (SCHED-IND-700 = '5') MAX (99)
+
+  CD   = COMP-CODE      VIA (S)
+  M    = COMP-MOD-CODE  VIA (S)
+  MT   = MAINT-SCH-TASK VIA (S)
+  FREQ = SCHED-FREQ-1   VIA (S) D-PIC (-(7)9) 
+  LSS  = LAST-SCH-ST-1  VIA (S) D-PIC (-(9)9) 
+  LPS  = LAST-PERF-ST-1 VIA (S) D-PIC (-(9)9) 
+  LSD  = LAST-SCH-DATE  VIA (S) FORMAT (DATE) 
+  LPD  = LAST-PERF-DATE VIA (S) FORMAT (DATE) 
+
+%**
+%** End Of Program
+%**

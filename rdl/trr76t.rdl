@@ -1,0 +1,343 @@
+%*** TRR76T.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** REVISION HISTORY
+%*** --------------------
+%**  20/03/13  V003 AIT when excluding ZO category only exclude emps with 
+%**                     ZO category and DUMMY position;
+%*** 21/02/13 AIT IG     Migrated TRR76T into ELlipse 8 environment.
+%***                     Changed heading to be H/C in output header.
+%***                     Changed record length to 201
+%***                     Fixed PRC break header and footer.
+%***                     Fixed output heading to only display once
+%*** 13-Aug-07 E Fredeluces  SC1550281
+%***                         1) Create a .csv file that will download to the user's H drive.
+%***                            Include column headings and exclude the subtotals in the file.
+%***                         2) Exclude employees with the Staff Category of ZO, ZA, WC.
+%***                         3) Remove the 'Sex' column.
+%***                         4) Add a column for the 'physical location' between the 'PRC' and
+%***                            'Emp Id' columns.
+%***                         5) Add a column for the 'Employee Type' between the 'Reason' and
+%***                           'position' columns.
+%*** 09-Nov-05 E Fredeluces  P05110870
+%***                         Fix compilation errors in Ellipse 5.2.3.7.
+%*** 27-Jan-00 D Diolaso    W00010555
+%***                         Modification to conform to GST changes
+%***
+%PROGRAM-ID
+       TRR76T
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report details position suspensions and/or
+      **  terminations for a requested period
+%VERSION
+       003
+%MODULE
+       3760
+%FILES
+        MFILE = MSF878
+        LFILE = MSF723A
+        LFILE = MSF760
+        LFILE = MSF010
+        LFILE = MSF808
+        LFILE = MSF810
+        LFILE = MSF820
+        LFILE = MSF870
+        LFILE = MSF878B
+        RFILE = TRR76TA
+        OFILE = TRT76TA
+%ROUTINES
+       MSSDAT
+%SELECTION
+%*** Enter selection criteria for MSF878
+       WHERE (POSITION-ID >= LOPOS)
+       SELECTIF (INV-STR-DATE >= %TO-DATE%, -
+                 INV-STR-DATE <= %FROM-DATE%)
+       STOPIF   (POSITION-ID > HIPOS)
+%ORDER
+       PRC
+       EMPLOYEE-ID
+       DESCENDING XDATE
+%CONTROL-BREAKS
+       DUM
+       PRC
+%REPORT 
+       A
+%TITLE
+       'POSITION SUSPENSIONS AND TERMINATIONS REPORT'
+%PAGE HEADING
+%**
+<IF (SREQD = 'Y', TREQD = 'Y')>
+        'POSITION SUSPENSIONS AND TERMINATIONS for Period'{FDATE  }'to'{EDATE  }
+<ELSE>
+   <IF (SREQD = 'Y')>
+                'SUSPENSIONS for Period'{FDATE  }'to'{EDATE  }
+   <ELSE>
+      <IF (TREQD = 'Y')>
+                'TERMINATIONS for Period'{FDATE  }'to'{EDATE  }
+      <ENDIF>
+   <ENDIF>
+<ENDIF>
+'                                     Phy   Susp      Term                                  Emp'
+'Emp-Id     Employee Name             Loc   Date      Date     Reason                       Type  Position'
+%BREAK PRC HEADING TEST-PAGE (5)
+%**
+%**<IF (PHDING = 'Y')>
+<IF VGROUP = 'Y', PREMP = 'Y', CATEG = 'Y'>
+
+{PRC                                } {PRCDESC                     }
+<ENDIF>
+%DETAIL
+%**
+<IF VGROUP = 'Y', PREMP = 'Y', CATEG = 'Y'>
+ {EMP     } {ENAME                  } PPP  {SDATE  } {TDATE  } {REAS                       } TTT  {TITLE                           }
+<ENDIF>
+%BREAK PRC FOOTING
+%**
+<IF (STOT > ZEROS OR TTOT > ZEROS)>
+<IF (SREQD = 'Y')>
+   'TOTAL Suspensions  :'{STOT}
+<ENDIF>
+<IF (TREQD = 'Y')>
+%*    <IF (PHDING = 'Y')>
+   'TOTAL Terminations :'{TTOT}
+%*    <ENDIF>
+<ENDIF>
+<ENDIF>
+%REPORT-SUMMARY
+
+
+<IF SREQD = 'Y'>
+
+'TOTAL Suspensions  :'{STOT}
+<ENDIF>
+<IF TREQD = 'Y'>
+
+'TOTAL Terminations :'{TTOT}
+<ENDIF>
+%* Output CSV File 
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 201 
+%BREAK-FIELDS
+    DUM
+%BREAK DUM HEADER
+%*{HDG                                                                                                        -
+%*                                                                                         }
+'PRC,PRC Desc,Phy Locn,Emp-Id,Employee Name,Susp Date' -
+',Term Date,Reason,Emp Type,Position,'   
+%DETAIL
+%**
+<IF (VGROUP = 'Y', PREMP = 'Y', CATEG = 'Y')>
+{PRC                                }C{PRCDESC                     }CPPPC{EMP     }CX{ENAME                 }XC-
+{SDATE  }C{TDATE  }C{REAS                        }CTTTC{TITLE                           }C
+<ENDIF>
+%REQUEST-PARAMETERS
+       FROM-DATE PIC (X(9))  FORMAT (REVERSE-DATE) TEXT 'Period Date : from'
+       TO-DATE   PIC (X(9))  FORMAT (REVERSE-DATE) TEXT '              to'
+       RPT-TYPE  PIC (X(1))  TEXT 'Suspensions, Terminations, both (S/T/sp)'
+       INGROUP   PIC (X(10)) TEXT 'Work Group to Report on - blank for all'
+       NOLVL       PIC (X(1)) TEXT 'Are employees with subsiquent levels required Y/N'
+       ILVL1       PIC (X(4)) TEXT 'Level 1 Reporting Code'
+       ILVL2       PIC (X(4)) TEXT 'Level 2 Reporting Code'
+       ILVL3       PIC (X(4)) TEXT 'Level 3 Reporting Code'
+       ILVL4       PIC (X(4)) TEXT 'Level 4 Reporting Code'
+       ILVL5       PIC (X(4)) TEXT 'Level 5 Reporting Code'
+       ILVL6       PIC (X(4)) TEXT 'Level 6 Reporting Code'
+       ILVL7       PIC (X(4)) TEXT 'Level 7 Reporting Code'
+       ILVL8       PIC (X(4)) TEXT 'Level 8 Reporting Code'
+       ILVL9       PIC (X(4)) TEXT 'Level 9 Reporting Code'
+       ILVL10      PIC (X(4)) TEXT 'Level 10 Reporting Code'
+
+%VARIABLES
+       IGROUP  = %INGROUP% CONSTANT
+       FDATE   = %FROM-DATE%   FORMAT (REVERSE-DATE) CONSTANT
+       EDATE   = %TO-DATE%     FORMAT (REVERSE-DATE) CONSTANT
+       SPOS    = WX-SUSPEND-POS    CONSTANT
+       TPOS    = WX-TERMINATE-POS  CONSTANT
+       LOPOS   = choose (SPOS IF (%RPT-TYPE% = 'S'), -
+                         TPOS IF (%RPT-TYPE% = 'T'), -
+                         SPOS IF (SPOS < TPOS), -
+                         TPOS) I-PIC (X(10)) CONSTANT
+       HIPOS   = choose (SPOS IF (%RPT-TYPE% = 'S'), -
+                         TPOS IF (%RPT-TYPE% = 'T'), -
+                         SPOS IF (SPOS > TPOS), -
+                         TPOS) I-PIC (X(10)) CONSTANT
+       EMP     = EMPLOYEE-ID
+%* For CSV output file
+       X       = '"' CONSTANT
+       C       = ',' CONSTANT
+       DUMMY   = 'Y' CONSTANT
+       DUM     = choose ('Y' IF (1 = 1), DUMMY)      
+%*       HDG1    = 'PRC,PRC Desc,Phy Locn,Emp-Id,Employee Name,Susp Date,'  CONSTANT
+%*       HDG2    = 'Term Date,Reason,Emp Type,Position,'                    CONSTANT
+%*       HDG     = catenate (HDG1,HDG2)                                     CONSTANT
+%*  Get employee work group
+       VDATE   = DATE() FORMAT (REVERSE-DATE)
+       INDAT   = calc (99999999 - VDATE)
+       WGROUP  = WORK-GROUP OF MSF723A                         -
+                               WHERE(REC-723-TYPE-2  = 'W',    -
+                                     EQUIP-NO-2      = SPACES, -
+                                     EMPLOYEE-ID-2   = EMP,    -
+                                     EFF-DT-REVSD-2 >= INDAT) MAX(1)
+
+       VGROUP  = choose ('Y' IF (IGROUP = SPACES), -
+                         'Y' IF (IGROUP <> SPACES, WGROUP  = IGROUP), -
+                         'N')
+       SREQD   = choose ('Y' IF (%RPT-TYPE% = 'S'), -
+                         'Y' IF (%RPT-TYPE% = ' '), -
+                         'N')   CONSTANT
+       TREQD   = choose ('Y' IF (%RPT-TYPE% = 'T'), -
+                         'Y' IF (%RPT-TYPE% = ' '), -
+                         'N')   CONSTANT
+       POS     = POSITION-ID
+       XDATE   = INV-STR-DATE
+       SDATE   = choose (XDATE IF (POS = SPOS), -
+                         ZEROS) I-PIC (9(8)) FORMAT (REVERSE-DATE)
+       G       = GENDER OF MSF760 -
+                        WHERE (EMPLOYEE-ID = EMP)
+       REASCDE = CHANGE-REASON
+       T       = EMP-TYPE    VIA (G)
+       SCAT    = STAFF-CATEG VIA (G)
+       POSX = SUBSTR (POS,1,5)
+       CATEG   = choose ('N' IF (SCAT = 'ZO', POSX = 'DUMMY'),-
+                         'N' IF (SCAT = 'ZA'),-
+                         'N' IF (SCAT = 'WC'),-
+                         'Y')
+       P       = RPT-PHY-LOC OF MSF820 -
+                        WHERE (EMPLOYEE-ID = EMP)
+       REAS    = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'TFRR', -
+                                   TABLE-CODE = REASCDE)
+%*  Termination Date is day prior to start date in TERMINATION position
+       XPDATE  = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = XDATE, -
+                              DAYS       = -1, -
+                              REV-FORMAT = '3')
+       TDATE   = choose (XPDATE IF (POS = TPOS), -
+                         ZEROS) I-PIC (9(8)) FORMAT (REVERSE-DATE)
+
+%*  Get previous position and PRC
+       PPOS    = POSITION-ID OF MSF878B -
+                             WHERE    (EMPLOYEE-ID-2   = EMP,   -
+                                       INV-STR-DATE-2 >= XDATE) -
+                             SELECTIF (PRIMARY-POS-2   = '0',   -
+                                       INV-STR-DATE-2 <> XDATE) MAX (1)
+       INOLVL    = %NOLVL%
+       ILVL1     = %ILVL1% 
+       ILVL2     = %ILVL2% 
+       ILVL3     = %ILVL3% 
+       ILVL4     = %ILVL4%
+       ILVL5     = %ILVL5% 
+       ILVL6     = %ILVL6%
+       ILVL7     = %ILVL7%
+       ILVL8     = %ILVL8%
+       ILVL9     = %ILVL9% 
+       ILVL10    = %ILVL10%
+       PRCCAT    = CATENATE(ILVL1,ILVL2,ILVL3,ILVL4,ILVL5,ILVL6,ILVL7,ILVL8,ILVL9,ILVL10)
+       PRCDESC1  = PRC-NAME OF MSF808 -
+                         WHERE(PRIM-RPT-CODES = PRCCAT)
+       LVL1      = CHOOSE(%ILVL1%  IF(%ILVL1%  <> '....'), SPACES)
+       LVL2      = choose(%ILVL2%  IF(%ILVL2%  <> '....'), SPACES)
+       LVL3      = choose(%ILVL3%  IF(%ILVL3%  <> '....'), SPACES)
+       LVL4      = choose(%ILVL4%  IF(%ILVL4%  <> '....'), SPACES)
+       LVL5      = choose(%ILVL5%  IF(%ILVL5%  <> '....'), SPACES)
+       LVL6      = choose(%ILVL6%  IF(%ILVL6%  <> '....'), SPACES)
+       LVL7      = choose(%ILVL7%  IF(%ILVL7%  <> '....'), SPACES)
+       LVL8      = choose(%ILVL8%  IF(%ILVL8%  <> '....'), SPACES)
+       LVL9      = choose(%ILVL9%  IF(%ILVL9%  <> '....'), SPACES)
+       LVL10     = choose(%ILVL10% IF(%ILVL10% <> '....'), SPACES)
+%*  Choose primary reporting code level required
+       LVLREQ    = CHOOSE ('1'  IF(LVL2 = SPACES), -
+                          '2'  IF(LVL2  > SPACES, LVL3  = SPACES), -
+                          '3'  IF(LVL3  > SPACES, LVL4  = SPACES), -
+                          '4'  IF(LVL4  > SPACES, LVL5  = SPACES), -
+                          '5'  IF(LVL5  > SPACES, LVL6  = SPACES), -
+                          '6'  IF(LVL6  > SPACES, LVL7  = SPACES), -
+                          '7'  IF(LVL7  > SPACES, LVL8  = SPACES), -
+                          '8'  IF(LVL8  > SPACES, LVL9  = SPACES), -
+                          '9'  IF(LVL9  > SPACES, LVL10 = SPACES), -
+                          '10' IF(LVL10 > SPACES), LVL10)
+       EPRCS      = PRIM-RPT-GRP OF MSF870 -
+                              WHERE (POSITION-ID  = PPOS)
+       TITLE   = POS-TITLE VIA (EPRCS)
+       EPRCL1    = substr (EPRCS,1,4)
+       EPRCL2    = substr (EPRCS,1,8)
+       EPRCL3    = substr (EPRCS,1,12)
+       EPRCL4    = substr (EPRCS,1,16)
+       EPRCL5    = substr (EPRCS,1,20)
+       EPRCL6    = substr (EPRCS,1,24)
+       EPRCL7    = substr (EPRCS,1,28)
+       EPRCL8    = substr (EPRCS,1,32)
+       EPRCL9    = substr (EPRCS,1,36)
+       EPRCSUB   = choose (EPRCL1 IF (LVLREQ = '1'), -
+                           EPRCL2 IF (LVLREQ = '2'), -
+                           EPRCL3 IF (LVLREQ = '3'), -
+                           EPRCL4 IF (LVLREQ = '4'), -
+                           EPRCL5 IF (LVLREQ = '5'), -
+                           EPRCL6 IF (LVLREQ = '6'), -
+                           EPRCL7 IF (LVLREQ = '7'), -
+                           EPRCL8 IF (LVLREQ = '8'), -
+                           EPRCL9 IF (LVLREQ = '9'), -
+                           EPRCS)
+       PRCL1     = substr (PRCCAT,1,4)
+       PRCL2     = substr (PRCCAT,1,8)
+       PRCL3     = substr (PRCCAT,1,12)
+       PRCL4     = substr (PRCCAT,1,16)
+       PRCL5     = substr (PRCCAT,1,20)
+       PRCL6     = substr (PRCCAT,1,24)
+       PRCL7     = substr (PRCCAT,1,28)
+       PRCL8     = substr (PRCCAT,1,32)
+       PRCL9     = substr (PRCCAT,1,36)
+       PRCSUB    = choose (PRCL1 IF (LVLREQ = '1'), -
+                           PRCL2 IF (LVLREQ = '2'), -
+                           PRCL3 IF (LVLREQ = '3'), -
+                           PRCL4 IF (LVLREQ = '4'), -
+                           PRCL5 IF (LVLREQ = '5'), -
+                           PRCL6 IF (LVLREQ = '6'), -
+                           PRCL7 IF (LVLREQ = '7'), -
+                           PRCL8 IF (LVLREQ = '8'), -
+                           PRCL9 IF (LVLREQ = '9'), -
+                           EPRCS)
+       PREMP     = CHOOSE ('Y' IF(EPRCSUB = PRCSUB,INOLVL = 'Y'), -
+                           'Y' IF(EPRCS = PRCCAT,  INOLVL = 'N'), -
+                           'Y' IF(LVL1 = SPACES), 'N')
+%* Use this line if sort required
+       PRC       = choose (EPRCS IF (EMP > SPACES), -
+                           EPRCS)
+       PRCDESC   = PRC-NAME OF MSF808 -
+                         WHERE(PRIM-RPT-CODES = PRC)
+       PHDING    = CHOOSE ('Y' IF(LVL1 = SPACES), -
+                           'Y' IF(PRC = PRCCAT, -
+                                  LVL1 > SPACES), 'N') 
+                          
+%*END OF SORT
+%*       ENAME   = SURNAME OF MSF810 -
+%*                         WHERE (EMPLOYEE-ID = EMP)
+%*       A       = FIRST-INITIAL  VIA (ENAME)
+%*       B       = SECOND-INITIAL VIA (ENAME)
+       
+       XEMP = HRGET  ( EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+                       KEY (EMPLOYEE-ID = EMP ))
+       ENAME = FORMATTED-NAME VIA (XEMP)
+       
+       SUS     = choose (1 IF (SDATE >= EDATE, -
+                               SDATE <= FDATE, -
+                               VGROUP = 'Y',   -
+                               PREMP = 'Y', -
+                               CATEG = 'Y'), -
+                         0)
+       STOT    = total (SUS) D-PIC (Z(5)9)
+       TERM    = choose (1 IF (TDATE >= EDATE, -
+                               TDATE <= FDATE, -
+                               VGROUP = 'Y',   -
+                               PREMP  = 'Y', -
+                               CATEG = 'Y'), -
+                         0)
+       TTOT    = total (TERM) D-PIC (Z(5)9)
+

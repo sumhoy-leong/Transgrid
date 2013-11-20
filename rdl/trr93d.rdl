@@ -1,0 +1,192 @@
+%*** Revision History
+%***
+%*** 20-May-13  AIT IG   v003 Increase size of RH.
+%*** 24-Apr-13  AIT IG   v002 Work group is to be displayed under
+%*** ........................ the PRC, but PRC now used in the header and 
+%*** ........................ the initial sorting criteria.
+%*** ........................ PRC now passed in as first field from TRR93A.
+%*** 21-Mar-13  AIT Lubanovic v001 Migrated into Ellipse 8 environment.
+%***                          Added pay location and PRC parameters
+%***                          and removed CSV file
+%PROGRAM-ID
+       TRR93D
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **
+      **  This report details attendance history report for  
+      **  the transactions in histories and will report on user
+      **  defined Work group upto 10 , Pay groups , employee id,
+      **  and upto 10 workcodes or blank for all for a requested  
+      **  period.
+      **  
+      **  This program is called by TRR93A and TRR93E.
+      **
+%VERSION
+      003 
+%MODULE
+       3890
+%FILES
+       IFILE = TRO93A 
+       RFILE = TRR93DA
+       LFILE = MSF010
+%INPUT-FILE
+       I-PRC1          PIC (X(4))
+       I-PRC2          PIC (X(4))
+       I-PRC3          PIC (X(4))
+       I-PRC4          PIC (X(4))
+       I-PRC5          PIC (X(4))
+       I-WRK-GRP       PIC (X(8))
+       I-WRK-GRP-DESC  PIC (X(35))
+       I-SURNAME       PIC (X(21))
+       I-FNAME-INIT-1  PIC (X(1))
+       I-FNAME-INIT-2  PIC (X(1))
+       I-EMP-ID        PIC (X(10))
+       I-EMP-TYPE      PIC (X(1))
+       I-DAY           PIC (X(3))
+       I-TRN-DATE      PIC (X(8))
+       I-WRK-CODE      PIC (X(2))
+       I-WRK-CODE-DESC PIC (X(30))
+       I-ORIG-REF      PIC (X(4))
+       I-PAID-REF      PIC (X(4))
+       I-ACT-IN        PIC (S9(3)V9(2))
+       I-ACT-OUT       PIC (S9(3)V9(2))
+       I-ROS-HRS       PIC (S9(3)V9(2))
+       I-ACT-HRS       PIC (S9(3)V9(2))
+       I-STR-DATE      PIC (X(8))
+       I-END-DATE      PIC (X(8))
+%ROUTINES
+       MSSCNV
+%ORDER
+       DUM
+       PRCGRP
+%**    I-WRK-GRP
+       I-EMP-ID
+       SDATE
+%CONTROL-BREAKS
+       DUM
+       PRCGRP
+%***   I-WRK-GRP
+%CONTROL
+       INCLUDE-EMPTY-SUMMARY
+%REPORT
+       A
+%REPORT-TITLE
+'Attendance History Report'
+%PAGE HEADING
+{UNDERLINE                                                                                                                         }
+'                                         Date Covered:  From '{S-DTE }' To '{E-DTE } 
+
+'Surname & Initials       Empid     Type Day   Date   Work Work Code                       Orig  Paid    Act    Act  Rost    Act'
+                                                      'Cd  Description                     RRef  RRef    In     Out  Hours  Hours'
+%BREAK PRCGRP HEADING ON NEW-PAGE  
+'PRC :'       {PRCDESC                                                                                                            }
+'Work Group :'{WGRP   } {WGDESC                          }
+                                   
+%DETAIL
+ {EMPNAME               } {EMPTYP     }  DDD {TDATE }  WW  {WDESC                       }  OOOO  HHHH  {AI  } {AO  } {RH } {AHH }
+%REPORT-SUMMARY
+
+
+
+
+'                                                                                       Authorised by:'
+
+
+
+
+'                                                                                       -------------------------------------------'
+
+'                                                                                       Name :'
+
+
+'                                                                                       Title:'                      
+
+' --------------------------------------------     End  of  the  Report  TRR93D    ------------------------------------------------'
+%REQUEST-PARAMETERS
+       FTD   PIC (X(8))  TEXT 'Tran Date From - Blank defaults to Prev Pay Week (Sat) : '
+       TTD   PIC (X(8))  TEXT 'Tran Date To   - Blank defaults to Prev Pay Week (Fri) : '
+       PL    PIC (X(2))  TEXT 'Pay  Location  - Blank For All                         : '
+       WG1   PIC (X(7))  TEXT 'Work Grp1      - Blank For All                         : '
+       WG2   PIC (X(7))  TEXT 'Work Grp2                                              : '
+       WG3   PIC (X(7))  TEXT 'Work Grp3                                              : '
+       WG4   PIC (X(7))  TEXT 'Work Grp4                                              : '
+       WG5   PIC (X(7))  TEXT 'Work Grp5                                              : '
+       WG6   PIC (X(7))  TEXT 'Work Grp6                                              : '
+       WG7   PIC (X(7))  TEXT 'Work Grp7                                              : '
+       WG8   PIC (X(7))  TEXT 'Work Grp8                                              : '
+       WG9   PIC (X(7))  TEXT 'Work Grp9                                              : '
+       WG10  PIC (X(7))  TEXT 'Work Grp10                                             : '
+       INEMP PIC (X(10)) TEXT 'Emp Id         - Blank For All                         : '
+       WC1   PIC (X(2))  TEXT 'Work Cde1      - Blank For All                         : '
+       WC2   PIC (X(2))  TEXT 'Work Cde2                                              : '
+       WC3   PIC (X(2))  TEXT 'Work Cde3                                              : '
+       WC4   PIC (X(2))  TEXT 'Work Cde4                                              : '
+       WC5   PIC (X(2))  TEXT 'Work Cde5                                              : '
+       WC6   PIC (X(2))  TEXT 'Work Cde6                                              : '
+       WC7   PIC (X(2))  TEXT 'Work Cde7                                              : '
+       WC8   PIC (X(2))  TEXT 'Work Cde8                                              : '
+       WC9   PIC (X(2))  TEXT 'Work Cde9                                              : '
+       WC10  PIC (X(2))  TEXT 'Work Cde10                                             : '
+       PRC   PIC (X(20)) TEXT 'PRC                                                    : '
+%VARIABLES
+       HDG1    = 'Surname,Init1,Init2,Empid,Type,Day,Date,WkCd,Work Desc,' CONSTANT 
+       HDG2    = 'Orig Ref,Paid Ref,Act In,Act Out,Rost Hrs,Act Hrs,'      CONSTANT
+       Z       = ','                                                       CONSTANT
+       DUMMY   = 'Y'                                                       CONSTANT
+       DUM     = choose ('Y' IF (DUMMY = 'Y'), DUMMY)                      CONSTANT
+       WGRP    = I-WRK-GRP     
+       WGDESC  = I-WRK-GRP-DESC  
+       SURN    = I-SURNAME       
+       I       = I-FNAME-INIT-1  
+       M       = I-FNAME-INIT-2 
+       NAME    = catenate (SURN,' ',I,' ',M)
+       EMPNAME = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION = 'P', -
+                        INP-STRING = NAME)-
+                 SUPPRESS    
+       EMPID   = I-EMP-ID       
+       T       = I-EMP-TYPE     
+       D       = I-DAY          
+       TDATE   = I-TRN-DATE
+       SY      = substr (I-TRN-DATE,7,2)
+       SM      = substr (I-TRN-DATE,4,2)
+       SD      = substr (I-TRN-DATE,1,2)
+       SDATE   = catenate (SY,SM,SD)     
+       W       = I-WRK-CODE     
+       WDESC   = I-WRK-CODE-DESC 
+       O       = I-ORIG-REF     
+       H       = I-PAID-REF    
+       AI      = CALC (I-ACT-IN * 1) D-PIC (-Z9.99)
+       AO      = CALC (I-ACT-OUT * 1) D-PIC (-Z9.99)  
+%*       RH      = CALC (I-ROS-HRS / 100) D-PIC (Z9.99) 
+       RH      = CALC (I-ROS-HRS * 1) D-PIC (Z9.99) 
+       AHH     = CALC (I-ACT-HRS * 1) D-PIC (-Z9.99)
+       S-DTE   = I-STR-DATE 
+       E-DTE   = I-END-DATE
+       EMPTYP  = catenate (EMPID,' ',T) SUPPRESS
+       EMPDTL  = catenate (SURN,',',I,','M,',',EMPID,',',T)
+       
+%** IG 24/4 Get PRC desc
+       PRCGRP  = CATENATE(I-PRC1,I-PRC2,I-PRC3,I-PRC4,I-PRC5)
+       PRC1D   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'PC01', -
+                        TABLE-CODE = I-PRC1)
+       PRC2D   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'PC02', -
+                        TABLE-CODE = I-PRC2)
+       PRC3D   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'PC03', -
+                        TABLE-CODE = I-PRC3)
+       PRC4D   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'PC04', -
+                        TABLE-CODE = I-PRC4)
+       PRC5D   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'PC05', -
+                        TABLE-CODE = I-PRC5)
+       PRCDESCX = CATENATE (PRC1D,PRC2D,PRC3D,PRC4D,PRC5D)
+       PRCDESC  = OUT-STRING OF MSSCNV -
+                   WHERE (OPTION = 'P', -
+                          INP-STRING = PRCDESCX)
+%*
+%* ------------------  End  of  the  Program  ------------------------

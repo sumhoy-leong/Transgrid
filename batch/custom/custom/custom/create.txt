@@ -1,0 +1,491 @@
+AABPAY.groovy:        AABPAYa.write("MSF8P1 created:" + msfCounter.getiMSF8P1().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8P2 created:" + msfCounter.getiMSF8P2().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8P3 created:" + msfCounter.getiMSF8P3().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8P4 created:" + msfCounter.getiMSF8P4().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8P5 created:" + msfCounter.getiMSF8P5().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8P6 created:" + msfCounter.getiMSF8P6().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8P7 created:" + msfCounter.getiMSF8P7().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8P8 created:" + msfCounter.getiMSF8P8().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8P9 created:" + msfCounter.getiMSF8P9().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8PA created:" + msfCounter.getiMSF8PA().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8PB created:" + msfCounter.getiMSF8PB().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8PC created:" + msfCounter.getiMSF8PC().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8PD created:" + msfCounter.getiMSF8PD().toString()+ " Record(s)")
+AABPAY.groovy:        AABPAYa.write("MSF8PE created:" + msfCounter.getiMSF8PE().toString()+ " Record(s)")
+AABPAY.groovy:            edoi.create(msf8p1rec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8p2Rec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8p3Rec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8p4Rec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8p5Rec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8p6Rec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8p7Rec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8p8Rec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8p9Rec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8pARec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8pBRec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8pCRec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8pDRec)
+AABPAY.groovy:            edoiCreate(edoi,listMsf8pERec)
+AABPAY.groovy:    private void edoiCreate(EDOIWrapper edoi, List  <Object> paramRec){
+AABPAY.groovy:        edoi.createAll(paramRec)
+AABPAY.groovy:    public AABPAYM8pCommonData initMSF8P1Obj(AABPAYM8pCommonData inpCommonData,boolean createUUID){
+AABPAY.groovy:        if (createUUID){
+AABPAY.groovy:    public AABPAYM8pCommonData initMSF8P4Obj(AABPAYM8pCommonData inpCommonData, boolean createUUID){
+AABPAY.groovy:        if (createUUID){
+Aabtst.groovy:        //how_to_create_record();
+Aabtst.groovy://        how_to_create_file_in_work_dir();
+Aabtst.groovy:    private void how_to_create_record(){
+Aabtst.groovy:        info ("how_to_create_record");
+Aabtst.groovy:        edoi.create(msf010recb);
+Aabtst.groovy:        info ("record created")
+Aabtst.groovy:    private void how_to_create_file_in_work_dir(){
+Aabtst.groovy:        info("how_to_create_file_in_work_dir")
+BatchReports.groovy:     * Create a blank report with the default report width 132 and default max row 60
+BatchReports.groovy:     * This method also create a page header and request header
+BatchReports.groovy:        File file = File.createTempFile(reportName+ ".","")
+BatchReports.groovy:    * Create a blank report with the default report width 132 and default max row 60
+BatchReports.groovy:    * This method also create a page header and request header and pageHeading
+ScreenAppLibrary.groovy:     * Create Employee Payroll Transaction (MSO832)
+ScreenAppLibrary.groovy:    public EmployeePayrollTransactionResultDTO createEmployeePayrollTransaction(EmployeePayrollTransactionDTO dto){
+ScreenAppLibrary.groovy:     * Create Report Request (MSS080)
+ScreenAppLibrary.groovy:    public ReportRequestResultDTO createReportRequest(EROIWrapper eroi, ReportRequestDTO dto){
+ScreenAppLibrary.groovy:        //Call MSS080 to create request
+ScreenAppLibrary.groovy:     * Create Employee Appraisal (MSO795)
+ScreenAppLibrary.groovy:     * Option 1 - Create
+ScreenAppLibrary.groovy:     * Create new Journal (MSO905)
+ScreenAppLibrary.groovy:    public JournalResultDTO createJournal(JournalDTO dto) {
+SendEmail.groovy:            // Create a default MimeMessage object.
+SendEmail.groovy:            // Create the message part
+SendEmail.groovy:            // Create a multipar message
+Trb075.groovy: *  This program creates the Monthly Cash Book Summary report.
+Trb140.groovy: * <li> Input to this program is file TRO140 which is being created by </li>
+Trb140.groovy:	// Create SQL statement
+Trb203.groovy: * Create name reference for supplier's tax file no <br>
+Trb203.groovy: * <li> This program creates a colloquial name reference record (MSF120)for tax file no </li>
+Trb203.groovy: * <li> MSF120 record to be created only if the total colloquial record for </li>
+Trb203.groovy:								createMSF120(supNo200, msf203Rec.getTaxFileNo());
+Trb203.groovy:	 * create colloquial name in MSF120. <br>
+Trb203.groovy:	private void createMSF120 (String supNo200, String taxFileNo)
+Trb203.groovy:		//info ("process createMSF120");
+Trb203.groovy:			edoi.create(msf120Rec);
+Trb203.groovy:			ProcessTrb203.printinfo("createMSF120 failed - ${e.getMessage()}");
+Trb203.groovy:			ProcessTrb203.printinfo ("createMSF120 Error: " + ex.message);
+Trb220.groovy:	// Create SQL statement
+Trb230.groovy:	// Create SQL statement
+Trb231.groovy: * <li> recommended that a batch report be created to fulfill the same functionality.</li>
+Trb23d.groovy: * This program send an email notifications when a Purchase Order has been created from a purchase requisition. 
+Trb23d.groovy:        message.add("This is to advise you that the following purchase order has been created from")
+Trb265.groovy:     * Create new instance from this record.
+Trb265.groovy:    public TRS265A createNewInstance(){
+Trb265.groovy:        //create fileTRO265 if not exists
+Trb265.groovy:            fileTRO265.createNewFile()
+Trb265.groovy:            info("${FILE_OUTPUT_NAME} created in ${fileTRO265.absolutePath}")
+Trb265.groovy:// Create SQL statement
+Trb265.groovy:            tmp2 = rec.createNewInstance()
+Trb265.groovy:                tmp1 = tmp2.createNewInstance()
+Trb265.groovy:            tmp1 = tmp2.createNewInstance()
+Trb270.groovy:            mst271OutputFile.createNewFile()
+Trb28b.groovy: *                       create a new private method writeInvCommentsToFile2 to 
+Trb28b.groovy:     private boolean bOFileCreated = false
+Trb28b.groovy:      * Initialisation - create reports and files
+Trb28b.groovy:         // Create Reports A and B
+Trb28b.groovy:                 // Create output file
+Trb28b.groovy:                     bOFileCreated = true
+Trb28b.groovy:                     info(WORKING_LOC + " sucessfully created")
+Trb28b.groovy:                     info ("##### ERROR: Unable to create output file #####")
+Trb28b.groovy:                     Trb28ba.write(">> ERROR: Unable to create output file. PROCESS TERMINATED <<\n")
+Trb28b.groovy:                 // Create an empty file
+Trb28b.groovy:                 destFile.createNewFile()
+Trb28b.groovy:             if (bOFileCreated) {
+Trb28b.groovy:                 //Inv No to search the Standard Text. Create a new private method
+Trb28l.groovy: * This program creates the Daily Cash Book report.
+Trb28n.groovy: * This program creates the Daily Presented Cheques report.
+Trb28p.groovy: * This program creates the Presented Cheques Daily Totals Report.
+Trb29b.groovy:     private boolean bOFileCreated = false
+Trb29b.groovy:      * Initialisation - create reports and files
+Trb29b.groovy:         // Create Reports A and B
+Trb29b.groovy:         // Create output file
+Trb29b.groovy:                 bOFileCreated = true
+Trb29b.groovy:                 info(WORKING_FILE + " sucessfully created")
+Trb29b.groovy:                 info ("##### ERROR: Unable to create output file #####")
+Trb29b.groovy:                 Trb29ba.write(">> ERROR: Unable to create output file. PROCESS TERMINATED. <<\n")
+Trb29b.groovy:             if (bOFileCreated) {
+Trb345.groovy: * and create Condition Monitoring for each Equipment listed in TRT345
+Trb345.groovy:    private static String createErrorMessage = ""
+Trb345.groovy:                    //create CondMeasurement
+Trb345.groovy:                        createErrorMessage = " "
+Trb345.groovy:                            newCondMonSuccess = createNewCondMon(componentNo, equipmentCompCode, monitoringPosition, condMonType, measDate, measTime, condMonMeas, measurementValue, weatherCode, faultCode)
+Trb345.groovy:                                                    createNewCondMon(componentNo, equipmentCompCode, monitoringPosition, condMonType, measDate, measTime, SAMPLE_NO, strSampleNo, weatherCode, faultCode) &&
+Trb345.groovy:                                                    createNewCondMon(componentNo, equipmentCompCode, monitoringPosition, condMonType, measDate, measTime, TESTDATE, strTestDate, weatherCode, faultCode)
+Trb345.groovy:                                                        createNewCondMon(componentNo, equipmentCompCode, monitoringPosition, condMonType, measDate, measTime, WO_NUMBER, workOrderNumber, weatherCode, faultCode)
+Trb345.groovy:                            newCondMonSuccess = createNewCondMon(parentEquipment, parentCompCode, monitoringPosition, condMonType, measDate, measTime, condMonMeas, measurementValue, weatherCode, faultCode)
+Trb345.groovy:                                                    createNewCondMon(parentEquipment, parentCompCode, monitoringPosition, condMonType, measDate, measTime, SAMPLE_NO, strSampleNo, weatherCode, faultCode) &&
+Trb345.groovy:                                                    createNewCondMon(parentEquipment, parentCompCode, monitoringPosition, condMonType, measDate, measTime, TESTDATE, strTestDate, weatherCode, faultCode)
+Trb345.groovy:                                                        createNewCondMon(parentEquipment, parentCompCode, monitoringPosition, condMonType, measDate, measTime, WO_NUMBER, workOrderNumber, weatherCode, faultCode)
+Trb345.groovy:                            errorMessage = insertErrorMessage(errorMessage, "Load Failed when Create New Condition Monitoring")
+Trb345.groovy:     * Create new Cond Mon record information into system.
+Trb345.groovy:     * @return true if create success, false otherwise
+Trb345.groovy:    private boolean createNewCondMon(String equipmentNo, String compCode,String condMonPos, String condMonType, Calendar measDate, Calendar measTime, String condMonMeas, String measureValue, String visInsCode1, String visInsCode2) {
+Trb345.groovy:        debug("createNewCondMon")
+Trb345.groovy:            info("Error at createNewCondMon ${serviceExc.getMessage()}")
+Trb38f.groovy:            info("${REPORT_NAME} created in ${csvPath}")
+Trb38g.groovy: * Trb38g - Send email notification of contracts created to nominated Team's
+Trb38g.groovy:     private String contractCreateDate = ""
+Trb38g.groovy:     private static final String EMAIL_SUBJECT = "FX/COMM Contracts Created"
+Trb38g.groovy:     private static final String EMAIL_BODY = "Please find attached a report detailing Contracts Created with Fx/Comm exposure."
+Trb38g.groovy:             // Create the output CSV file
+Trb38g.groovy:     * Initialisation - create files
+Trb38g.groovy:         // Create output file
+Trb38g.groovy:             info ("##### ERROR: Unable to create output file #####")
+Trb38g.groovy:             contractCreateDate = new Date().format('yyyyMMdd')
+Trb38g.groovy:             contractCreateDate = (new Date() - iDays).format('yyyyMMdd')
+Trb38g.groovy:         info("Find contracts created on: " + contractCreateDate)
+Trb38g.groovy:         Constraint c1 = MSF384Rec.creationDate.equalTo(contractCreateDate)
+Trb38g.groovy:             // Get contracts created on the nominated date.
+Trb38h.groovy: * Trb38h - Send email notification of Purchase Orders Items created to the
+Trb38h.groovy:    private String orderCreateDate = ""
+Trb38h.groovy:    private static final String EMAIL_BODY = "FX/COMM Variable Purchase Orders - Please find attached a Report detailing New Purchase Orders Created that are subject to FX/COMM."
+Trb38h.groovy:            // Create the output CSV file
+Trb38h.groovy:    * Initialisation - create files
+Trb38h.groovy:        // Create output file
+Trb38h.groovy:            info("##### ERROR: Unable to create output file #####")
+Trb38h.groovy:            orderCreateDate = (new Date() - iDays).format('yyyyMMdd')
+Trb38h.groovy:            orderCreateDate = new Date().format('yyyyMMdd')
+Trb38h.groovy:        info("Find purchase order items created on: " + orderCreateDate)
+Trb38h.groovy:        Constraint c1 = MSF220Rec.creationDate.equalTo(orderCreateDate)
+Trb38h.groovy:            // Get PO and PO Items created in the nominated date
+Trb601.groovy:	 * create csv report in every fitted equipment
+Trb601.groovy:			info("${CSV_TRT601} created in ${trt601File.getAbsolutePath()}")
+Trb60a.groovy: * then create two files for subsequent loading to TOA. <br/>
+Trb60a.groovy:     * Create CSV file in working directory
+Trb60a.groovy:    private File createCSVFile(String fileName) {
+Trb60a.groovy:            trt60CFile      = createCSVFile(CSV_TRT_60C_FILENAME)
+Trb60a.groovy:            info("${CSV_TRT_60C_FILENAME} created in ${trt60CFile.getAbsolutePath()}")
+Trb60a.groovy:            trt60FFile      = createCSVFile(CSV_TRT_60F_FILENAME)
+Trb60a.groovy:            info("${CSV_TRT_60F_FILENAME} created in ${trt60FFile.getAbsolutePath()}")
+Trb60a.groovy:            trt60GFile      = createCSVFile(CSV_TRT_60G_FILENAME)
+Trb60a.groovy:            info("${CSV_TRT_60G_FILENAME} created in ${trt60GFile.getAbsolutePath()}")
+Trb60f.groovy:    private static final String CANNOT_CREATE_EQUIPMENT      = "Cannot create %s %s"
+Trb60f.groovy:                        //Do not create/update the TOAE measurement type if the EQUIPCOND and COMMENTARY are both blank. Add one to the ignore record count and process the next record.
+Trb60f.groovy:                            //If no TOAE records exist, create the TOAE measurement type
+Trb60f.groovy:                                //Create an entry with the measurement value (MSF345-MEASURE-VALUE) set to that provided or a default of zero
+Trb60f.groovy:                                msg = CANNOT_CREATE_EQUIPMENT
+Trb60f.groovy:                                success = createNewCondMon(equipNum, COND_MON_TYPE_GAS, COND_MON_MEAS_GAS,
+Trb60f.groovy:                                //After the entry created/updated, a retrieveMnts must be performed again to retrieve the allocated text key.
+Trb60f.groovy:                        //Do not create/update the TOAF measurement type if the EQUIPCOND and COMMENTARY are both blank. Add one to the ignore record count and process the next record.
+Trb60f.groovy:                            //If no TOAF records exist, create the TOAF measurement type
+Trb60f.groovy:                                //Create an entry with the measurement value (MSF345-MEASURE-VALUE) set to that provided or a default of zero
+Trb60f.groovy:                                msg = CANNOT_CREATE_EQUIPMENT
+Trb60f.groovy:                                success = createNewCondMon(equipNum, COND_MON_TYPE_FLUID, COND_MON_MEAS_FLUID,
+Trb60f.groovy:                                //After the entry created/updated, a retrieveMnts must be performed again to retrieve the allocated text key.
+Trb60f.groovy:     * Create new Cond Mon record information into report.
+Trb60f.groovy:    private boolean createNewCondMon(String equipNum, String conMonType, String condMonMeas, String equipCond, String apprType,
+Trb60f.groovy:        info("createNewCondMon: ${equipNum} - ${tank} - ${apprType} - ${condMonMeas} - ${conMonType} - ${equipCond}")
+Trb60f.groovy:            service.get(SERVICE_NAME_CONDMEASUREMENT).create({
+Trb60f.groovy:            info("Cannot create new record for ${SERVICE_NAME_CONDMEASUREMENT} - ${equipNum}: ${e.getMessage()}")
+Trb60f.groovy:     * Create new Cond Mon record information into report.
+Trb61f.groovy: * either update the Ellipse Equipment Register or create a new Equipment 
+Trb61f.groovy:    private int recordRead, equipmentSkipped, equipmentCreated, equipmentUpdated, recordError, colloquialCreated
+Trb61f.groovy:        reportWriter.write(String.format("\tNo of Equipment Created   : % 5d", equipmentCreated))
+Trb61f.groovy:        reportWriter.write(String.format("\tNo of Colloquials Created : % 5d", colloquialCreated))
+Trb61f.groovy:     * or create a new Equipment Register record.
+Trb61f.groovy:                            //Does not exist, create new Equipment Register based on the FleetVehicle
+Trb61f.groovy:                                EquipmentServiceCreateReplyDTO equipCreateDTO = createEquipment(fleet)
+Trb61f.groovy:                                if(equipCreateDTO) {
+Trb61f.groovy:                                    equipmentNo = equipCreateDTO.equipmentNo
+Trb61f.groovy:                                    equipmentCreated++
+Trb61f.groovy:                                //If the Fleet Rego value does not already exist in the set of Colloquials it needs to be created.
+Trb61f.groovy:                                    AlternateRefServiceCreateReplyDTO altRefCreateDTO = createAlternateReference(equipmentNo, fleet.fleetRego)
+Trb61f.groovy:                                    if(altRefCreateDTO) {
+Trb61f.groovy:                                        colloquialCreated++
+Trb61f.groovy:     * Create new Equipment based on Fleet Vehicle information.
+Trb61f.groovy:     * @return EquipmentServiceCreateReplyDTO if creation sucees, null if failed.
+Trb61f.groovy:    private EquipmentServiceCreateReplyDTO createEquipment(FleetVehicle fleet) {
+Trb61f.groovy:        info("createEquipment")
+Trb61f.groovy:        //The description is created from the Fleet Descriptions for Make, Model and Type with trailing
+Trb61f.groovy:        EquipmentServiceCreateRequiredAttributesDTO equipReqAtttributeDTO = new EquipmentServiceCreateRequiredAttributesDTO()
+Trb61f.groovy:        EquipmentServiceCreateRequestDTO equipCreateDTO = new EquipmentServiceCreateRequestDTO()
+Trb61f.groovy:        equipCreateDTO.setRequiredAttributes(equipReqAtttributeDTO)
+Trb61f.groovy:        equipCreateDTO.setEquipmentClass(EQUIP_REF_PREFIX)
+Trb61f.groovy:        equipCreateDTO.setPlantCode0(EQUIP_REF_PREFIX)
+Trb61f.groovy:        equipCreateDTO.setPlantCode1(fleet.fleetNumber)
+Trb61f.groovy:        equipCreateDTO.setParentEquipmentRef(PARENT_EQUIP_REF)
+Trb61f.groovy:        equipCreateDTO.setAccountCode(fleetAccountCode)
+Trb61f.groovy:        equipCreateDTO.setDistrictCode(fleetEquipDstrct)
+Trb61f.groovy:        equipCreateDTO.setEquipmentNoDescription1(fleetEquipDesc)
+Trb61f.groovy:        equipCreateDTO.setEquipmentStatus(fleetEquipStatus)
+Trb61f.groovy:        equipCreateDTO.setEquipmentType(fleetEquipType)
+Trb61f.groovy:        equipCreateDTO.setCostingFlag(EQUIP_COSTING_FLAG_A)
+Trb61f.groovy:        equipCreateDTO.setActiveFlag(true)
+Trb61f.groovy:        return service.get(EQUIPMENT_SERVICE).create(equipCreateDTO, false)
+Trb61f.groovy:        //The description is created from the Fleet Descriptions for Make, Model and Type with trailing
+Trb61f.groovy:     * Create new Alternate Reference (Colloquial) for specified equipment number and fleet's rego.
+Trb61f.groovy:     * @return AlternateRefServiceCreateReplyDTO if success, null otherwise
+Trb61f.groovy:    private AlternateRefServiceCreateReplyDTO createAlternateReference(String equipmentNo, String fleetRego) {
+Trb61f.groovy:        info("createAlternateReference")
+Trb61f.groovy:        AlternateRefServiceCreateRequiredAttributesDTO  altRefReqAttr = new AlternateRefServiceCreateRequiredAttributesDTO()
+Trb61f.groovy:        AlternateRefServiceCreateRequestDTO altRefCreateDTO = new AlternateRefServiceCreateRequestDTO()
+Trb61f.groovy:        altRefCreateDTO.setRefCodeType(REF_CODE_TYPE_EN)
+Trb61f.groovy:        altRefCreateDTO.setAltRefCode(equipmentNo)
+Trb61f.groovy:        altRefCreateDTO.setAltReference(fleetRego)
+Trb61f.groovy:        altRefCreateDTO.setRequiredAttributes(altRefReqAttr)
+Trb61f.groovy:        return service.get(ALTERNATEREF_SERVICE).create(altRefCreateDTO, false)
+Trb62c.groovy:         * Create Header Report
+Trb62c.groovy:                    // create completion comment in MSF096_STD_VOLAT
+Trb62c.groovy:                    commentSuccess = createCompletionComments(stdTextId,reportLine.completedComments)
+Trb62c.groovy:     * create completion comments using service call standart text,
+Trb62c.groovy:     * first delete the old completion comments and create completion using method setText service call. <br>
+Trb62c.groovy:    private boolean createCompletionComments(String stdTextId, String completionComments){
+Trb62c.groovy:        info("createCompletionComments")
+Trb62c.groovy:             * delete standard text first before create new
+Trb62c.groovy:            info("Cannot Create standard text for ${stdTextId}: ${e.getMessage()}")
+Trb6m2.groovy: * This program will create or update existing work orders in
+Trb6m2.groovy: * action create or update fail.
+Trb6m2.groovy: * 21/08/2013  LokeWS   SC4349620 TRB6M2 Create / Update Work Order   	5 
+Trb6m2.groovy: *                      Work Order Duration (if any) is not created 
+Trb6m2.groovy: *						Pass "false" to createWorkOrderDuration
+Trb6m2.groovy:import com.mincom.enterpriseservice.ellipse.workorder.WorkOrderServiceCreateReplyDTO;
+Trb6m2.groovy:import com.mincom.enterpriseservice.ellipse.workorder.WorkOrderServiceCreateRequestDTO;
+Trb6m2.groovy:import com.mincom.enterpriseservice.ellipse.workorder.WorkOrderServiceCreateWorkOrderDurationReplyDTO;
+Trb6m2.groovy:import com.mincom.enterpriseservice.ellipse.workorder.WorkOrderServiceCreateWorkOrderDurationRequestDTO;
+Trb6m2.groovy:							createWorkOrder(inputRecord);
+Trb6m2.groovy:	 * It will also create/modify standard text, create duration, and complete the WO when needed.
+Trb6m2.groovy:		//create rollback image of record
+Trb6m2.groovy:	 * This method create a new Work Order based on the read line.
+Trb6m2.groovy:	 * It will also create/modify standard text, create duration, and complete the WO when needed.
+Trb6m2.groovy:	private void createWorkOrder(InputRecord inputRecord){
+Trb6m2.groovy:		info("createWorkOrder");
+Trb6m2.groovy:		/*Create WO With service*/
+Trb6m2.groovy:			WorkOrderServiceCreateReplyDTO crtReplyDto = service.get(WORK_ORDER_SERVICE).create({WorkOrderServiceCreateRequestDTO it->
+Trb6m2.groovy:			info("Error when create workOrder ${workOrderNo.toString()} ${e.getMessage()}")
+Trb6m2.groovy:	 * method to process create/modify :
+Trb6m2.groovy:	 * extended text, create work order duration,
+Trb6m2.groovy:		/*Create/Modify extended text when needed*/
+Trb6m2.groovy:		/*Create duration when session complete inspection exists*/
+Trb6m2.groovy:			validDur = createDuration(inputRecord)
+Trb6m2.groovy:	 * create extended text for WO
+Trb6m2.groovy:	 * Create duration with duration code 'STR'
+Trb6m2.groovy:	private boolean createDuration(InputRecord inputRecord){
+Trb6m2.groovy:		info("createDuration")
+Trb6m2.groovy:			WorkOrderServiceCreateWorkOrderDurationReplyDTO woDurReply = service.get(WORK_ORDER_SERVICE).createWorkOrderDuration({ WorkOrderServiceCreateWorkOrderDurationRequestDTO it->
+Trb6m2.groovy:			info("Cannot create work order duration for ${workOrderNo.toString()}: ${e.getMessage()}")
+Trb6m2.groovy:	 * create completion comment using append std text services
+Trb6m2.groovy:			info("Cannot create completion comment for ${compTextID}: ${e.getMessage()}")
+Trb6m2.groovy:			//rollback work order duration & work order create
+Trb6m2.groovy:	 * read work order to create a rollback image of the record
+Trb6m2.groovy:	 * read the extended text to create a rollback image
+Trb6m2.groovy:	 * read std text to create rollback image of completion comment
+Trb76s.groovy:     * Create a file in the working directory with supplied name.
+Trb76s.groovy:        info("end openFile, ${name} created in ${outputFile.getAbsolutePath()}")
+Trb795.groovy:		int createdRecords = 0
+Trb795.groovy:						info("Create Employee Appraisal:" + " employeeId:" + employeeId + " effectiveDate:" + effectiveDate)
+Trb795.groovy:							createdRecords++
+Trb795.groovy:		Trb795a.write(createdRecords + " Employee records created.");
+Trb835.groovy:              // Create Report A
+Trb83a.groovy: * This program will create a journal in Ellipse for each allowance entered with a work order.
+Trb83a.groovy:        reportAWriter.write("${REPORT_A_FILENAME} Create Allowance Journals Control Report".center(132))
+Trb83a.groovy:        reportAWriter.write(String.format("\tCredit Jnls Created   : % 4d", crCount))
+Trb83a.groovy:        reportAWriter.write(String.format("\tDebit Jnls Created    : % 4d", dbCount))
+Trb83a.groovy:            reportBWriter.write("${REPORT_B_FILENAME} Created Transaction Control Report".center(132))
+Trb83a.groovy:                            //Only perform the actual updates and create journal entry if the update mode Is set.
+Trb83a.groovy:                                //Create Journal using screen service
+Trb83a.groovy:                                JournalResultDTO reply = createJournalEntry(msf89wRec, allowanceWO, ammount, creditTrn)
+Trb83a.groovy:                                    String createdJournalNo = reply?.journalNo != null ? reply?.journalNo?.trim() : " "
+Trb83a.groovy:                                    //check the created journal, if it is exist increment the counter
+Trb83a.groovy:                                    ReportLineTrb83a transaction = retrieveManualJournalTransaction(createdJournalNo)
+Trb83a.groovy:                                        Exception e = modifyAllowanceAttribute(msf89wRec, createdJournalNo, creditTrn)
+Trb83a.groovy:                                        info("ERROR : Cannot Create Journal.")
+Trb83a.groovy:                                        addToErrorReportLines(msf89wRec, "Cannot Create Journal.")
+Trb83a.groovy:                                    info("ERROR : Cannot create Journal - Field ${reply.error.currentCursorField} : ${reply.error.currentCursorValue} - ${reply.error.errorCode} ${reply.error.errorMsg}.")
+Trb83a.groovy:        //Use edoi.create to store the custtom attributes since the TimesheetAllows does not allow
+Trb83a.groovy:        edoi.create(msf0p5Rec)
+Trb83a.groovy:     * Create new Journal Entry from the allowance.
+Trb83a.groovy:    private JournalResultDTO createJournalEntry(MSF89WRec msf89wRec, String allowanceWO, BigDecimal ammount, boolean isCreditTrn) {
+Trb83a.groovy:        info("createJournalEntry")
+Trb83a.groovy:        return sl.createJournal(journal)
+Trb87c.groovy:        info("CSV file ${csvFile.getName()} created.")
+Trb892.groovy:import com.mincom.enterpriseservice.ellipse.table.TableServiceCreateReplyDTO;
+Trb892.groovy:                   returnString =  returnString + SEPARATOR + timesheetRecord.createdDate
+Trb892.groovy:                   returnString =  returnString + SEPARATOR + TimeHelperTrb892.getFormattedTime(timesheetRecord.createdTime_9,TIME_SEPARATOR)
+Trb892.groovy:                   returnString =  returnString + SEPARATOR + timesheetRecord.createdEmpId
+Trb892.groovy:        outputFileWriter.write("Pay Location,Pay Location Description,Employee Id,EmployeeName,Tran Date,Sequence No,Rostered Work Code,Rostered Work Code Description,Rostered Start Time,Rostered Stop Time,Work Code,Work Code Description,Start Time,Stop Time,Meal Break Start,Meal Break Stop,Units,Pay Period No,Reverse Status,Transaction Status,Batch ID,Transaction Location From,Transaction Location To,Transaction Reason,Worked Thru Meal Break,Worked Thru Paid Break,Adjoins Previous Day,Absence Hours,Leave Reason,Leave Request Start Date,Leave Type,Leave Start Date PIA,Leave End Date PIA,Claim No,Absence Authority,Costing Indicator,Cost Code,Work Order,Transaction Modified,Created Date,Created Time,Created Employee,Approved Date,Approved Time,Approved Employee,Last Change Ref,Last Modified Date,Last Modified Time,Last Modified Employee\r\n")
+Trb892.groovy:     * Create a file in the working directory with supplied name.
+Trb892.groovy:        info("end openFile, ${name} created in ${outputFile.getAbsolutePath()}")
+Trb895.groovy: * This program will create report file contains employee's sustenance
+Trb895.groovy:     * Create and write error report
+Trb896.groovy:import com.mincom.enterpriseservice.ellipse.table.TableServiceCreateReplyDTO;
+Trb896.groovy:     * Create and return a new OvertimeFoundTrb896 object with values taken from the parameters
+Trb897.groovy: * This program will create a report & csv file contains employee's contiguous time
+Trb897.groovy:     * Create and write error report
+Trb897.groovy:     * Create csv report and write the values
+Trb897.groovy:        //Create error message report - if any
+Trb899.groovy: * This program will create a report and csv file contains adjustments to employee's 
+Trb899.groovy:        //Create error message report - if any
+Trb899.groovy:                //Create employee overtime
+Trb899.groovy:                //Create employee overtime
+Trb8al.groovy:	//File newFile1 = File.createTempFile("TRT8ALA", ".csv");
+Trb8pb.groovy: * This program requests TRJ8PS and create distribution reports.
+Trb8pb.groovy: * It may also run in archive mode which will not create the 
+Trb8pb.groovy://     * This method requests TRJ8PS to create the actual pay slips.
+Trb8pb.groovy://                //Call screen service to create report request
+Trb8pb.groovy://                replyDto = s1.createReportRequest(eroi,dto)
+Trb8pb.groovy:     * This method opens the email distribution report and create the header.
+Trb8pb.groovy:     * This method opens the non-email distribution report and create the header.
+Trb8sl.groovy:			//info("EmployeeSection.AddLine new rec created");
+Trb907.groovy:	// Create SQL statement
+Trb983.groovy: * This program will create a report and csv file for adjustments to employee's overtime
+Trb983.groovy:                //create employee Saturday overtime
+Trb983.groovy:        //Create error message report - if any
+Trbbmm.groovy:    * Create, close reports
+Trbcmu.groovy:            reportWriter.write("${REPORT_NAME} Create Cond. Mon. Results Summary Report".center(132))
+Trbcmu.groovy:            cmuOutputFile.createNewFile()
+Trbcmu.groovy:     * <li>Create new CM based on extracted CMU data.</li> 
+Trbcmu.groovy:                            sucess = createNewCondMon(cmRec) != null
+Trbcmu.groovy:                                    createNewCondMon(cmRec)
+Trbcmu.groovy:                                    "CANNOT CREATE COND MON MEAS.")
+Trbcmu.groovy:     * Create new Cond Mon record using service call.
+Trbcmu.groovy:     * @return CondMeasurementServiceCreateReplyDTO
+Trbcmu.groovy:    private CondMeasurementServiceCreateReplyDTO createNewCondMon(CMRecord cmRec) {
+Trbcmu.groovy:        info("createNewCondMon")
+Trbcmu.groovy:        CondMeasurementServiceCreateReplyDTO returnDTO = null
+Trbcmu.groovy:            CondMeasurementServiceCreateRequiredAttributesDTO reqAttr =
+Trbcmu.groovy:                    new CondMeasurementServiceCreateRequiredAttributesDTO()
+Trbcmu.groovy:            CondMeasurementServiceCreateRequestDTO cmCreateDTO =
+Trbcmu.groovy:                    new CondMeasurementServiceCreateRequestDTO()
+Trbcmu.groovy:            cmCreateDTO.setEquipmentRef(cmRec.equipmentRef)
+Trbcmu.groovy:            cmCreateDTO.setCompCode(cmRec.compCode)
+Trbcmu.groovy:            cmCreateDTO.setCondMonPos(cmRec.condMonPos)
+Trbcmu.groovy:            cmCreateDTO.setCondMonType(cmRec.condMonType)
+Trbcmu.groovy:            cmCreateDTO.setCondMonMeas(cmRec.condMonMeasure)
+Trbcmu.groovy:            cmCreateDTO.setMeasureValue(cmRec.measureValue)
+Trbcmu.groovy:            cmCreateDTO.setMeasureDate(measDate)
+Trbcmu.groovy:            cmCreateDTO.setMeasureTime(measTime)
+Trbcmu.groovy:            cmCreateDTO.setRequiredAttributes(reqAttr)
+Trbcmu.groovy:            returnDTO = service.get(SERVICE_NAME_CONDMEASUREMENT).create(cmCreateDTO, true)
+Trbcmu.groovy:            logExceptionService("${SERVICE_NAME_CONDMEASUREMENT}.create", serviceExc)
+Trbcmu.groovy:        info("end createNewCondMon")
+Trbcmu.groovy:     * @return CondMeasurementServiceCreateReplyDTO
+Trbcmu.groovy:            reportWriter.write("${REPORT_NAME} Create Cond. Mon. Results Summary Error Report".center(132))
+Trbcog.groovy:            createOutputFile(outputFileName,theRecord.recordContents)
+Trbcog.groovy:    private void createOutputFile(String fileName,StringBuilder contents){
+Trbcpy.groovy:                fdst.createNewFile()
+Trbcpy.groovy:                fdst.createNewFile()
+Trbcpy.groovy:                info("Created    : " + fdst)
+Trbcpy.groovy:                case '$(Time.Create)':
+Trbcpy.groovy:                    file = parm.substring(0,startIndex) + request.request.getCreateTime() + parm.substring(endIndex)
+Trbdxb.groovy:        //how_to_create_record();
+Trbdxb.groovy://        how_to_create_file_in_work_dir();
+Trbdxb.groovy:    private void how_to_create_record(){
+Trbdxb.groovy:        info ("how_to_create_record");
+Trbdxb.groovy:        edoi.create(msf010recb);
+Trbdxb.groovy:        info ("record created")
+Trbdxb.groovy:    private void how_to_create_file_in_work_dir(){
+Trbdxb.groovy:        info("how_to_create_file_in_work_dir")
+Trbeis.groovy:            createReports()
+Trbeis.groovy:    private void createReports(){
+Trbeis.groovy:     * Create detail for the following report : Contribution, Exception and CSV
+Trbeis.groovy:     * Create Exceptions Report Details
+Trbeis.groovy:     * Create Exceptions Report Details
+TrbEqp.groovy:        edoi.create(msf0p5Rec)
+Trbmrg.groovy:                    info("Output Directory ${outf.getParent()} is created.")
+Trbmrg.groovy:                    info("Destination Directory ${dest} is created.")
+Trbmrg.groovy:                case '$(Time.Create)':
+Trbmrg.groovy:                    file = parm.substring(0,startIndex) + request.request.getCreateTime() + parm.substring(endIndex)
+Trbmtr.groovy:        createJournal()
+Trbmtr.groovy:            outputFile.createNewFile()
+Trbmtr.groovy:    private void createJournal() {
+Trbmtr.groovy:        info("createJournal")
+Trbmtr.groovy:        JournalResultDTO reply = sl.createJournal(journal)
+Trbmtr.groovy:            info("ERROR : Cannot create Journal - Field ${reply.error.currentCursorField} : ${reply.error.currentCursorValue} - ${reply.error.errorCode} ${reply.error.errorMsg}.")
+Trbmtr.groovy:            info("created journalNo : ${journalNo}")
+Trbmtr.groovy:            outputFile.createNewFile()
+Trbocg.groovy:		* Step 3: Create output files
+Trbocg.groovy:			* Create output file directly into shared folder /winshare/<elldev or elltst or ellprd>/Supply/TCOG/pending
+Trbog.groovy:		* Step 3: Create output files
+Trbog.groovy:			* Create output file directly into shared folder /winshare/<elldev or elltst or ellprd>/Supply/TCOG/pending
+Trbosr.groovy:    * Initialisation - create control report and output file
+Trbosr.groovy:        // Create Control Report
+Trbosr.groovy:            info("${CSV_TRTOSR} created in ${trtosrFile.getAbsolutePath()}")
+Trbosr.groovy:    // Create SQL statement
+Trbosr.groovy:    // Create SQL statement for retrieving CM results
+Trbpay.groovy:    private int countCreatedMSF012Record = 0;
+Trbpay.groovy:     * For each distinct record A type, it will create the MSF012 records.
+Trbpay.groovy:     * It will create all MSF012 record for each employee payroll record found.
+Trbpay.groovy:     * Create the MSF012 record for award code and title
+Trbpay.groovy:        createRecordMSF012("C", "TRBPAY", "MSF8P4", msf8p4PayAdvEmpUUID, "001", "Award Code Title    ", msf820RptAwardCode.padRight(4) + getAwardTitle(msf820RptAwardCode).padRight(30));
+Trbpay.groovy:     * Create the MSF012 record for leave anniversary date
+Trbpay.groovy:        createRecordMSF012("C", "TRBPAY  ", "MSF8PD", msf8pdPayAdvLveUUID,"001", "Annv Date Threshold ", msf880AnvDate.padRight(8) + threshold.padRight(1))
+Trbpay.groovy:     * Create MSF012 record with data defined in the parameters.
+Trbpay.groovy:    private void createRecordMSF012(String dataType, String interfaceId,String msf8pxId, String key8px, String seqNo, String dataAreaName, String dataAreaValue){
+Trbpay.groovy:        info("createRecordMSF012");
+Trbpay.groovy:            edoi.create(msf012rec);
+Trbpay.groovy:            countCreatedMSF012Record++;
+Trbpay.groovy:        writeReport.write(("Number of MSF012 records created   :  "+countCreatedMSF012Record.toString().padLeft(10)).center(132))
+Trbpw3.groovy:        info ("${CSV_TRTPW3_FILENAME} created in ${trtpw3AFile.getAbsolutePath()}")
+Trbrst.groovy:            reportWriter.write("${REPORT_NAME} Create Cond. Mon. Results Summary Report".center(132))
+Trbrst.groovy:            cmuOutputFile.createNewFile()
+Trbrst.groovy:     * <li>Create new CM based on extracted CMU data.</li> 
+Trbrst.groovy:                            sucess = createNewCondMon(cmRec) != null
+Trbrst.groovy:                                createNewCondMon(cmRec)
+Trbrst.groovy:                                    "CANNOT CREATE COND MON MEAS.")
+Trbrst.groovy:     * Create new Cond Mon record using service call.
+Trbrst.groovy:     * @return CondMeasurementServiceCreateReplyDTO
+Trbrst.groovy:    private CondMeasurementServiceCreateReplyDTO createNewCondMon(CMRecord cmRec) {
+Trbrst.groovy:        info("createNewCondMon")
+Trbrst.groovy:        CondMeasurementServiceCreateReplyDTO returnDTO = null
+Trbrst.groovy:            CondMeasurementServiceCreateRequiredAttributesDTO reqAttr =
+Trbrst.groovy:                    new CondMeasurementServiceCreateRequiredAttributesDTO()
+Trbrst.groovy:            CondMeasurementServiceCreateRequestDTO cmCreateDTO =
+Trbrst.groovy:                    new CondMeasurementServiceCreateRequestDTO()
+Trbrst.groovy:            cmCreateDTO.setEquipmentRef(cmRec.equipmentRef)
+Trbrst.groovy:            cmCreateDTO.setCompCode(cmRec.compCode)
+Trbrst.groovy:            cmCreateDTO.setCondMonPos(cmRec.condMonPos)
+Trbrst.groovy:            cmCreateDTO.setCondMonType(cmRec.condMonType)
+Trbrst.groovy:            cmCreateDTO.setCondMonMeas(cmRec.condMonMeasure)
+Trbrst.groovy:            cmCreateDTO.setMeasureValue(cmRec.measureValue)
+Trbrst.groovy:            cmCreateDTO.setMeasureDate(measDate)
+Trbrst.groovy:            cmCreateDTO.setMeasureTime(measTime)
+Trbrst.groovy:            cmCreateDTO.setRequiredAttributes(reqAttr)
+Trbrst.groovy:            returnDTO = service.get(SERVICE_NAME_CONDMEASUREMENT).create(cmCreateDTO, true)
+Trbrst.groovy:            logExceptionService("${SERVICE_NAME_CONDMEASUREMENT}.create", serviceExc)
+Trbrst.groovy:        info("end createNewCondMon")
+Trbrst.groovy:     * @return CondMeasurementServiceCreateReplyDTO
+Trbrst.groovy:            reportWriter.write("${REPORT_NAME} Create Cond. Mon. Results Summary Error Report".center(132))
+Trbsca.groovy: * run, so that any MSB857/SCA program re-runs do not create unwanted additional transactions. To achieve this,
+Trbsca.groovy: * records as .BPJ. (Batch Journal Voucher Primary) transactions to allow MSB919 to then create the required
+Trbsca.groovy:			Trbscac.write("Unable to create MST903 file. TRBSCA cannot continue.".center(132))
+Trbsca.groovy:			// Create output file MST903
+Trbsca.groovy:			Trbscac.write("Unable to create MST903 file. TRBSCA cannot continue.".center(132))
+Trbsca.groovy:			info ("##### ERROR: Unable to create output file #####")
+Trbsca.groovy:			// Create a batch request in Ellipse for MSB904
+Trbsca.groovy:				createNextBatch("MSB904")
+Trbsca.groovy:				createNextBatch("MSB919")
+Trbsca.groovy:				createNextBatch("MSB908")
+Trbsca.groovy:	 * Create a batch request record in MSF080
+Trbsca.groovy:	private void createNextBatch(String sProgName) {
+Trbsca.groovy:		info("createNextBatch: ${sProgName}")
+Trbsca.groovy:		//Call MSS080 to create request
+Trbsca.groovy:	 * Create, close reports
+Trbscb.groovy: * then later reversed by a user will create new records in MSF857 that will have
+Trbsct.groovy: * so that any MSB857/SCA program re-runs do not create unwanted additional transactions. To achieve this, 
+Trbsct.groovy: * allow MSB919 to then create the required Ellipse Journal Holding File records (MSF900).
+Trbsct.groovy:import com.mincom.enterpriseservice.ellipse.batchrequest.BatchRequestServiceCreateRequestDTO
+Trbsct.groovy:import com.mincom.enterpriseservice.ellipse.batchrequest.BatchRequestServiceCreateReplyDTO
+Trbsct.groovy:import com.mincom.enterpriseservice.ellipse.batchrequest.BatchRequestServiceCreateRequiredAttributesDTO
+Trbsct.groovy:import com.mincom.enterpriseservice.ellipse.batchrequest.BatchRequestServiceCreateReplyCollectionDTO
+Trbsct.groovy:import com.mincom.enterpriseservice.ellipse.accountupdate.AccountUpdateServiceCreateRequestDTO
+Trbsct.groovy:import com.mincom.enterpriseservice.ellipse.accountupdate.AccountUpdateServiceCreateReplyDTO
+Trbsct.groovy:import com.mincom.enterpriseservice.ellipse.accountupdate.AccountUpdateServiceCreateRequiredAttributesDTO
+Trbsct.groovy:import com.mincom.enterpriseservice.ellipse.accountupdate.AccountUpdateServiceCreateReplyCollectionDTO
+Trbsct.groovy:	createNextBatch('MSB904') 		
+Trbsct.groovy:    private void createNextBatch(def job) {
+Trbsct.groovy:	//Call MSS080 to create request
+Trbwcc.groovy:        info("createActivityRecs_F270")
+Trbwfp.groovy:			info("${CSV_TRTWFP} created in ${trtWFPFile.getAbsolutePath()}")
+Trbwoe.groovy: *          assigned to his/her Work Group is created or closed.
+Trbwoe.groovy: *          This program is initiated via the hook "WorkOrderService_create" and
+Trbwoe.groovy:            sEvent = "CREATE"
+Trbwoe.groovy:        // Get message details common to both WO create and WO complete
+Trbwoe.groovy:        if (sEvent == "CREATE") {
+Trbyed.groovy:		File newFile = File.createTempFile("TRTYEDA", ".csv");
+Trbyed.groovy:					// Create header for next set

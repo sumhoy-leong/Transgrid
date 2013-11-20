@@ -1,0 +1,380 @@
+%***  $Id: trr76s.rdl,v2.0 2012/07/02 15:30:08  Exp $
+%*** TRR76S.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 07-Dec-2012  a9jw6280       MO164
+%*** ..........................  - Change second output file name into TRT76SB
+%*** ..........................  to avoid report failed when it being written 
+%*** ..........................  into \temp directory because of duplicate name. 
+%*** ..........................  - Change the way to get info for Super fund and Member id.
+%*** ..........................  Super fund is now refer to MSF010 table type : UN
+%*** ..........................  where table code is equal to MSF760-UNION-CODE.
+%*** ..........................  member id is now refer to DEDN-REF in MSF822,
+%*** ..........................  or BENEFIT-SUP in MSF785 if DEDN-REF is empty. 
+%*** ..........................  - Add req param to allow up to 10 employees.
+%*** 06-Sep-2012  a9jw6280       MO164 (Version 0001)
+%*** ..........................  Reset version number to 0001 for E8 upgrade.
+%*** ..........................  Added quote for words after TEXT.
+%*** 02-JUL-2010  E Fredeluces   SC4005438
+%*** ..........................  Amended the MSF835 selection criteria:
+%*** ..........................  Include the Advance Pay envelope.
+%*** ..........................  Remove comparison for Prd-End-Date.
+%*** 22-JUL-2010  G Presser      Due to problems with RDL not being 
+%*** ..........................  able to count summary records, we 
+%*** ..........................  have had to create another RDL TRR76R
+%*** ..........................  to actually produce the report 
+%*** 11-JUN-2010  Janak Barar    After testing in development recieved request
+%*** ............................for additions.                               
+%*** 06-MAY-2010  Janak Barar    SC2761152  Request for new prog - OTE salary;
+%*** ..........................  Initial coding. 
+%PROGRAM-ID
+       TRR76S
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This program will generate an OTE(Ordinary Time earnings) salary
+      **  report for active employees and terminated employees terminated    
+      **  within reported parameter period.    
+%VERSION
+       0001
+%MODULE
+       3880
+%FILES
+        MFILE = MSF760
+        LFILE = MSF010
+        LFILE = MSF785
+        LFILE = MSF801
+        LFILE = MSF810
+        LFILE = MSF822
+        LFILE = MSF830
+        AFILE = MSF835
+        LFILE = MSF071
+        OFILE = TRO76SA
+        OFILE = TRT76SB
+
+%SELECTION
+       SELECTIF(EMPLOYEE-ID = EMPL01, EMPL01 <> SPACES)
+	   SELECTIF(EMPLOYEE-ID = EMPL02, EMPL02 <> SPACES)
+	   SELECTIF(EMPLOYEE-ID = EMPL03, EMPL03 <> SPACES)
+	   SELECTIF(EMPLOYEE-ID = EMPL04, EMPL04 <> SPACES)
+	   SELECTIF(EMPLOYEE-ID = EMPL05, EMPL05 <> SPACES)
+	   SELECTIF(EMPLOYEE-ID = EMPL06, EMPL06 <> SPACES)
+	   SELECTIF(EMPLOYEE-ID = EMPL07, EMPL07 <> SPACES)
+	   SELECTIF(EMPLOYEE-ID = EMPL08, EMPL08 <> SPACES)
+	   SELECTIF(EMPLOYEE-ID = EMPL09, EMPL09 <> SPACES)
+	   SELECTIF(EMPLOYEE-ID = EMPL10, EMPL10 <> SPACES)
+       REJECTIF(EMP-STATUS <> 'Z' AND EMP-STATUS <> 'A')
+       REJECTIF(EMP-STATUS  = 'Z', TERM-DATE < FDATE, TERM-DATE = '00000000')
+       REJECTIF(STAFF-CATEG ='IS')
+       REJECTIF(STAFF-CATEG ='WC')
+       REJECTIF(STAFF-CATEG ='ZA')
+       REJECTIF(STAFF-CATEG ='ZO')
+%CONTROL
+       COPY-REQUEST  = TRR76R
+       RECORD-LENGTH = 135
+%ORDER
+       ASCENDING UNION-CODE
+       ASCENDING EMPLOYEE-ID
+%OUTPUT-FILE
+       A 
+%BREAK-FIELDS
+      DUM
+      EMPLOYEE-ID
+%BREAK DUM HEADING
+{HDG                                                                                                           -
+                           }
+%BREAK EMPLOYEE-ID FOOTING
+<IF NAMT0 <> ZEROES>   
+{RC1                            }X{RC2     }X{EMP     }X{SNAME             }X{FNAME      }X{BDATE }X{TDATE }X{NAMT0       }X-
+{MSG     }
+<ENDIF>
+%*
+%* Keep the DETAIL for debugging purposes only 
+%DETAIL
+%*{EMP     }X{CG}X{EG}X{AG}X{RF}X{RG}X{CNAMT  }X{INCL}X{TI}X{TC}X{RNDATE}X{ENVT}X{AMTTC1  }X{PRDDTE}
+%*-------------------------------------------
+%SUMMARY
+
+%OUTPUT-FILE
+       B
+%BREAK-FIELDS
+       UNION-CODE 
+       EMPLOYEE-ID
+%CONTROL
+       RECORD-LENGTH = 129
+%BREAK EMPLOYEE-ID FOOTING
+<IF NAMT1 <> ZEROES>
+{UC}{RC1                            }{RC2     }{EMP     }{SNAME             }{FNAME      }{BDATE }{TDATE }{NAMT1      }{MSG     } -
+{DREF}
+<ENDIF>
+%*
+%REQUEST-PARAMETERS
+                STARTDT      PIC(X(8))  TEXT  'Report Date From           : '
+                ENDDT        PIC(X(8))  TEXT  'Report Date To             : '
+                EMPLOYEE1    PIC(X(10)) TEXT  'Employee-Id                : '
+				EMPLOYEE2    PIC(X(10)) TEXT  'Employee-Id                : '
+				EMPLOYEE3    PIC(X(10)) TEXT  'Employee-Id                : '
+				EMPLOYEE4    PIC(X(10)) TEXT  'Employee-Id                : '
+				EMPLOYEE5    PIC(X(10)) TEXT  'Employee-Id                : '
+				EMPLOYEE6    PIC(X(10)) TEXT  'Employee-Id                : '
+				EMPLOYEE7    PIC(X(10)) TEXT  'Employee-Id                : '
+				EMPLOYEE8    PIC(X(10)) TEXT  'Employee-Id                : '
+				EMPLOYEE9    PIC(X(10)) TEXT  'Employee-Id                : '
+				EMPLOYEE10   PIC(X(10)) TEXT  'Employee-Id                : '
+				
+%VARIABLES
+    FDATE     = %STARTDT%     CONSTANT 
+    EDATE     = %ENDDT%       CONSTANT  
+    EMPL01    = %EMPLOYEE1%   CONSTANT 
+    EMPL02    = %EMPLOYEE2%   CONSTANT
+    EMPL03    = %EMPLOYEE3%   CONSTANT
+    EMPL04    = %EMPLOYEE4%   CONSTANT
+    EMPL05    = %EMPLOYEE5%   CONSTANT
+    EMPL06    = %EMPLOYEE6%   CONSTANT
+    EMPL07    = %EMPLOYEE7%   CONSTANT
+    EMPL08    = %EMPLOYEE8%   CONSTANT
+    EMPL09    = %EMPLOYEE9%   CONSTANT
+    EMPL10    = %EMPLOYEE10%  CONSTANT
+    X         = ','           CONSTANT
+    B         = 1             CONSTANT
+    D         = 2             CONSTANT
+    DUMMY     = 'Y'           CONSTANT
+    HDG1      = 'Super-Fund,Member-Number,Employee ID,Emp-Last-Name,'    CONSTANT
+    HDG2      = 'Emp-First-Name,Birth-Date,Termination-Date,OTE-Salary,Message' CONSTANT
+    HDG       = CATENATE (HDG1,HDG2)                                     CONSTANT
+    TEXT1     = 'Report Period '                                         CONSTANT
+    TEXT2     = 'to '                                                    CONSTANT
+    HDG4      = 'SuperFund    Employee    TC   OTE     INCL  RG  K  L  ' CONSTANT 
+    HDG5      = '  M   N   O  EMPCAT ENV E-STATUS RNDATE               ' CONSTANT
+    HDG6      = CATENATE (HDG4,HDG5)                                     CONSTANT
+    SUTXT2    = '   Total Number of records in the Fund '                CONSTANT
+    SUT2      = 'are:'                                                   CONSTANT
+    FDD       = substr (FDATE,7,2)                                       CONSTANT
+    FMM       = substr (FDATE,5,2)                                       CONSTANT
+    FYYYY     = substr (FDATE,1,4)                                       CONSTANT
+    TDD       = substr (EDATE,7,2)                                       CONSTANT
+    TMM       = substr (EDATE,5,2)                                       CONSTANT
+    TYYYY     = substr (EDATE,1,4)                                       CONSTANT
+    FPERIOD   = catenate (FDD,'/',FMM,'/',FYYYY)                         CONSTANT
+    TPERIOD   = catenate (TDD,'/',TMM,'/',TYYYY)                         CONSTANT
+%*  CENTS50   = calc (B / D)    D-PIC (9.99)                             CONSTANT
+    EMP       = EMPLOYEE-ID
+    TDATE     = TERM-DATE    FORMAT (DATE)          
+    BDATE     = BIRTH-DATE   FORMAT (DATE)        
+    SCAT      = STAFF-CATEG 
+    ES        = EMP-STATUS  
+	MSG       = CHOOSE ('Terminated' IF (ES = 'Z'), ' ')
+    EMPTYPE   = EMP-TYPE    
+    TABDS1    = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE = 'STFC', TABLE-CODE = SCAT)
+
+    TC1       = TABLE-CODE VIA (TABDS1)
+
+    TABDS2    = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE = 'REPF', TABLE-CODE = '0') 
+
+    TC2       = TABLE-CODE VIA (TABDS2)
+
+    AG        = choose ('Y' IF (ES = 'A'), - 
+                        'Y' IF (ES = 'Z'), 'N')
+              
+    CG        = choose ('N' IF (SCAT = 'ZA'),  -
+                        'N' IF (SCAT = 'ZO'),  -  
+                        'N' IF (SCAT = 'WC'),  -  
+                        'N' IF (SCAT = 'IS'),  'Y') 
+
+    DUM       = choose (DUMMY IF (DUMMY = DUMMY), DUMMY)
+
+%* get MSF835 details       
+%*  Only select 001 as Normal Time, 075 as Nominated Employee Allow
+%*  Reject if 055 Sustenance Advance paid to emp.              
+    TCODE = TRAN-CODE FROM MSF835               - 
+            WHERE    (EMPLOYEE-ID    = EMP,     -
+                      PRD-END-DATE  >= SPACES)  -
+            REJECTIF (TRAN-IND      <> '1')     -
+            REJECTIF (PAY-RUN-TYPE  <> 'U')     -
+%*          REJECTIF (ENVELOPE-TYPE  = 'A')  
+            REJECTIF (ENVELOPE-TYPE  = 'T')     -
+            REJECTIF (RTR-IGNORE     = 'Y')     -
+            REJECTIF (TRN-DATE       < FDATE)   -         
+            REJECTIF (TRN-DATE       > EDATE)          
+%*          REJECTIF (PRD-END-DATE   < FDATE)   
+%*          REJECTIF (PRD-END-DATE   > EDATE)   
+
+    PRDDTE = PRD-END-DATE VIA (TCODE)
+    TC     = TRAN-CODE     VIA (TCODE)
+    RNDATE = TRN-DATE      VIA (TCODE)
+    AMTTC1 = AMOUNT        VIA (TCODE) D-PIC (-Z(12)9.99)
+    AMTTC  = calc (AMTTC1 * 1)         D-PIC (-Z(12)9.99)
+    AMTHD1 = HD-AMOUNT     VIA (TCODE) D-PIC (-Z(12)9.99)
+    AMTHD  = calc (AMTHD1 * 1)         D-PIC (-Z(12)9.99)
+    HDA   = HDA-EARN-CODE VIA (TCODE)
+    ENVT  = ENVELOPE-TYPE VIA (TCODE)
+    TI    = TRAN-IND      VIA (TCODE)
+
+%* get MSF810 details       
+        SNAME     = SURNAME OF MSF810 -
+                            WHERE(EMPLOYEE-ID = EMP)
+        FNAME     = FIRST-NAME  VIA(SNAME)
+
+        EG        = choose ('Y' IF (ENVT = ' '), -
+                            'Y' IF (ENVT = 'N'), -
+                            'Y' IF (ENVT = 'A'), -
+                            'N')             
+
+        CDKEY   = CATENATE ('***',TC)
+        MSF801A = CNTL-KEY-REST OF MSF801          -
+                  WHERE (CNTL-REC-TYPE = 'A', -
+                         CNTL-KEY-REST = CDKEY)     
+        MISC = MISC-RPT-FLD-A VIA (MSF801A)
+        K    = SINGLE (MISC (1))
+        L    = SINGLE (MISC (2))
+        M    = SINGLE (MISC (3))
+        N    = SINGLE (MISC (4))
+        O    = SINGLE (MISC (5))
+
+        RG     = CHOOSE ('Y' IF (K = 'AL', TI = '1'), -
+                         'Y' IF (K = 'AC', TI = '1'), -
+                         'Y' IF (K = 'SX', TI = '1'), -
+                         'Y' IF (K = '0 ', TI = '1'), -
+                         'Y' IF (L = 'AL', TI = '1'), -
+                         'Y' IF (L = 'AC', TI = '1'), -
+                         'Y' IF (L = 'SX', TI = '1'), -
+                         'Y' IF (L = '0 ', TI = '1'), -
+                         'Y' IF (M = 'AL', TI = '1'), -
+                         'Y' IF (M = 'AC', TI = '1'), -
+                         'Y' IF (M = 'SX', TI = '1'), -
+                         'Y' IF (M = '0 ', TI = '1'), -
+                         'Y' IF (N = 'AL', TI = '1'), -
+                         'Y' IF (N = 'AC', TI = '1'), -
+                         'Y' IF (N = 'SX', TI = '1'), -
+                         'Y' IF (N = '0 ', TI = '1'), -
+                         'Y' IF (O = 'AL', TI = '1'), -
+                         'Y' IF (O = 'AC', TI = '1'), -
+                         'Y' IF (O = 'SX', TI = '1'), -
+                         'Y' IF (O = '0 ', TI = '1'), -
+                         'N')                      
+CNAMT  = choose (AMTHD IF (AMTHD <> ZEROES, HDA = SPACES), AMTTC) D-PIC (-Z(12)9.99)
+
+         RC    = REF-CODE OF MSF071 -
+                 WHERE (ENTITY-TYPE  = 'EMP', -
+                        ENTITY-VALUE = EMP,   -
+                        REF-NO       = '002', -
+                        SEQ-NUM      = '001')
+
+%*         RC1   = REF-CODE VIA (RC)
+         RC1   = TABLE-DESC OF MSF010 -
+		         WHERE (TABLE-TYPE = 'UN', -
+				        TABLE-CODE = UNION-CODE)
+
+         RN    = REF-CODE OF MSF071 -
+                 WHERE (ENTITY-TYPE  = 'EMP', -
+                        ENTITY-VALUE = EMP,   -
+                        REF-NO       = '003', -
+                        SEQ-NUM      = '001')
+
+%*         RC2   = REF-CODE VIA (RN)
+         UC    = UNION-CODE
+         TDAY  = WX-TODAYS-DATE
+
+%*          DREF  = DEDN-REF OF MSF822 -
+%*                  WHERE    (EMPLOYEE-ID  = EMP,        -
+%*                            CONS-PAY-GRP = SPACES,     -
+%*                            DEDN-CODE   >= SPACES)     -
+%*                  SELECTIF (START-DATE  <= TDAY)       -
+%*                  SELECTIF (END-DATE     = '00000000') -
+%*                  REJECTIF (END-DATE    >  TDAY)  MAX (1)
+
+         DCOD = DEDN-CODE OF MSF822 -
+                WHERE    (EMPLOYEE-ID  = EMP, -
+                          CONS-PAY-GRP = SPACES, -
+                          DEDN-CODE   >= SPACES) -
+                SELECTIF (START-DATE  <= TDAY) -
+                SELECTIF (END-DATE     = '00000000') -
+                REJECTIF (END-DATE    >  TDAY) MAX(10)
+         REF  = DEDN-REF VIA (DCOD)
+
+         CKR  = CATENATE ('***',DCOD)
+         MSF801D = CNTL-KEY-REST OF MSF801 -
+                WHERE (CNTL-REC-TYPE = 'D', -
+                       CNTL-KEY-REST = CKR)
+
+         MISCD = MISC-RPT-FLD-D VIA (MSF801D)
+         D1    = SINGLE (MISCD (1))
+         D2    = SINGLE (MISCD (2))
+         D3    = SINGLE (MISCD (3))
+         D4    = SINGLE (MISCD (4))
+         D5    = SINGLE (MISCD (5))
+
+        RD     = CHOOSE ('Y' IF (D1 = 'A1'), 'Y' IF (D1 = 'A2'), 'Y' IF (D1 = 'A3'), -
+                         'Y' IF (D1 = 'A4'), 'Y' IF (D1 = 'A5'), 'Y' IF (D1 = 'A6'), -
+                         'Y' IF (D1 = 'A7'), 'Y' IF (D1 = 'S1'), 'Y' IF (D1 = 'S2'), -
+                         'Y' IF (D1 = 'S3'), 'Y' IF (D1 = 'S4'), 'Y' IF (D1 = 'S5'), -
+                         'Y' IF (D1 = 'S6'), 'Y' IF (D1 = 'SC'), -
+                         'Y' IF (D2 = 'A1'), 'Y' IF (D2 = 'A2'), 'Y' IF (D2 = 'A3'), -
+                         'Y' IF (D2 = 'A4'), 'Y' IF (D2 = 'A5'), 'Y' IF (D2 = 'A6'), -
+                         'Y' IF (D2 = 'A7'), 'Y' IF (D2 = 'S1'), 'Y' IF (D2 = 'S2'), -
+                         'Y' IF (D2 = 'S3'), 'Y' IF (D2 = 'S4'), 'Y' IF (D2 = 'S5'), -
+                         'Y' IF (D2 = 'S6'), 'Y' IF (D2 = 'SC'), -
+                         'Y' IF (D3 = 'A1'), 'Y' IF (D3 = 'A2'), 'Y' IF (D3 = 'A3'), -
+                         'Y' IF (D3 = 'A4'), 'Y' IF (D3 = 'A5'), 'Y' IF (D3 = 'A6'), -
+                         'Y' IF (D3 = 'A7'), 'Y' IF (D3 = 'S1'), 'Y' IF (D3 = 'S2'), -
+                         'Y' IF (D3 = 'S3'), 'Y' IF (D3 = 'S4'), 'Y' IF (D3 = 'S5'), -
+                         'Y' IF (D3 = 'S6'), 'Y' IF (D3 = 'SC'), -
+                         'Y' IF (D4 = 'A1'), 'Y' IF (D4 = 'A2'), 'Y' IF (D4 = 'A3'), -
+                         'Y' IF (D4 = 'A4'), 'Y' IF (D4 = 'A5'), 'Y' IF (D4 = 'A6'), -
+                         'Y' IF (D4 = 'A7'), 'Y' IF (D4 = 'S1'), 'Y' IF (D4 = 'S2'), -
+                         'Y' IF (D4 = 'S3'), 'Y' IF (D4 = 'S4'), 'Y' IF (D4 = 'S5'), -
+                         'Y' IF (D4 = 'S6'), 'Y' IF (D4 = 'SC'), -
+                         'Y' IF (D5 = 'A1'), 'Y' IF (D5 = 'A2'), 'Y' IF (D5 = 'A3'), -
+                         'Y' IF (D5 = 'A4'), 'Y' IF (D5 = 'A5'), 'Y' IF (D5 = 'A6'), -
+                         'Y' IF (D5 = 'A7'), 'Y' IF (D5 = 'S1'), 'Y' IF (D5 = 'S2'), -
+                         'Y' IF (D5 = 'S3'), 'Y' IF (D5 = 'S4'), 'Y' IF (D5 = 'S5'), -
+                         'Y' IF (D5 = 'S6'), 'Y' IF (D5 = 'SC'), 'N')
+         
+%*		 DCOD  = SUBSTR (MSF801D,4,3)
+         DREF = CHOOSE (REF IF (RD = 'Y'), SPACES)					 
+%*         DREF  = DEDN-REF OF MSF822 -
+%*                 WHERE    (EMPLOYEE-ID  = EMP,    -
+%*                           CONS-PAY-GRP = SPACES, -
+%*                           DEDN-CODE    = DECOD)
+                 
+         NTDAY = NUMERIC(TDAY)
+         RTDAY = CALC (99999999 - NTDAY)
+                 
+         BSUP  = BENEFIT-SUPP-1 OF MSF785 -
+                 WHERE   (EMPLOYEE-ID    = EMP,   -
+                          INV-EFF-DATE  <= RTDAY) MAX (1)
+                          
+         RC2  = CHOOSE (DREF IF (DREF <> SPACES), BSUP)                 
+
+         RF = choose    ('Y' IF (RC2 = 'UNKNOWN'), -
+                         'Y' IF (RC2 = SPACES),    -
+                         'Y' IF (RC2 > SPACES),    -
+                         'N')
+
+         INCL   = choose ('Y' IF (CG = 'Y', -
+                                  EG = 'Y', -
+                                  AG = 'Y', -
+                                  RF = 'Y', -
+                                  RG = 'Y', -
+                                  CNAMT <> ZEROES), 'N')
+
+NAMT   = choose (CNAMT IF (INCL = 'Y'), 0)        D-PIC (-Z(12)9.99)                    
+NTEMPL = total (NAMT)                             D-PIC (-Z(12)9.99)
+NAMT3  = calc (NTEMPL * 1)                        D-PIC (-ZZZZZ9.99)
+NAMT1  = calc (NTEMPL * 1)                        D-PIC (-ZZZZZ9.99)
+NAMT0  = calc (NAMT1 * 1)                         D-PIC (-ZZZZZ9.99)
+NAVG   = calc ((NAMT1 + NAMT3) / D)               D-PIC (ZZZZZ9)
+NAMT6  = choose (NAVG IF (NAVG > NTEMPL), NTEMPL) D-PIC (ZZZZZ9) 
+NAMT7  = calc (NAMT6 * 1)                         D-PIC (ZZZZZ9) 
+%* AMG   = choose ('Y' IF (NAMT7 > 0), 'N')    
+
+EMPT   = choose (1 IF (INCL  = 'Y'), 0)
+TTOT   = total (EMPT)    D-PIC (Z,ZZ9)
+EMPC   = count (EMP)    
+
+%*END PROGRAM 

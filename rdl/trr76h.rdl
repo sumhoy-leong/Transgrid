@@ -1,0 +1,263 @@
+%***  $Id: trr76h.rdl,v 1.3 2002/02/24 23:13:16 mimsdev Exp $
+%*** TRR76H.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 09-Aug-2012  a9jw6280       MO164 (Version 0001)
+%*** ..........................  Changed control %SUBROUTINES into %ROUTINES
+%*** ..........................  Added quote for words after TEXT
+%*** ..........................  Reset version number to 0001 for E8 upgrade.
+%*** 24-Oct-2007  Janak Barar    SC1634095 required changes in the prog:-
+%***                             1. Exclude staff category ZO,ZA,WC.       
+%***                             2. Provide CSV OUTPUT FILE.               
+%***                             3. Additional columns.                    
+%***                             4. Additional Parameters.                 
+%***                             5. Exclude records from msf760 where EMP_TYPE
+%***                             = 'CAS' for casual.
+%*** 09-Nov-2005  E Fredeluces   P05110870
+%***                             Fix compilation errors in Ellipse 5.2.3.7.
+%*** 18-Feb-2002  E Fredeluces   T & H for 25 years
+%***                             F & U for 40 years
+%*** 01-Feb-2002  E Fredeluces   WCHG0002326
+%***                             Include two additional selection
+%***                             criteria.
+%*** 13-Jul-2001  E Fredeluces   W01070698
+%***                             Add the employee status parameter.
+%***
+%PROGRAM-ID
+       TRR76H
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+%VERSION
+       0001
+%MODULE
+       3880
+%FILES
+        MFILE = MSF820
+        AFILE = MSF760
+        LFILE = MSF010
+        LFILE = MSF808
+        LFILE = MSF810
+        LFILE = MSF820
+        LFILE = MSF829
+        LFILE = MSF870
+        LFILE = MSF878A
+%*      RFILE = TRR76HA
+        OFILE = TRT76HA
+
+%ROUTINES
+        MSSDAT
+        MSSCNV
+%SELECTION
+        WHERE  (EMPLOYEE-ID >= SPACES)
+%ORDER
+        PRC
+        SER
+%* %REPORT-TITLE
+%*                                       'EMPLOYEE DUE FOR SERVICE AWARDS' 
+%* %CONTROL-BREAKS
+%*     PRC
+%* %PAGE HEADING
+%*                                   'EMPLOYEES DUE FOR 'DDDDD'SERVICE AWARD AS AT'{INDATE1    }
+%*         1         2         3         4         5         6         7         8         9         0         1         2         3
+%*34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+%* 'EMPLOYEE-ID ------ EMPLOYEE NAME  ------  ------  STAFF CATEGORY  -------  --- PHYSICAL LOCATION --- HIRE DATE  YRS  TERM DATE'
+%* %BREAK PRC HEADING 
+%*
+%*
+%* {PRCDESC                     } 
+%* %DETAIL
+%*         1         2         3         4         5         6         7         8         9         0         1         2         3
+%*34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+%* <IF PRFLG = 'Y'>
+%* {FEMP     } {SNAME            } {FNAME     } {CATEGORY                    } {PLOCD                   } {HDATE }  SS  {TDATE }
+%* <ENDIF>
+%* %BREAK PRC FOOTING
+%*           'NUMBER OF EMPLOYEES FOR'{IPRCDESC           }':' {STEMP   }
+%*
+%* %REPORT-SUMMARY
+%*
+%*
+%*        '   TOTAL NUMBER OF EMPLOYEES REPORTED            :' {STEMP        }
+%OUTPUT-FILE
+     A
+%CONTROL
+    RECORD-LENGTH = 142
+%BREAK-FIELDS
+      DUMMY
+%BREAK DUMMY HEADING
+%*         1         2         3         4         5         6         7         8         9         0         1         2         3
+%*34567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+'EMPLOYEE-ID,EMPLOYEE-NAME                  ,STAFF-CAT        ,PHYSICAL-LOCATION,HIRE-DATE,YRS,SERVICE-DATE,SERVICE-YEARS,TERM-DATE,'
+%DETAIL
+<IF PRFLG = 'Y'>
+ <IF SBASE = 'S'>
+{FEMP     }K{SNAME            } {FNAME     }K{CATEGORY                    }K- 
+{PLOCD                   }K{HDATE }IK{S }K{SDATE }JK{SY}K{TDATE }K
+ <ELSE> 
+{FEMP     }K{SNAME            } {FNAME     }K{CATEGORY                    }K- 
+{PLOCD                   }K{HDATE }IK{S }K{SDATE }JK{SY}K{TDATE }K
+ <ENDIF>
+<ENDIF>
+%REQUEST-PARAMETERS
+        INDATE    PIC (9(8))  TEXT 'Past/Future/Current Date        : '
+        SERFR     PIC (9(2))  TEXT 'Service Award (25/40)           : '
+        ICATEG    PIC (X(3))  TEXT 'Staff Category  - Blank for all : '
+        STAT      PIC (X(1))  TEXT 'Employee Status - Blank for all : '
+        SBASE     PIC (X(1))  TEXT 'CALCULATION BASED - SERVICE/HIRE: '
+%VARIABLES
+%* DATE VARIABLES
+        VDATE     = DATE()                                        constant
+        CDATE     = CHOOSE(%INDATE% IF(%INDATE% <> SPACE), VDATE) constant
+        SERFR     = %SERFR%                                       constant
+        SBASE     = %SBASE%                                       CONSTANT
+        DUM       = 'Y'                                           CONSTANT
+        DUMMY     = choose ('Y' IF (DUM = 'Y'), 'Y')              CONSTANT
+        K         = ','                                           CONSTANT 
+        J         = CHOOSE('*' IF (SBASE = 'S'), ' ')             CONSTANT
+        I         = CHOOSE('*' IF (SBASE = 'H'), ' ')             CONSTANT
+        D             = CATENATE(SERFR,'YRS')                     CONSTANT
+        INDATE1   = CDATE FORMAT(REVERSE-DATE)                    CONSTANT
+        EMP       = EMPLOYEE-ID 
+        FEMP      = NUMERIC(EMP) D-PIC(ZZZZZ99999)        
+%* MSF760 DETAILS
+        ST        = EMP-STATUS OF MSF760 -
+                    WHERE (EMPLOYEE-ID >= EMP) -
+                    REJECTIF (EMPLOYEE-ID > EMP) -
+                    REJECTIF (STAFF-CATEG = 'ZA') -
+                    REJECTIF (STAFF-CATEG = 'ZO') -
+                    REJECTIF (STAFF-CATEG = 'WC') MAX (1)
+
+        CASUAL    = EMP-TYPE VIA (ST)
+        HDATE     = HIRE-DATE   VIA (ST) FORMAT(DATE)
+        HDATE-9   = NUMERIC(HDATE)
+        ISER      = CALC(CDATE - HDATE-9) I-PIC(99999999)
+        SA        = SUBSTR(ISER,3,2) 
+        CSA       = NUMERIC(SA)    
+        SDATE     = SERVICE-DATE   VIA (ST) FORMAT(DATE)
+        SDATE-9   = NUMERIC(SDATE)
+        SSER      = CALC(CDATE - SDATE-9) I-PIC(99999999)
+        SY        = SUBSTR(SSER,3,2) 
+        CSY       = NUMERIC(SY)    
+        TDATE     = TERM-DATE   VIA (ST) FORMAT (DATE)
+        TDATE-9   = TERM-DATE-9 VIA (ST)
+        TSER      = CALC (TDATE-9 - HDATE-9) I-PIC(99999999)
+        TSA       = SUBSTR(TSER,3,2)
+        TS        = NUMERIC(TSA)
+        S         = CHOOSE  (CSA IF (TDATE = '00000000'),-
+                             TS)
+        SER       = CHOOSE (S IF(EMP >= SPACES), S)
+        STFLG     = CHOOSE ('Y' IF (%STAT% = SPACES),-
+                            'Y' IF (%STAT% = ST),    -
+                            'N')
+        CATEGY    = STAFF-CATEG  VIA (ST) 
+        CATFLG    = CHOOSE ('Y' IF (%ICATEG% = SPACES), -
+                            'Y' IF (%ICATEG% = CATEGY), -
+                            'N')
+        RSN1      = SIG-REASON-1 VIA (ST)
+        RSN2      = SIG-REASON-2 VIA (ST)
+        RSN3      = SIG-REASON-3 VIA (ST)     
+        RSN4      = SIG-REASON-4 VIA (ST)
+%* 
+%*  Reason T & H are for 25 years in service attended/didn't attend
+%*         F & U are for 40 years in service attended/didn't attend
+%*  These records should be excluded on the report.
+%*
+        RN1FLG    = CHOOSE  ('T' IF (RSN1 = 'T'), -
+                             'F' IF (RSN1 = 'F'), -
+                             'T' IF (RSN1 = 'H'), -
+                             'F' IF (RSN1 = 'U'), -
+                             ' ')
+
+        RN2FLG    = CHOOSE  ('T' IF (RSN2 = 'T'), -
+                             'F' IF (RSN2 = 'F'), -
+                             'T' IF (RSN2 = 'H'), -
+                             'F' IF (RSN2 = 'U'), -
+                             ' ')
+
+        RN3FLG    = CHOOSE  ('T' IF (RSN3 = 'T'), -
+                             'F' IF (RSN3 = 'F'), -
+                             'T' IF (RSN3 = 'H'), -
+                             'F' IF (RSN3 = 'U'), -
+                             ' ')
+
+        RN4FLG    = CHOOSE  ('T' IF (RSN4 = 'T'), -
+                             'F' IF (RSN4 = 'F'), -
+                             'T' IF (RSN4 = 'H'), -
+                             'F' IF (RSN4 = 'U'), -
+                             ' ')
+
+        RSNFLG    = CHOOSE  ('N' IF (RN1FLG = 'T',  -
+                                     SERFR  = '25'),-
+                             'N' IF (RN1FLG = 'F',  -
+                                     SERFR  = '40'),-
+                             'N' IF (RN2FLG = 'T',  -
+                                     SERFR  = '25'),-
+                             'N' IF (RN2FLG = 'F',  -
+                                     SERFR  = '40'),-
+                             'N' IF (RN3FLG = 'F',  -
+                                     SERFR  = '40'),-
+                             'N' IF (RN3FLG = 'T',  -
+                                     SERFR  = '25'),-
+                             'N' IF (RN4FLG = 'F',  - 
+                                     SERFR  = '40'),-
+                             'N' IF (RN4FLG = 'T',  -
+                                     SERFR  = '25'),-
+                             'Y')
+
+        AGEFLG    = CHOOSE  ('Y' IF (S >= SERFR), -
+                             'N')
+
+%* get MSF810 details       
+        SNAME     = SURNAME OF MSF810 -
+                     WHERE(EMPLOYEE-ID = EMP)
+        FNAME     = FIRST-NAME          VIA(SNAME)
+%* GET MSF829 DETAILS
+        PLOC      = PHYSICAL-LOC OF MSF829 -
+                        WHERE(EMPLOYEE-ID = EMP, -
+                              INV-STR-DATE >= SPACES) MAX (1)
+        PLOCD     = TABLE-DESC OF MSF010 -
+                      WHERE(TABLE-TYPE = 'PHYL',-
+                            TABLE-CODE = PLOC)
+        CATEGORY  = TABLE-DESC OF MSF010 -
+                      WHERE(TABLE-TYPE = 'STFC', -
+                            TABLE-CODE = CATEGY)
+        CASDES    = TABLE-DESC OF MSF010 -
+                      WHERE(TABLE-TYPE = 'EMTY', -
+                            TABLE-CODE = CASUAL) 
+        CASFLG    = CHOOSE ('N' IF (CASUAL = 'CAS'),'Y')
+        PRFLG     = CHOOSE  ('Y' IF (STFLG  = 'Y', -
+                                     CATFLG = 'Y', -
+                                     RSNFLG = 'Y', -
+                                     AGEFLG = 'Y', -
+                                     CASFLG = 'Y'),-
+                              'N')
+
+        TEMP      = CHOOSE(1 IF(PRFLG = 'Y'), 0)
+        STEMP     = TOTAL(TEMP)
+        DEMP1     = SUBSTR(CATEGORY,1,5)                    
+        DEMP      = CHOOSE ('Y' IF(DEMP1 = 'Dummy'), 'N') 
+%*  Get position and PRC
+        PPOS      = POSITION-ID OF MSF878A                    -
+                             WHERE    (EMPLOYEE-ID-1   = EMP, -
+                                       PRIMARY-POS-1   = '0', -
+                                       INV-STR-DATE-1 >= '0') -
+                             SELECTIF (INV-STR-DATE-1 <> '0') MAX (1)
+        EPRCS      = PRIM-RPT-GRP OF MSF870 -
+                              WHERE (POSITION-ID  = PPOS)
+        PRCDESC1  = PRC-NAME OF MSF808 -                  
+                         WHERE(PRIM-RPT-CODES = EPRCS)  
+%* Use this line if sort required
+        PRC       = choose (EPRCS IF (EMP > SPACES), -
+                           EPRCS)
+        IPRCDESC  = PRC-NAME OF MSF808 -
+                         WHERE(PRIM-RPT-CODES = PRC)
+        FPRCDESC = CATENATE('----- ',IPRCDESC,' -----')
+        PRCDESC  = OUT-STRING OF MSSCNV -
+                       WHERE(OPTION     = 'P', -
+                             INP-STRING = FPRCDESC)
+%*END PROGRAM
+        

@@ -1,0 +1,410 @@
+%PROGRAM-ID
+       TRR76I
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  The report shows system action dates which are to
+      **  become effective in a given number of weeks for
+      **  Nominated Pay groups only.
+      **
+      **  Training courses must be selected from MSF771 here
+      **  because of a bug in the RDL when doing lookup and
+      **  selection in TRR76X - hence need to display a message
+      **  when no training courses to report.
+      **  (W703210026).
+      **
+      **  Initial Version : Neel Chandra.
+      **
+      **  Revision History
+      **  ----------------
+      **
+	  **  09-Jan-13 a9jw6280     MO164 ---
+	  **  ...................    Change req param Pay Group into Pay Location.
+      **  07-Sep-12 a9jw6280     MO164 (Version 0001)
+      **  ...................    Reset version number to 0001 for E8 upgrade.
+      **  09-Nov-05 E Fredeluces P05110870
+      **                         Fix compilation errors in Ellipse 5.2.3.7.
+      **  27-Jan-00 D Diolaso    W00010555
+      **  ...................    Modification to conform to GST changes
+      **  11-May-99 G Presser    W99050095
+      **  ...................... Convert to MIMS .3.1
+%VERSION
+       0001
+%MODULE
+       3760
+%FILES
+        IFILE = TSE76X
+        LFILE = MSF010
+        LFILE = MSF720
+        LFILE = MSF723A
+        LFILE = MSF770
+        LFILE = MSF771
+        LFILE = MSF801
+        LFILE = MSF827
+        LFILE = MSF828
+        LFILE = MSF829
+        LFILE = MSF870
+        LFILE = MSF878B
+        RFILE = TRR76IA
+%ROUTINES
+       MSSDAT
+%INPUT-FILE
+       RPT-TYPE        PIC (X(1))
+       EMPLOYEE-ID     PIC (X(10))
+       LIMIT-DATE      PIC (X(8))
+       SURNAME         PIC (X(20))
+       INIT1           PIC (X(1))
+       INIT2           PIC (X(1))
+       RPT-DATE        PIC (X(8))
+       REV-DATE        PIC (X(8))
+       SIG-REAS        PIC (X(1))
+       RES-TYPE        PIC (X(5))
+       TRN-COURSE      PIC (X(10))
+       TRN-SES         PIC (X(4))
+       POSITION-ID     PIC (X(10))
+       REASON          PIC (X(2))
+       PAY-GRP         PIC (X(3))
+       AWARD-CODE      PIC (X(4))
+       PHYS-LOC        PIC (X(3))
+       WORK-GRP        PIC (X(7))
+       LVE-EDATE       PIC (X(8))
+%ORDER
+       RPT-TYPE
+       SURNAME
+       INIT1
+       INIT2
+       EMPLOYEE-ID
+       RPT-DATE
+%CONTROL-BREAKS
+       RPT-TYPE
+%REPORT-TITLE
+       'Imminent Action Dates Report'
+%PAGE HEADING
+<IF RPT-TYPE = 'A'>
+                     'New Starters Review for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                      'Hire Date'  'Review Date'
+<ENDIF>
+<IF RPT-TYPE = 'B'>
+                      'Significant Dates for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                    'Date'    'Reason'
+<ENDIF>
+<IF RPT-TYPE = 'C'>
+                      'Resource Types for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                  'Review/Expiry Date Resource Type'
+<ENDIF>
+<IF RPT-TYPE = 'D'>
+                      'Training Courses for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                   'Course Date Course'                              'Session'
+<ENDIF>
+<IF RPT-TYPE = 'E'>
+                      'Performance Appraisals for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                   'Appraisal Date'
+<ENDIF>
+<IF RPT-TYPE = 'F'>
+                      'Position Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Position/'
+'Employee' 'Name'                     'Date'  'Old Position'                                      'Reason'
+<ENDIF>
+<IF RPT-TYPE = 'G'>
+                      'Pay Group Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Pay Group/'
+'Employee' 'Name'                     'Date'  'Old Pay Group'                    'Reason'
+<ENDIF>
+<IF RPT-TYPE = 'H'>
+                      'Award Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Award/'
+'Employee' 'Name'                     'Date'  'Old Award'                         'Reason'
+<ENDIF>
+<IF RPT-TYPE = 'I'>
+                 'Physical Location Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Location/'
+'Employee' 'Name'                     'Date'  'Old Location'                                   'Reason'
+<ENDIF>
+<IF RPT-TYPE = 'J'>
+                 'Work Group Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Work Group/'
+'Employee' 'Name'                     'Date'  'Old Work Group'
+<ENDIF>
+<IF RPT-TYPE = 'K'>
+                         'Booked Leave for Period'{TDY    }'to'{LIMDT  }
+
+                                      'Leave Start'   'Leave End'
+'Employee' 'Name'                        'Date'         'Date'
+<ENDIF>
+%BREAK RPT-TYPE HEADING ON NEW-PAGE SUPPRESS-PAGE-HEADING
+<IF RPT-TYPE = 'A'>
+                     'New Starters Review for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                      'Hire Date'  'Review Date'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'B'>
+                      'Significant Dates for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                    'Date'    'Reason'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'C'>
+                      'Resource Types for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                  'Review/Expiry Date Resource Type'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'D'>
+                      'Training Courses for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                   'Course Date Course'                              'Session'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'E'>
+                      'Performance Appraisals for Period'{TDY    }'to'{LIMDT  }
+
+'Employee' 'Name'                   'Appraisal Date'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'F'>
+                      'Position Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Position/'
+'Employee' 'Name'                     'Date'  'Old Position'                                      'Reason'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'G'>
+                      'Pay Group Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Pay Group/'
+'Employee' 'Name'                     'Date'  'Old Pay Group'                    'Reason'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'H'>
+                      'Award Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Award/'
+'Employee' 'Name'                     'Date'  'Old Award'                         'Reason'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'I'>
+                 'Physical Location Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Location/'
+'Employee' 'Name'                     'Date'  'Old Location'                                   'Reason'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'J'>
+                 'Work Group Transfers for Period'{TDY    }'to'{LIMDT  }
+
+                                    'Transfer  New Work Group/'
+'Employee' 'Name'                     'Date'  'Old Work Group'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<IF RPT-TYPE = 'K'>
+                         'Booked Leave for Period'{TDY    }'to'{LIMDT  }
+
+                                      'Leave Start'   'Leave End'
+'Employee' 'Name'                        'Date'         'Date'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+%DETAIL TEST-PAGE (2)
+<IF RPT-TYPE = 'A'>
+
+ {EMP     } {NAME              } A B    {RPTDT  }    {REVDT  }
+<ENDIF>
+<IF RPT-TYPE = 'B'>
+
+ {EMP     } {NAME              } A B  {RPTDT  } C {CDESC                       }
+<ENDIF>
+<IF RPT-TYPE = 'C'>
+
+ {EMP     } {NAME              } A B     {RPTDT  }     {RES} {RESDESC                                         }
+<ENDIF>
+<IF RPT-TYPE = 'D'>
+   <IF TCREQD = 'Y'>
+
+ {EMP     } {NAME              } A B  {TCDT   }  {CRS     } {CRSDESC                     } {SE}
+   <ENDIF>
+<ENDIF>
+<IF RPT-TYPE = 'E'>
+
+ {EMP     } {NAME              } A B   {RPTDT  }
+<ENDIF>
+<IF RPT-TYPE = 'F'>
+
+ {EMP     } {NAME              } A B {RPTDT  } {POSN    } {PNDESC                                } RR {RDESC                       }
+                                               {POSO    } {PODESC                                }
+<ENDIF>
+<IF RPT-TYPE = 'G'>
+
+ {EMP     } {NAME              } A B {RPTDT  } PPP {PNAME                       } RR {RDESC                       }
+                                               QQQ {QNAME                       }
+<ENDIF>
+<IF RPT-TYPE = 'H'>
+
+ {EMP     } {NAME              } A B {RPTDT  } {AN} {ANNAME                      } RR {RDESC                       }
+                                               {AO} {AONAME                      }
+<ENDIF>
+<IF RPT-TYPE = 'I'>
+
+ {EMP     } {NAME              } A B {RPTDT  } LLL {LDESC                                } RR {RDESC                       }
+                                               MMM {MDESC                                }
+<ENDIF>
+<IF RPT-TYPE = 'J'>
+
+ {EMP     } {NAME              } A B {RPTDT  } {WG   } {WGDESC                                }
+                                               {WGO  } {WGODESC                               }
+<ENDIF>
+<IF RPT-TYPE = 'K'>
+
+ {EMP     } {NAME              } A B    {RPTDT  }      {EDATE  }
+<ENDIF>
+%BREAK RPT-TYPE FOOTING
+<IF RPT-TYPE = 'D'>
+   <IF TCTOT = 0>
+
+       'No Training Courses scheduled in report period' {TCTOT}
+   <ENDIF>
+<ENDIF>
+%REQUEST-PARAMETERS
+       PL  PIC (X(2)) TEXT 'Pay Location'
+       WKS PIC (9(4)) TEXT 'Number of weeks'
+       TA  PIC (X(1)) TEXT 'New Starters Review'
+       TB  PIC (X(1)) TEXT 'Significant Dates'
+       TC  PIC (X(1)) TEXT 'Resource Types'
+       TD  PIC (X(1)) TEXT 'Training Courses'
+       TE  PIC (X(1)) TEXT 'Performance Appraisals'
+       TF  PIC (X(1)) TEXT 'Position Transfers'
+       TG  PIC (X(1)) TEXT 'Paygroup Transfers'
+       TH  PIC (X(1)) TEXT 'Award Transfers'
+       TI  PIC (X(1)) TEXT 'Physical Location Transfers'
+       TJ  PIC (X(1)) TEXT 'Workgroup Transfers'
+       TK  PIC (X(1)) TEXT 'Booked Leave'
+%VARIABLES
+       TDY     = WX-TODAYS-DATE FORMAT (DATE) CONSTANT
+       TDYR    = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = TDY, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '2') CONSTANT
+       LIMDT   = LIMIT-DATE  FORMAT (DATE)
+       TY      = RPT-TYPE
+       EMP     = EMPLOYEE-ID
+       NAME    = SURNAME
+       A       = INIT1
+       B       = INIT2
+       RPTDT   = RPT-DATE FORMAT (DATE)
+       REVDT   = REV-DATE FORMAT (DATE)
+       C       = SIG-REAS
+       CDESC   = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'SIGD', -
+                                   TABLE-CODE = C)
+       RES     = RES-TYPE
+       RESDESC = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'TT', -
+                                   TABLE-CODE = RES)
+       CRS     = TRN-COURSE
+       SE      = TRN-SES
+       TCDTR   = INV-STR-DATE OF MSF771 -
+                              WHERE (COURSE-ID = CRS, -
+                                     SESSION-NO = SE)
+       TCDT    = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = TCDTR, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '1') FORMAT (DATE)
+       TCREQD  = choose ('Y' IF (TCDT >= TDY , -
+                                 TCDT <= LIMDT), -
+                         'N')
+       TCCNT   = choose (1 IF (TCDT >= TDY , -
+                               TCDT <= LIMDT), -
+                         0)
+       TCTOT   = total (TCCNT) D-PIC (9(7)) FORMAT (BLANK-WHEN-ZERO)
+       CRSDESC = COURSE-TITLE OF MSF770 -
+                              WHERE (COURSE-ID    = CRS, -
+                                     MAJ-REV-RVSD = '999')
+       RPTDTR  = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = RPTDT, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '2')
+       POSN    = POSITION-ID
+       POSO    = POSITION-ID OF MSF878B                          -
+                             WHERE    (EMPLOYEE-ID-2   = EMP,    -
+                                       INV-STR-DATE-2 >= RPTDTR) -
+                             REJECTIF (INV-STR-DATE-2  = RPTDTR) MAX (1)
+       PNDESC  = POS-TITLE OF MSF870 -
+                           WHERE (POSITION-ID = POSN)
+       PODESC  = POS-TITLE OF MSF870 -
+                           WHERE (POSITION-ID = POSO)
+       R       = REASON
+       RDESC   = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE ='TFRR', -
+                                   TABLE-CODE = R)
+       P       = PAY-GRP
+       Q       = PAY-GROUP OF MSF827 -
+                           WHERE (EMPLOYEE-ID = EMP, -
+                                  INV-STR-DATE >= RPTDTR) -
+                           REJECTIF (INV-STR-DATE = RPTDTR) MAX (1)
+       VPGP    = hrget (CNTL-REC-TYPE -
+                        from ('MSF801') -
+                        type ('PG') -
+                        DEFAULT -
+                        key  (KEY1 = P))
+       PNAME   = TNAME-PG VIA (VPGP)
+       VPGQ    = hrget (CNTL-REC-TYPE -
+                        from ('MSF801') -
+                        type ('PG') -
+                        DEFAULT -
+                        key  (KEY1 = Q))
+       QNAME   = TNAME-PG VIA (VPGQ)
+       AN      = AWARD-CODE
+       AO      = AWARD-CODE OF MSF828 -
+                            WHERE (EMPLOYEE-ID = EMP, -
+                                   INV-STR-DATE >= RPTDTR) -
+                            REJECTIF (INV-STR-DATE = RPTDTR) MAX (1)
+       VC0AN   = hrget (CNTL-REC-TYPE -
+                        from ('MSF801') -
+                        type ('C0') -
+                        DEFAULT -
+                        key  (KEY1 = AN))
+       ANNAME  = TNAME-C0 VIA  (VC0AN)
+       VC0AO   = hrget (CNTL-REC-TYPE -
+                        from ('MSF801') -
+                        type ('C0') -
+                        DEFAULT -
+                        key  (KEY1 = AO))
+       AONAME  = TNAME-C0 VIA  (VC0AO)
+       L       = PHYS-LOC
+       M       = PHYSICAL-LOC OF MSF829 -
+                             WHERE (EMPLOYEE-ID = EMP, -
+                                    INV-STR-DATE >= RPTDTR) -
+                             REJECTIF (INV-STR-DATE = RPTDTR) MAX (1)
+       LDESC   = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'PHYL', -
+                                   TABLE-CODE = L)
+       MDESC   = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'PHYL', -
+                                   TABLE-CODE = M)
+       WG      = WORK-GRP
+       WGO     = WORK-GROUP OF MSF723A                       -
+                            WHERE (REC-723-TYPE-2  = 'W',    -
+                                   EQUIP-NO-2      = SPACES, -
+                                   EMPLOYEE-ID-2   = EMP,    -
+                                   EFF-DT-REVSD-2 >= RPTDTR) -
+                           REJECTIF (EFF-DT-REVSD-2 = RPTDTR) MAX (1)
+
+       WGDESC  = WORK-GRP-DESC OF MSF720 -
+                               WHERE (WORK-GROUP = WG)
+       WGODESC = WORK-GRP-DESC OF MSF720 -
+                               WHERE (WORK-GROUP = WGO)
+       EDATE   = LVE-EDATE FORMAT (DATE)
+%*
+%*End of Program

@@ -1,0 +1,120 @@
+%*** trr07s.rdl
+%***
+%*** Copyright (c) 2003, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision HIstory ***
+%*** 07-Aug-12 a9jw6280 MO164
+%*** .................. Changed control %SUBROUTINES into %ROUTINES
+%***
+%***
+%PROGRAM-ID
+    TRR07S
+%AUTHOR
+    Mincom PTY LTD
+%NARRATIVE
+    This program reports on archived stockcode
+%MODULE
+    3001
+%VERSION
+    001A
+%FILES
+    MFILE = MSF075
+    LFILE = MSF100
+    LFILE = MSF110A
+    AFILE = MSF076
+    AFILE = MSF077
+    RFILE = TRR07SA
+    OFILE = TRT07SB
+%ROUTINES
+    MSSCNV
+%SELECTION
+<IF %RUN-NO-FR% <> SPACES AND %RUN-NO-TO% <> SPACES AND %RUN-NO-FR% <> '0000' AND %RUN-NO-TO% <> '0000'>
+    WHERE    (RUN-NUMBER   >= %RUN-NO-FR%, -
+              RUN-NUMBER   <= %RUN-NO-TO%)
+<ELSE>
+  SELECTIF (CREATION-DATE  >= %ARCH-DATE-FR%, -
+            %ARCH-DATE-FR% <> SPACES)         -
+  SELECTIF (CREATION-DATE  <= %ARCH-DATE-TO%, -
+            %ARCH-DATE-TO% <> SPACES)
+<ENDIF>
+%ORDER
+     SORDER 
+%REPORT
+     A
+%TITLE
+    'ARCHIVED STOCK CODE REPORT'
+%PAGE HEADING
+                                                'ARCHIVED STOCK CODE REPORT'
+'Stock Code Stockline No                   Stock Item Name                                                           Run No   Date'
+{UNDERLINE                                                                                                                         }
+%DETAIL
+<IF SELSW = 'Y'>
+ {SC     }  {PARTNO                      } {SCITEMNAME                                                             } {RN} {DTE     }
+<ENDIF>
+%OUTPUT-FILE
+     B
+%CONTROL
+       RECORD-LENGTH = 132
+%CONTROL-BREAKS
+       DUM
+%BREAK DUM HEADER
+{HDG                                                                                       }
+%DETAIL
+<IF SELSW = 'Y'>
+{SC     }Z{PARTNO                      }Z{SCITEMNAME                                                               }Z{RN}Z{DTE     }
+<ENDIF>
+%REQUEST-PARAMETERS
+    RUN-NO-FR      PIC (9(4))  TEXT 'Run Number From   : '
+    RUN-NO-TO      PIC (9(4))  TEXT 'Run Number To     : '
+    ARCH-DATE-FR   PIC (X(8))  TEXT 'Archive Date From : '
+    ARCH-DATE-TO   PIC (X(8))  TEXT 'Archive Date To   : '
+    SORT-ORDER     PIC (X(1))  TEXT 'Sort Order        : '
+%VARIABLES
+%*
+%*  Dummy Key for Output file Heading
+%*
+    DUMMY  = 'Y'          CONSTANT
+    Z      = '|'          CONSTANT
+    Q      = '"'          CONSTANT
+    SO     = %SORT-ORDER% CONSTANT
+    DUM    = choose ('Y' IF (RUN-NUMBER = RUN-NUMBER), DUMMY)
+    HDG    = 'Stock Code| StockLine No| Stock Item Name| Run No| Date' CONSTANT
+
+    DTE        = GET (DISPLAY-DATE FROM (CREATION-DATE))
+    RN         = RUN-NUMBER
+
+    AE         = ARCH-ENTY FROM MSF076               -
+                 WHERE    (RUN-NUMBER  = RUN-NUMBER, -
+                           STATUS-076 >= 'A',        -
+                           STATUS-076 <= 'A')        -
+                 SELECTIF (ARCH-ENTY   = 'MSF100')
+    AEK        = ARCH-ENTY-KEY VIA (AE)
+    
+    AFD100     = ARCH-FILE-DATA FROM MSF077 -
+                 WHERE    (RUN-NUMBER     = RUN-NUMBER, -
+                           ARCH-ENTY      = 'MSF100',   -
+                           ARCH-ENTY-KEY  = AEK,        -
+                           SEQ-NO        >= SPACES)     -
+                 SELECTIF (ARCH-FILE      = 'MSF100')
+    SC         = SUBSTR (AFD100,1,9)
+    ITEMNAME   = SUBSTR (AFD100,124,40)
+    DESCLINE1  = SUBSTR (AFD100,164,40)
+    DESC1      = CATENATE (ITEMNAME, DESCLINE1)
+    SCITEMNAME = OUT-STRING OF MSSCNV - 
+                 WHERE (OPTION     = 'P', -
+                        INP-STRING = DESC1)
+
+    AFD110     = ARCH-FILE-DATA FROM MSF077 -
+                 WHERE    (RUN-NUMBER     = RUN-NUMBER, -
+                           ARCH-ENTY      = 'MSF100',   -
+                           ARCH-ENTY-KEY  = AEK,        -
+                           SEQ-NO        >= SPACES)     -
+                 SELECTIF (ARCH-FILE      = 'MSF110')
+    PARTNO     = SUBSTR (AFD110, 1,30)
+    PPI        = SUBSTR (AFD110, 52,2)
+
+    SORDER     = CHOOSE (PARTNO     IF (SO = 'B'), -
+                         RN         IF (SO = 'C'), -
+                         SC)
+    SELSW      = CHOOSE ('Y' IF (PPI = '97'), 'N')

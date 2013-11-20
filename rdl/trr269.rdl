@@ -1,0 +1,276 @@
+%***  Revision History
+%***  02-Oct-12  a9nh4814      MO164 (Version 001)
+%***  .......................  Corrected signed decimal formatting.
+%***  .......................  Removed irrelevant request parameters: DSTRCT-CODE,
+%***  .......................    REQ-DATE-FROM, REQ-DATE-TO.
+%***  31-Jul-12  a9nh4814      MO164 (Version 001)
+%***  .......................  Reset version number to 001 for E8 upgrade. 
+%***  16-Jun-06 L Nee          WHD0792181
+%***                           Amended program to use VAL-INC-TAX-L-I field
+%***                           instead of INV-ITEM-DESC-I on report
+%***  14-Aug-01  E Fredeluces  W01080182
+%***                           Use the MSF900C file.
+%***                           Hide the redundant parameters:
+%***                           Created Date From/To.
+%***  05-Oct-00  E Fredeluces  W00090390
+%***                           Initial Coding based on MSR269.
+%***
+%PROGRAM-ID
+    TRR269
+%AUTHOR
+    Mincom PTY LTD
+%NARRATIVE
+    Lists Additional Tax adjustment made in a given period or
+    transaction date range.
+%MODULE
+    3260
+%VERSION
+    001 
+%FILES
+    MFILE = MSF000
+    LFILE = MSF000
+    AFILE = MSF900C
+    LFILE = MSF013
+    LFILE = MSF200
+    RFILE = TRR269A
+%ROUTINES
+    MSSDAT
+    MSSCNV
+%SELECTION
+    WHERE (DSTRCT-CODE            = SPACES, -
+           CONTROL-REC-TYPE       = 'AD', -
+           CONTROL-REC-NO        >= SPACES)
+    SELECTIF (DSTRCT-STATUS = 'A')
+%ORDER
+    ASCENDING   A12 TEXT sort1
+    ASCENDING   ATAX-CODE-I VIA (A63) TEXT atax-code-i
+    ASCENDING   DSTRCT-CODE VIA (A63) TEXT dstrct-code
+    ASCENDING   SUPPLIER-NO-I VIA (A63) TEXT supplier-no-i
+    ASCENDING   INV-NO-I VIA (A63) TEXT inv-no-i
+    ASCENDING   TRAN-TYPE VIA (A63) TEXT tran-type
+    ASCENDING   FIRST-TRAN-KEY VIA (A56) TEXT first-tran-key
+    ASCENDING   LAST-TRAN-KEY VIA (A58) TEXT last-tran-key
+%BREAK-FIELDS
+    ATAX-CODE-I VIA (A63)
+    DSTRCT-CODE VIA (A63)
+    SUPPLIER-NO-I VIA (A63)
+    INV-NO-I VIA (A63)
+%CONTROL
+    DO-NOT-CHANGE-DISTRICTS
+%TITLE
+    'Additional Tax Adjustment Report'
+%PAGE HEADING
+<IF %REQ-LEVEL% = 'D'>
+{A14         }      'ATax Adjustments' 'ATax Adjustments  Adj Prior Periods  Adj Prior Periods'   'Invoice Amount'    {A15         }
+                    'Recoverable'      'Non Recoverable' 'Recoverable'      'Non Recoverable'                        'Prior Periods'
+<ELSE>
+                    'ATax Adjustments' 'ATax Adjustments  Adj Prior Periods  Adj Prior Periods'   'Invoice Amount'    {A15         }
+                    'Recoverable'      'Non Recoverable' 'Recoverable'      'Non Recoverable'                        'Prior Periods'
+<ENDIF>
+%BREAK ATAX-CODE-I VIA (A63) HEADING
+<IF A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N'>
+'Additional Tax Code'{A0}  {A18                                   }
+'------------------- ----  ----------------------------------------'
+
+<ENDIF>
+%BREAK DSTRCT-CODE VIA (A63) HEADING
+<IF A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N'>
+'District Code' {A1} {A19                                   }
+
+<ENDIF>
+%BREAK SUPPLIER-NO-I VIA (A63) HEADING
+<IF A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N'>
+   <IF %REQ-LEVEL% = 'S' OR %REQ-LEVEL% = 'D'>
+      <IF A20 = SPACES>
+'Journal/Requistion'
+      <ELSE>
+'Supplier No'{A20 }  {A21                           }
+
+      <ENDIF>
+   <ENDIF>
+<ENDIF>
+%BREAK INV-NO-I VIA (A63) FOOTING
+<IF A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N'>
+   <IF %REQ-LEVEL% = 'D'>
+{A22             } {A23            } {A24            } {A25            } {A26            } {A27            } {A28            }
+   <ENDIF>
+<ENDIF>
+%BREAK SUPPLIER-NO-I VIA (A63) FOOTING
+<IF A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N'>
+   <IF %REQ-LEVEL% = 'S' OR %REQ-LEVEL% = 'D'>
+                  '----------------- ----------------- ----------------- ----------------- -----------------'{A29            }
+      <IF A20 = SPACES>
+'Total Journal/Req'{A23            } {A24            } {A25            } {A26            } {A27            } {A28            }
+      <ELSE>
+'Total Supp'{A20 } {A23            } {A24            } {A25            } {A26            } {A27            } {A28            }
+      <ENDIF>
+                  '----------------- ----------------- ----------------- ----------------- -----------------'{A29            }
+   <ENDIF>
+
+<ENDIF>
+%BREAK DSTRCT-CODE VIA (A63) FOOTING
+<IF A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N'>
+                  '----------------- ----------------- ----------------- ----------------- -----------------'{A29            }
+'Total Dist'{A1}   {A23            } {A24            } {A25            } {A26            } {A27            } {A28            }
+                  '----------------- ----------------- ----------------- ----------------- -----------------'{A29            }
+
+<ENDIF>
+%BREAK ATAX-CODE-I VIA (A63) FOOTING
+<IF A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N'>
+                  '----------------- ----------------- ----------------- ----------------- -----------------'{A29            }
+'Total Atax'{A0}   {A23            } {A24            } {A25            } {A26            } {A27            } {A28            }
+                  '----------------- ----------------- ----------------- ----------------- -----------------'{A29            }
+
+<ENDIF>
+%REQUEST-PARAMETERS
+    REQ-PER-FROM    PIC (X(5)) FORMAT (PERIOD)   TEXT 'Acctng Period From'
+    REQ-PER-TO      PIC (X(5)) FORMAT (PERIOD)   TEXT 'Acctng Period To'
+%*    REQ-DATE-FROM   PIC (X(9))  TEXT '            '
+%*    REQ-DATE-TO     PIC (X(9))  TEXT '            '
+    REQ-ATAX1   PIC (X(4))  TEXT 'Process Atax Code(s)'
+    REQ-ATAX2   PIC (X(4))  TEXT 
+    REQ-ATAX3   PIC (X(4))  TEXT 
+    REQ-ATAX4   PIC (X(4))  TEXT 
+    REQ-ATAX5   PIC (X(4))  TEXT 
+    REQ-ATAX6   PIC (X(4))  TEXT 
+    REQ-ATAX7   PIC (X(4))  TEXT 
+    REQ-ATAX8   PIC (X(4))  TEXT 
+    REQ-ATAX9   PIC (X(4))  TEXT 
+    REQ-SUPP1   PIC (X(6))  TEXT 'Process Supplier(s)'
+    REQ-SUPP2   PIC (X(6))  TEXT 
+    REQ-SUPP3   PIC (X(6))  TEXT 
+    REQ-SUPP4   PIC (X(6))  TEXT 
+    REQ-SUPP5   PIC (X(6))  TEXT 
+    REQ-LEVEL   PIC (X(1))  TEXT 'Detail Level'
+%VARIABLES
+    A15 = 'Invoice Amount'
+    A14 = 'Inv/Jnl/Req No'
+    A29 = '-----------------'
+    A45 = WX-ACCTS-PAY-CP CONSTANT
+    A60 = date() CONSTANT
+    A00 = CHOOSE(%REQ-PER-FROM%  IF (%REQ-PER-FROM% <> SPACES ) , A45 ) I-PIC (X(4)) CONSTANT
+    A05 = CHOOSE(%REQ-PER-TO%  IF (%REQ-PER-TO% <> SPACES ) , A45 ) I-PIC (X(4)) CONSTANT
+    A06 = SUBSTR(A05 ,1 ,2 ) I-PIC (X(2)) CONSTANT
+    A07 = NUMERIC(A06 ) I-PIC (9(2)) CONSTANT
+    A08 = CHOOSE('19'  IF (A07 > 25 ) , '20' ) I-PIC (X(2)) CONSTANT
+%*    A40 = CHOOSE(%REQ-DATE-TO%  IF (%REQ-DATE-TO% <> SPACES ) , A60 ) I-PIC (X(8)) CONSTANT
+    A09 = CATENATE(A08 ,A05 ) I-PIC (X(6)) CONSTANT
+    A31 = SUBSTR(A09 ,3 ,4 ) I-PIC (X(4)) CONSTANT
+    A01 = SUBSTR(A00 ,1 ,2 ) I-PIC (X(2)) CONSTANT
+    A02 = NUMERIC(A01 ) I-PIC (9(2)) CONSTANT
+    A03 = CHOOSE('19'  IF (A02 > 25 ) , '20' ) I-PIC (X(2)) CONSTANT
+    A04 = CATENATE(A03 ,A00 ) I-PIC (X(6)) CONSTANT
+    A30 = SUBSTR(A04 ,3 ,4 ) I-PIC (X(4)) CONSTANT
+%*    A43 = CHOOSE(%REQ-DATE-FROM%  IF (%REQ-DATE-FROM% <> SPACES ) , A60 ) I-PIC (X(8)) CONSTANT
+%*    A44 = NUMERIC(A43 ) I-PIC (9(8)) CONSTANT
+%*    A41 = NUMERIC(A40 ) I-PIC (9(8)) CONSTANT
+%*    A57 = DAYS OF MSSDAT -
+%*    WHERE (OPTION                 = '8', -
+%*           DATE1                  = A44) -
+%*    CONSTANT
+%*    A59 = DAYS OF MSSDAT -
+%*    WHERE (OPTION                 = '8', -
+%*           DATE1                  = A41) -
+%*    CONSTANT
+%*    A37 = CHOOSE(A59  IF (%REQ-ATAX1% = SPACES AND %REQ-ATAX2% = SPACES AND %REQ-ATAX3% = SPACES AND %REQ-ATAX4% = SPACES AND -
+%*            %REQ-ATAX5% = SPACES AND %REQ-ATAX6% = SPACES AND %REQ-ATAX7% = SPACES AND %REQ-ATAX8% = SPACES AND %REQ-ATAX9% = -
+%*            SPACES ) , A59 ) I-PIC (9(4)) CONSTANT
+%*    A38 = CHOOSE(A37  IF (%REQ-ATAX1% = SPACES AND %REQ-ATAX2% = SPACES AND %REQ-ATAX3% = SPACES AND %REQ-ATAX4% = SPACES AND -
+%*            %REQ-ATAX5% = SPACES AND %REQ-ATAX6% = SPACES AND %REQ-ATAX7% = SPACES AND %REQ-ATAX8% = SPACES AND %REQ-ATAX9% = -
+%*            SPACES ) , A37 ) I-PIC (X(4)) CONSTANT
+%*    A33 = CHOOSE(A57  IF (%REQ-ATAX1% = SPACES AND %REQ-ATAX2% = SPACES AND %REQ-ATAX3% = SPACES AND %REQ-ATAX4% = SPACES AND -
+%*            %REQ-ATAX5% = SPACES AND %REQ-ATAX6% = SPACES AND %REQ-ATAX7% = SPACES AND %REQ-ATAX8% = SPACES AND %REQ-ATAX9% = -
+%*            SPACES ) , A57 ) I-PIC (9(4)) CONSTANT
+%*    A34 = CHOOSE(A33  IF (%REQ-ATAX1% = SPACES AND %REQ-ATAX2% = SPACES AND %REQ-ATAX3% = SPACES AND %REQ-ATAX4% = SPACES AND -
+%*            %REQ-ATAX5% = SPACES AND %REQ-ATAX6% = SPACES AND %REQ-ATAX7% = SPACES AND %REQ-ATAX8% = SPACES AND %REQ-ATAX9% = -
+%*            SPACES ) , A33 ) I-PIC (X(4)) CONSTANT
+    A58 = LAST-TRAN-KEY OF MSF000 -
+    WHERE (DSTRCT-CODE            = CONTROL-REC-NO, -
+           CONTROL-REC-TYPE       = 'PC', -
+           CONTROL-REC-NO         = A31)
+    A56 = FIRST-TRAN-KEY OF MSF000 -
+    WHERE (DSTRCT-CODE            = CONTROL-REC-NO, -
+           CONTROL-REC-TYPE       = 'PC', -
+           CONTROL-REC-NO         = A30)
+%*    A32 = SUBSTR(A56 ,5 ,4 ) I-PIC (X(4))
+%*    A35 = CHOOSE(A32  IF (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) , A34 )
+%*    A36 = SUBSTR(A58 ,5 ,4 ) I-PIC (X(4))
+%*    A39 = CHOOSE(A36  IF (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) , A38 )
+
+%*    A63 = INV-ITEM-DESC-I FROM MSF900 -
+%*    WHERE (DSTRCT-CODE            = CONTROL-REC-NO, -
+%*           PROCESS-DATE          >= A35, -
+%*           PROCESS-DATE          <= A39) - 
+%*
+    A63 = INV-ITEM-DESC-I FROM MSF900C -
+    WHERE (DSTRCT-CODE-4          = CONTROL-REC-NO, -
+           FULL-PERIOD-4          >= A04, -
+           FULL-PERIOD-4          <= A09) -
+    SELECTIF (TRAN-TYPE = 'TAN') -
+    SELECTIF (TRAN-TYPE = 'TAR') -
+    SELECTIF (TRAN-TYPE = 'TPN') -
+    SELECTIF (TRAN-TYPE = 'TPR') -
+    SELECTIF (TRAN-TYPE = 'MTR') -
+    SELECTIF (TRAN-TYPE = 'MTN') -
+    SELECTIF (TRAN-TYPE = 'TIN') -
+    REJECTIF (REC900-TYPE <> 'I') -
+    REJECTIF (ATAX-CODE-I = SPACES)
+    A61 = TRAN-AMOUNT VIA (A63)
+    A16 = ATAX-CODE-I VIA (A63)
+    A62 = TRAN-TYPE VIA (A63)
+    A46 = FULL-PERIOD VIA (A63)
+    A22 = INV-NO-I VIA (A63)
+    A0  = ATAX-CODE-I VIA (A63)
+    A20 = SUPPLIER-NO-I VIA (A63)
+    A1  = DSTRCT-CODE VIA (A63)
+    A10 = CHOOSE('Y'  IF (%REQ-ATAX1% = SPACES AND %REQ-ATAX2% = SPACES AND %REQ-ATAX3% = SPACES AND %REQ-ATAX4% = SPACES AND -
+            %REQ-ATAX5% = SPACES AND %REQ-ATAX6% = SPACES AND %REQ-ATAX7% = SPACES AND %REQ-ATAX8% = SPACES AND %REQ-ATAX9% = -
+            SPACES ) ,'Y'  IF (A16 = %REQ-ATAX1% AND %REQ-ATAX1% <> SPACES ) ,-
+            'Y'  IF (A16 = %REQ-ATAX2% AND %REQ-ATAX2% <> SPACES ) ,'Y'  IF (A16 = %REQ-ATAX3% AND %REQ-ATAX3% <> SPACES ) ,-
+            'Y'  IF (A16 = %REQ-ATAX4% AND %REQ-ATAX4% <> SPACES ) ,'Y'  IF (A16 = %REQ-ATAX5% AND %REQ-ATAX5% <> SPACES ) ,-
+            'Y'  IF (A16 = %REQ-ATAX6% AND %REQ-ATAX6% <> SPACES ) ,'Y'  IF (A16 = %REQ-ATAX7% AND %REQ-ATAX7% <> SPACES ) ,-
+            'Y'  IF (A16 = %REQ-ATAX8% AND %REQ-ATAX8% <> SPACES ) ,'Y'  IF (A16 = %REQ-ATAX9% AND %REQ-ATAX9% <> SPACES ) , 'N' )
+%*  A52 = SUBSTR(A63 ,16 ,16 )
+%*  A53 = NUMERIC(A52 ) I-PIC (S9(13)V9(2))
+    A53 = VAL-INC-TAX-L-I VIA (A63)
+    A11 = CHOOSE('Y'  IF (%REQ-SUPP1% = SPACES AND %REQ-SUPP2% = SPACES AND %REQ-SUPP3% = SPACES AND %REQ-SUPP4% = SPACES AND -
+            %REQ-SUPP5% = SPACES ) ,'Y'  IF (A20 = %REQ-SUPP1% AND %REQ-SUPP1% <> SPACES ) ,-
+            'Y'  IF (A20 = %REQ-SUPP2% AND %REQ-SUPP2% <> SPACES ) ,'Y'  IF (A20 = %REQ-SUPP3% AND %REQ-SUPP3% <> SPACES ) ,-
+            'Y'  IF (A20 = %REQ-SUPP4% AND %REQ-SUPP4% <> SPACES ) ,'Y'  IF (A20 = %REQ-SUPP5% AND %REQ-SUPP5% <> SPACES ) , 'N' )
+    A13 = CHOOSE('N'  IF (( (A46 > A09 ) OR (A46 < A04 ) ) ) , 'Y' )
+    A17 = PAY-SUPPLIER-SW OF MSF013 -
+    WHERE (ATAX-CODE              = A16)
+    A18 = DESCRIPTION VIA (A17)
+    A42 = DSTRCT-NAME OF MSF000 -
+    WHERE (DSTRCT-CODE            = A1, -
+           CONTROL-REC-TYPE       = 'DC', -
+           CONTROL-REC-NO         = '0001')
+    A21 = SUPPLIER-NAME OF MSF200 -
+    WHERE (SUPPLIER-NO            = A20)
+    A55 = CHOOSE(A53  IF (A62 = 'TPR' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A53  IF (A62 = 'TPN' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A53  IF (A62 = 'TIN' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A53  IF (A62 = 'TIR' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) , ZERO )
+    A28 = TOTAL(A55 ) D-PIC SZZZZZZZZZZZZ9.99
+    A51 = CHOOSE(A61  IF (A62 = 'TPN' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A61  IF (A62 = 'TIN' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) , ZERO )
+    A50 = CHOOSE(A61  IF (A62 = 'TPR' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A61  IF (A62 = 'TIR' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) , ZERO )
+    A49 = CHOOSE(A61  IF (A62 = 'TAN' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A61  IF (A62 = 'MTN' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) , ZERO )
+    A54 = CHOOSE(A53  IF (A62 = 'TAN' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A53  IF (A62 = 'TAR' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A53  IF (A62 = 'MTR' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A53  IF (A62 = 'MTN' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) , ZERO )
+    A48 = CHOOSE(A61  IF (A62 = 'TAR' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) ,-
+            A61  IF (A62 = 'MTR' AND (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) ) , ZERO )
+    A23 = TOTAL(A48 ) D-PIC SZZZZZZZZZZZZ9.99
+    A12 = CHOOSE(1  IF (A13 = 'Y' AND A10 = 'Y' AND A11 = 'Y' AND A16 <> SPACES AND A17 <> 'N' ) , 0 )
+    A27 = TOTAL(A54 ) D-PIC SZZZZZZZZZZZZ9.99
+    A24 = TOTAL(A49 ) D-PIC SZZZZZZZZZZZZ9.99
+    A25 = TOTAL(A50 ) D-PIC SZZZZZZZZZZZZ9.99
+    A26 = TOTAL(A51 ) D-PIC SZZZZZZZZZZZZ9.99
+    A47 = OUT-STRING OF MSSCNV -
+    WHERE (OPTION                 = 'P', -
+           INP-STRING             = A42)
+    A19 = SUBSTR(A47 ,1 ,40 )

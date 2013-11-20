@@ -1,0 +1,61 @@
+%*** TRR82S.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History:
+%***
+%*** 09-Nov-2012  a9nl6176       Reset version number to 0001 for E8 upgrade. 
+%***                             Fix unordered syntax.
+%*** 18-Nov-1999  E. Fredeluces  W99110659 
+%***                             Take-out the leading zeros in the
+%***                             employee-id field.
+%*** 22-Jun-1999  E. Fredeluces  W99060342
+%***                             Initial Coding.
+%***
+%PROGRAM-ID
+       TRR82S
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report will extract the Active Payroll Employee
+      **  Details and downloaded to the H:drive.  It will be
+      **  used by the Fleet System.
+%VERSION
+       0001
+%MODULE
+       3760
+%FILES
+        MFILE = MSF820
+        LFILE = MSF760
+        LFILE = MSF810
+        OFILE = TRT82SA
+%SELECTION                            
+       WHERE (EMPLOYEE-ID >= SPACES)
+%OUTPUT-FILE
+        A	   
+%BREAK-FIELDS
+        DUM
+%BREAK DUM HEADER
+{HDG                                }
+%DETAIL
+<IF PFLAG = 'Y'>
+{EMP}Z{LNAME             }Z{FNAME     }ZGGGZGGGZGGG 
+<ENDIF>
+%VARIABLES
+       EMPID     = EMPLOYEE-ID
+       EMP       = substr (EMPID,6,5)
+       Z         = ','                                CONSTANT
+       DUMMY     = 'Y'                                CONSTANT
+       DUM       = choose ('Y' IF (EMPID = EMPID), DUMMY)  
+       HDG       = 'Emp-Id,Surname,FName,Grp,Loc,Sec' CONSTANT
+       G         = '000'                              CONSTANT
+       STAT      = EMP-STATUS OF MSF760 -
+                       WHERE (EMPLOYEE-ID = EMPID)
+       LNAME     = SURNAME OF MSF810 -         
+                       WHERE (EMPLOYEE-ID = EMPID)
+       FNAME     = FIRST-NAME VIA (LNAME)
+       PFLAG     = choose ('Y' IF (STAT = 'A'), 'N')
+%*
+%*                ***  End of Program  ***
+%*

@@ -1,0 +1,452 @@
+%*** Revision History:
+%*** 07-Feb-2013  AIT IGianakis Phase 1 New requirements
+%***                            FPA Period Agreements 
+%*
+%PROGRAM-ID
+    TRR25P
+%AUTHOR
+    AIT 
+%NARRATIVE
+    This report will be used to detail authority, order and payment
+    information for FPA Agreements which will be managed by the FPA Module
+    and service orders. Payments will be processed by normal invoice load 
+    and non order invoices (add payments for exchange components)
+%MODULE
+    3250
+%VERSION
+    002
+%FILES
+    MFILE = MSF220
+    AFILE = MSF221    
+    LFILE = MSF071
+    LFILE = MSF200
+    LFILE = MSF252A
+    LFILE = MSF253
+    LFILE = MSF254
+    LFILE = MSF260
+    OFILE = TRT25PA
+    OFILE = TRO25PB
+%ROUTINES
+    MSSDAT
+    MSSCNV
+%SELECTION
+%*REJECTIF (PO-NO <> '642674')
+    WHERE    (PO-NO       >= SPACES)
+    SELECTIF (%POFF1% <> SPACES, PURCH-OFFICER = %POFF1%)
+    SELECTIF (%POFF2% <> SPACES, PURCH-OFFICER = %POFF2%) 
+    SELECTIF (%POFF3% <> SPACES, PURCH-OFFICER = %POFF3%) 
+    SELECTIF (%POFF4% <> SPACES, PURCH-OFFICER = %POFF4%) 
+    SELECTIF (%POFF5% <> SPACES, PURCH-OFFICER = %POFF5%) 
+    SELECTIF (%POFF6% <> SPACES, PURCH-OFFICER = %POFF6%) 
+    SELECTIF (%POFF7% <> SPACES, PURCH-OFFICER = %POFF7%) 
+    SELECTIF (%POFF8% <> SPACES, PURCH-OFFICER = %POFF8%) 
+    SELECTIF (%POFF9% <> SPACES, PURCH-OFFICER = %POFF9%) 
+    SELECTIF (%POFF10% <> SPACES, PURCH-OFFICER = %POFF10%) 
+    SELECTIF (%POFF1% = SPACES, %POFF2% = SPACES, -
+              %POFF3% = SPACES, %POFF4% = SPACES, -
+              %POFF5% = SPACES, %POFF6% = SPACES, -
+              %POFF7% = SPACES, %POFF8% = SPACES, -
+              %POFF9% = SPACES, %POFF10% = SPACES)    
+%ORDER
+    DUM               TEXT General-Header
+    FPACAT            TEXT FPA-Agreement
+    IPOCI             TEXT POItem-Combo
+%OUTPUT-FILE
+   A
+%CONTROL
+   RECORD-LENGTH = 650
+%BREAK-FIELDS
+    DUM
+    FPACAT
+    IPOCI
+%BREAK DUM HEADER
+%**
+'FPA Period Agreement - Detailed Extract'
+'Period Order Number(FPA number),FPA Description,Agreement Number (FPA),Supplier Code,Supplier Name' -
+',Period Order Authority (FPA value + Period Order Erection),Purchase Order Value to Date' -
+',Total paid to Date on FPA and associated Service Order for Erection (excluding add payments - exchange)' -
+',Effective Date (FPA),Expiry Date (FPA),Purchase Order No,Item,Due Date' -
+',Delivered Date (Received Onsite date in Ellipse),Purchase Order Value,Invoice No.' -
+',Total paid on Purchase Order (List invoices individually so we can see exchange which is paid via add payment)' -
+',Type of payment,Purchasing Officer,'    
+%**
+%DETAIL
+%** BREAK IPOCI FOOTING
+%*
+<IF (SELSW = 'Y')>
+{253FPA}Z{FPADESC                                }Z{253FPAG}Z-
+{SUPPNO}Z{SUPPDESC                               }Z-
+{POAUTHY0       }Z{POVAL          }Z{POAPPR         }Z-
+{EFFDATE}Z{EXPDATE}Z{IPO  }ZIIIZ{IDUEDT }Z-
+{IRCVDT }Z{POVAL          }ZX{INVNO             }XZ-
+{TOTINVPD      }Z{ITYPD          }ZX{POFFNAME                     }XZ
+<ENDIF>
+%BREAK FPACAT FOOTING
+%***
+%**<IF (TTL > 0)>
+%**'FPA SUMM:'{253FPA}Z{FPADESC                                }Z{253FPAG}Z
+%**{SUPPNO}Z{SUPPDESC                               }Z
+%**{POAUTH         }Z{POVAL          }Z{POAPPR         }Z 
+%**{EFFDATE}Z{EXPDATE}ZZZZ
+%**<ENDIF>
+%REPORT-SUMMARY    
+%************
+<IF (TTL = ZERO)>
+
+
+    'No FPA Agreements have met the selection criteria'
+<ELSE>
+'-----------------------------------------------------------------------------------------------------------------------------------'
+<ENDIF>
+'                                                   ***  End Of Detail Report  ***'  
+%OUTPUT-FILE
+%*
+   B
+%CONTROL
+%*
+   RECORD-LENGTH = 350
+%BREAK-FIELDS
+    DUM
+    FPACAT
+    IPOCI
+%BREAK DUM HEADER
+%***
+'FPA Period Agreement - Summary Extract'
+'Period Order Number(FPA number),FPA Description,Agreement Number (FPA),Supplier Code,Supplier Name' -
+',Period Order Authority (FPA value + Period Order Erection),Purchase Order Value to Date' -
+',Total paid to Date on FPA and associated Service Order for Erection (excluding add payments - exchange)' -
+',Effective Date (FPA),Expiry Date (FPA),'
+%**
+%*DETAIL
+%BREAK IPOCI FOOTING
+%***
+%*<IF (SELSW = 'Y')>
+%*{253FPA}Z{FPADESC                                }Z{253FPAG}Z
+%*{SUPPNO}Z{SUPPDESC                               }Z
+%*{POAUTH         }Z{POVAL          }Z{POAPPR         }Z 
+%*{EFFDATE}Z{EXPDATE}Z{PO   }ZIIIZX{POFFNAME                     }XZ
+%*<ENDIF>
+%BREAK FPACAT FOOTING
+%***
+<IF (TTL > 0)>
+'FPA SUMM:'{253FPA}Z{FPADESC                                }Z{253FPAG}Z-
+{SUPPNO}Z{SUPPDESC                               }Z-
+{POAUTH         }Z{POVAL          }Z{POAPPR         }Z -
+{EFFDATE}Z{EXPDATE}Z
+<ENDIF>
+%REPORT-SUMMARY
+%************
+<IF (TTL = ZERO)>
+
+
+    'No FPA Agreements have met the selection criteria'
+<ELSE>
+'-----------------------------------------------------------------------------------------------------------------------------------'
+<ENDIF>
+'                                                   ***  End Of Summary Report  ***'  
+%REQUEST-PARAMETERS
+%*
+    DTS     PIC (X(1))               TEXT 'FPA Dates ('A'll/'C'urrent)      :'
+    FPA1    PIC (X(5))               TEXT 'FPA No. 1                        :'
+    FPA2    PIC (X(5))               TEXT 'FPA No. 2                        :'
+    FPA3    PIC (X(5))               TEXT 'FPA No. 3                        :'
+    FPA4    PIC (X(5))               TEXT 'FPA No. 4                        :'
+    FPA5    PIC (X(5))               TEXT 'FPA No. 5                        :'
+    FPAG1   PIC (X(3))               TEXT 'FPA Agreement 1                  :'
+    FPAG2   PIC (X(3))               TEXT 'FPA Agreement 2                  :'
+    FPAG3   PIC (X(3))               TEXT 'FPA Agreement 3                  :'
+    FPAG4   PIC (X(3))               TEXT 'FPA Agreement 4                  :'
+    FPAG5   PIC (X(3))               TEXT 'FPA Agreement 5                  :'
+    POFF1  PIC (X(10))               TEXT 'Purchasing Officer 1             :'
+    POFF2  PIC (X(10))               TEXT 'Purchasing Officer 2             :'
+    POFF3  PIC (X(10))               TEXT 'Purchasing Officer 3             :'
+    POFF4  PIC (X(10))               TEXT 'Purchasing Officer 4             :'
+    POFF5  PIC (X(10))               TEXT 'Purchasing Officer 5             :'
+    POFF6  PIC (X(10))               TEXT 'Purchasing Officer 6             :'
+    POFF7  PIC (X(10))               TEXT 'Purchasing Officer 7             :'
+    POFF8  PIC (X(10))               TEXT 'Purchasing Officer 8             :'
+    POFF9  PIC (X(10))               TEXT 'Purchasing Officer 9             :'
+    POFF10 PIC (X(10))               TEXT 'Purchasing Officer 10            :'
+%VARIABLES
+%* Constants
+    Z = ',' CONSTANT
+    V = ',' CONSTANT
+    S = '/' CONSTANT
+    X = '"' CONSTANT
+    DUMMY = 'Y' CONSTANT
+    DUM = CHOOSE ('Y' IF (1 = 1), DUMMY)
+    
+    TODAY = DATE() CONSTANT
+    
+%* Instead of using MSSDAT to +- 365 days just add 10000 to the date to be more
+%*  precise with the exact date.
+
+    PAST = CALC (TODAY - 10000) CONSTANT
+    FUTURE = CALC (TODAY + 10000)  CONSTANT
+    12MNTHSAGO = CHOOSE (PAST IF (PAST <> ZEROS), ZEROS) CONSTANT
+    12MNTHSFTR = CHOOSE (FUTURE IF (FUTURE <> ZEROS), ZEROS) CONSTANT
+             
+
+%* MSF220 PO Item details
+    PO = PO-NO
+    POFF = PURCH-OFFICER 
+    POEMP = HRGET  (EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+                    KEY(EMPLOYEE-ID = POFF ))
+    POFFNAME  = FORMATTED-NAME VIA (POEMP)
+    POSUPP = SUPPLIER-NO 
+
+%* MSF221 PO Item details
+
+    IPO  = PO-NO FROM MSF221 -
+           WHERE (PO-NO = PO, -
+                  PO-ITEM-NO >= SPACES) -                   
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPA1% = SPACES, -
+                     %FPA2% = SPACES, -
+                     %FPA3% = SPACES, -
+                     %FPA4% = SPACES, -
+                     %FPA5% = SPACES, -
+                     %FPAG1% = SPACES, -
+                     %FPAG2% = SPACES, -
+                     %FPAG3% = SPACES, -
+                     %FPAG4% = SPACES, -
+                     %FPAG5% = SPACES, -
+                     FPA-GROUP <> SPACES, -
+                     FPA-AGREEMENT <> SPACES) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPA1% <> SPACES, -
+                     FPA-GROUP = %FPA1%) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPA2% <> SPACES, -
+                     FPA-GROUP = %FPA2%) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPA3% <> SPACES, -
+                     FPA-GROUP = %FPA3%) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPA4% <> SPACES, -
+                     FPA-GROUP = %FPA4%) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPA5% <> SPACES, -
+                     FPA-GROUP = %FPA5%) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPAG1% <> SPACES, -
+                     FPA-AGREEMENT = %FPAG1%) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPAG2% <> SPACES, -
+                     FPA-AGREEMENT = %FPAG2%) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPAG3% <> SPACES, -
+                     FPA-AGREEMENT = %FPAG3%) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPAG4% <> SPACES, -
+                     FPA-AGREEMENT = %FPAG4%) -
+           SELECTIF (PO-ITEM-TYPE = 'O', -
+                     FPA-REC-TYPE = 'F', -
+                     %FPAG5% <> SPACES, -
+                     FPA-AGREEMENT = %FPAG5%) -
+           SELECTIF (PO-ITEM-TYPE = 'S')
+    
+    IPOI = PO-ITEM-NO VIA (IPO)
+    I = IPOI 
+    IPOCI = CATENATE (IPO,IPOI)
+    IPOITY = PO-ITEM-TYPE VIA (IPO)
+    IDS  = DSTRCT-CODE VIA (IPO)
+    IFPATYP = FPA-REC-TYPE VIA (IPO)
+   
+    IDUEDT = CURR-DUE-DATE VIA (IPO) FORMAT (DATE)
+    IRCVDT = ONST-RCPT-DATE VIA (IPO) FORMAT (DATE)
+    221-FPA = FPA-GROUP VIA (IPO) 
+    221-FPAG = FPA-AGREEMENT VIA (IPO)
+    221INVREF = INVOICE-REF VIA (IPO)
+
+%* MSF071 Reference Code fields
+%* Find the PO related to the FPA no.
+    SFPA  = REF-CODE OF MSF071 -
+          WHERE (ENTITY-TYPE = 'PUR', -
+                 ENTITY-VALUE = '2' & IPO & IPOI & IDS, -
+                 REF-NO = '001', -
+                 SEQ-NUM >= SPACES) MAX(1)
+            
+%* Find the PO related to the FPA agreement.     
+    SFPAG = REF-CODE OF MSF071 -
+          WHERE (ENTITY-TYPE = 'PUR', -
+                 ENTITY-VALUE = '2' & IPO & IPOI & IDS, -
+                 REF-NO = '002', -
+                 SEQ-NUM >= SPACES) MAX(1)
+    
+    FPANO = CHOOSE (221-FPA IF (IPOITY = 'O'), SFPA)
+    FPAGMNT = CHOOSE (221-FPAG IF (IPOITY = 'O'), SFPAG)
+    
+%* MSF253 - FPA SUpplier file
+    253FPA = FPA-GROUP OF MSF253 -
+              WHERE (FPA-REC-TYPE = 'F', -
+                     FPA-GROUP = FPANO, -
+                     FPA-AGREEMENT = FPAGMNT, -
+                     SUPPLIER-NO >= SPACES)  -
+              REJECTIF (STATUS-253     <> 'E', -
+                        STATUS-253     <> 'L') -
+              MAX (1)
+    253FPAG = FPA-AGREEMENT VIA (253FPA)
+    FPACAT = CATENATE (253FPA, 253FPAG)
+    253SUPID = SUPPLIER-ID VIA (253FPA)
+    EFFDATE  = EFFECTIVE-DATE VIA (253FPA) FORMAT (DATE)
+    EXPDATE  = EXPIRY-DATE VIA (253FPA) FORMAT (DATE)
+    FPADESC = AGR-DESC VIA (253FPA)
+    SUPPNO = SUPPLIER-NO VIA (253FPA)
+    SUPPDESC = SUPPLIER-NAME OF MSF200 -
+               WHERE (SUPPLIER-NO = SUPPNO)
+    
+%* MSF254 FPA Stats
+    254FPA = FPA-GROUP OF MSF254 -
+             WHERE (FPA-REC-TYPE = 'F', -
+                   FPA-GROUP = 253FPA, -
+                   FPA-AGREEMENT >= SPACES, -
+                   FPA-AGREEMENT <= SPACES) -
+             MAX (1)
+
+    MAXVALT = MAX-QTY-I VIA (254FPA)
+%*    CUMMVAL = CUMM-QTY-I VIA (254FPA)
+    254FPAG = FPA-GROUP OF MSF254 -
+             WHERE (FPA-REC-TYPE = 'F', -
+                   FPA-GROUP = 253FPA, -
+                   FPA-AGREEMENT = 253FPAG, -
+                   FPA-ITEM-NO >= SPACES) -
+             MAX (1)
+
+    MAXVALG = MAX-QTY-I VIA (254FPAG)   
+    
+%* MSF260 invoice details
+    INVNO = EXT-INV-NO OF MSF260 -
+            WHERE (DSTRCT-CODE = IDS, -
+                   SUPPLIER-NO = POSUPP, -
+                   INV-NO = 221INVREF) -
+            SELECTIF (CONTRACT-NO = IPO) -
+            SELECTIF (APPR-STATUS = '30') -
+            SELECTIF (APPR-STATUS = '40') -
+            SELECTIF (APPR-STATUS = '50') -
+            SELECTIF (APPR-STATUS = '55')
+    INVTY = INV-TYPE VIA (INVNO)
+    ITYPD = CHOOSE ('Mixed' IF (INVTY = '0'), -
+                    'Goods' IF (INVTY = '1'), -
+                    'Service Order' IF (INVTY = '2'), -
+                    'Field Release' IF (INVTY = '3'), -
+                    'Non-Order' IF (INVTY = '4'), -
+                    'Part Payment' IF (INVTY = '5'), -
+                    'Contract' IF (INVTY = '6'), -
+                    'Automatic' IF (INVTY = '7'), -
+                    '1099 Adj Entry' IF (INVTY = '8'), -
+                    'Recurring Pmnt' IF (INVTY = '9'), -
+                    'Pre-Payment' IF (INVTY = 'A'), -
+                    'Return Additional' IF (INVTY = 'P'), -
+                    'Return Cr Note' IF (INVTY = 'C'), -
+                    'Order Cr/Dr Note' IF (INVTY = 'B'), -
+                    SPACES)
+                    
+    LIO = LOC-INV-ORIG VIA (INVNO)
+    LIA = LOC-INV-AMD VIA (INVNO)
+    LOCAMT = CHOOSE (LIA IF (LIA <> ZEROS), LIO)
+    LAO = LOC-ATAX-T-O VIA (INVNO)
+    LAA = LOC-ATAX-T-A VIA (INVNO)    
+    LOCTAX = CHOOSE (LAA IF (LAA <> ZEROS), LAO) 
+    TOTINVPDX = CALC (LOCAMT - LOCTAX) D-PIC Z(9)9.99
+    TOTINVPD = TOTAL (TOTINVPDX) D-PIC Z(9)9.99
+    
+%* Selection criteria
+    
+    SELDTRNGE = CHOOSE ('Y' IF (%DTS% <> SPACES, %DTS% = 'C', -
+                                EFFDATE <> SPACES, EFFDATE < TODAY), -
+                        'Y' IF (%DTS% <> SPACES, %DTS% = 'C', -
+                                EXPDATE > TODAY), -
+                        'Y' IF (%DTS% <> SPACES, %DTS% = 'A', -
+                                EFFDATE <> SPACES, EFFDATE < 12MNTHSFTR), -
+                        'Y' IF (%DTS% <> SPACES, %DTS% = 'A', -
+                                EXPDATE > 12MNTHSAGO), -
+                        'Y' IF (%DTS% = SPACES, EFFDATE <> SPACES), -
+                        'N')
+
+%* We took care of 'O'/'F's in MSF221 browse..
+    SELPOI = CHOOSE ('Y' IF (IPOITY = 'O', -
+                             IFPATYP = 'F'), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPA1% = SPACES, -
+                             %FPA2% = SPACES, -
+                             %FPA3% = SPACES, -
+                             %FPA4% = SPACES, -
+                             %FPA5% = SPACES, -
+                             %FPAG1% = SPACES, -
+                             %FPAG2% = SPACES, -
+                             %FPAG3% = SPACES, -
+                             %FPAG4% = SPACES, -
+                             %FPAG5% = SPACES, -
+                             253FPA <> SPACES, -
+                             253FPAG <> SPACES), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPA1% <> SPACES, -
+                             253FPA  = %FPA1%), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPA2% <> SPACES, -
+                             253FPA  = %FPA2%), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPA3% <> SPACES, -
+                             253FPA  = %FPA3%), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPA4% <> SPACES, -
+                             253FPA  = %FPA4%), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPA5% <> SPACES, -
+                             253FPA  = %FPA5%), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPAG1% <> SPACES, -
+                             253FPAG = %FPAG1%), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPAG2% <> SPACES, -
+                             253FPAG = %FPAG2%), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPAG3% <> SPACES, -
+                             253FPAG = %FPAG3%), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPAG4% <> SPACES, -
+                             253FPAG = %FPAG4%), -
+                     'Y' IF (IPOITY = 'S', -
+                             %FPAG5% <> SPACES, -
+                             253FPAG = %FPAG5%), -
+                     'N') 
+
+    SELSW = CHOOSE ('Y' IF (253FPA > SPACES, -
+                            SELPOI = 'Y', -
+                            SELDTRNGE = 'Y'), -
+                    'N')
+    CNT = CHOOSE (1 IF (SELSW = 'Y'), 0)
+    TTL = TOTAL (CNT )
+     
+    CQP = CURR-QTY-P VIA (IPO)
+    CNPP = CURR-NET-PR-P VIA (IPO)
+    CURRQTY = CHOOSE (CQP IF (SELSW = 'Y'), 0)
+    POVAL1 = CHOOSE (CNPP IF (SELSW = 'Y'), 0)
+    POVALO = CALC(POVAL1 * CURRQTY)
+    POVALX = CHOOSE (POVALO IF (IPOITY = 'O'), -
+                    POVAL1) D-PIC Z(9)9.99
+    POVAL = TOTAL (POVALX) D-PIC Z(9)9.99
+    POVALAPRV = VAL-APPR VIA (IPO)
+    POAPPRX = CHOOSE (POVALAPRV IF (SELSW = 'Y'), 0) D-PIC Z(9)9.99
+    POAPPR = TOTAL (POAPPRX) D-PIC Z(9)9.99
+
+    POAUTHX = CALC(POVAL + MAXVALG) 
+    POAUTHY0 = CHOOSE (MAXVALT IF (SELSW = 'Y'), 0) D-PIC Z(9)9.99
+    POAUTHY = CHOOSE (POAUTHX IF (IPOITY = 'S', -
+                                  SELSW = 'Y'), 0)
+    POAUTH = TOTAL (POAUTHY) D-PIC Z(9)9.99
+%*    POAUTHY0 = CHOOSE(POAUTHY9 IF (POAUTH = 0), POAUTH) 
+%*
+%*      ***  End of Program  ***
+%*

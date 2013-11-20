@@ -1,0 +1,726 @@
+%***  Revision History:
+%***  ----------------
+%***  27-Mar-2013  AIT V001 for Ellipse 8       
+%***               Cloned TRR261 and removed reports a,b,c
+%***               Mincom did not wish TRR261 to be modified.
+%***  15-Mar-2013  AIT Lubanovic V001 for Ellipse 8       
+%***               Migrated TRR261 into Ellipse 8 environment.
+%***               Added D report to list suppliers with a
+%***               cheque handling code of 'SU'.
+%***  08-Jun-2000  E Fredeluces
+%***               This is a copy of MSR261.RDL.
+%***               Included a third report which
+%***               is similar to B report except
+%***               it is for $50,000 or more.
+%***
+%PROGRAM-ID
+    TRR2SU
+%AUTHOR
+    Mincom PTY LTD
+%NARRATIVE
+    Report A-SUPPLIERS WITH A CHEQUE HANDLING CODE OF SU
+%MODULE
+    3260
+%VERSION
+    001
+%FILES
+    MFILE = MSF280
+    LFILE = MSF000
+    LFILE = MSF012
+    LFILE = MSF280
+    LFILE = MSF260
+    AFILE = MSF281
+    LFILE = MSF200
+    AFILE = MSF282
+    RFILE = TRR2SUA
+%ROUTINES
+    MSSATX
+%SELECTION
+    WHERE    (ACCT-DSTRCT    = %ACCT-DSTRCT%,  -
+              BRANCH-CODE    = %BRANCH-CODE%,  -
+              BANK-ACCT-NO   = %BANK-ACCT-NO%, -
+              CHEQUE-RUN-NO >= %CHEQUE-RUN-NO%,-
+              CHEQUE-RUN-NO <= %CHEQUE-RUN-NO%)
+    SELECTIF (REC-TYPE       = '00')
+    STOPIF   (ACCT-DSTRCT   <> %ACCT-DSTRCT%)
+    STOPIF   (BRANCH-CODE   <> %BRANCH-CODE%)
+    STOPIF   (BANK-ACCT-NO  <> %BANK-ACCT-NO%)
+    STOPIF   (CHEQUE-RUN-NO <> %CHEQUE-RUN-NO%)
+%BREAK-FIELDS
+    A04
+    B12
+%REPORT
+    A
+%TITLE
+    'INVOICES SELECTED FOR PAYMENT - SUPPLIERS WITH A CHEQUE HANDLING CODE OF SU'
+%PAGE HEADING
+'Current Period:'{A05}
+'Accounting District:'{A0} 'Run Number:'{A07 }'Due Date:'{A12    } 'Settlement Date:'{A13    }
+'Branch Code:' {A10          }      {B10                                 }                      {B11            }{A14 } 
+'Bank A/c:'    {A08               } {A09                                   }
+'                                                                                                               +-------------+'
+'Suplr No.   ------- Supplier Name -------                                                                       Payment Amount'
+%BREAK B12 FOOTING
+<IF A00 = 'SU'>
+  {B12 }     {B15                           }                                                                    {B34           }
+<ENDIF>
+%SUMMARY
+{UNDERLINE                                                                                                                         }
+
+'                                                        ***  End of Report  ***'
+%REQUEST-PARAMETERS
+    ACCT-DSTRCT     PIC (X(4))    TEXT   'Accounting District : ' 
+    BRANCH-CODE     PIC (X(15))   TEXT   'Branch Code         : '
+    BANK-ACCT-NO    PIC (X(20))   TEXT   'Bank Account        : '
+    CHEQUE-RUN-NO   PIC (X(6))    TEXT   'Cheque Run No.      : '
+%VARIABLES
+    B11 = 'Payment Method:'
+    B80 = GET (CURRENT-PERIOD FROM ('MSS001') DISTRICT(%ACCT-DSTRCT% ) MODULE('3260' )) CONSTANT
+    B82 = SUBSTR(B80 ,1 ,2 ) CONSTANT
+    B92 = '   '  CONSTANT
+    B88 = '    '  CONSTANT
+    B81 = SUBSTR(B80 ,3 ,2 ) CONSTANT
+    A05 = CATENATE(B81 ,'/' ,B82 ) CONSTANT
+    A20 = '-----------------  EXCLUDE  -----------------'  CONSTANT
+    A32 = '-----------------  EXCLUDE  -----------------'  CONSTANT
+    A21 = 'Dist  Handle  Supplier  Invoice No'  CONSTANT
+    A22 = 'Dist  Handle  Supplier  Invoice No'  CONSTANT
+    A19 = '-----------------  INCLUDE  -----------------'  CONSTANT
+    B90 = '     '  CONSTANT
+    B38 = RC-NO-OF-CHQS
+    A15 = RC-MIN-CHQ-VAL D-PIC ( ZZZZZZZZZZZZ9.99- )
+    B09 = RC-MIN-CHQ-VAL D-PIC ( ZZZZZZZZZ9.99- )
+    A10 = BRANCH-CODE
+    A07 = CHEQUE-RUN-NO
+    A08 = BANK-ACCT-NO
+    A0  = ACCT-DSTRCT
+    B56 = RP-INVOICE-3 OF MSF280 -
+    WHERE (ACCT-DSTRCT            = %ACCT-DSTRCT%, -
+           BRANCH-CODE            = %BRANCH-CODE%, -
+           BANK-ACCT-NO           = %BANK-ACCT-NO%, -
+           CHEQUE-RUN-NO         >= %CHEQUE-RUN-NO%, -
+           CHEQUE-RUN-NO         <= %CHEQUE-RUN-NO%) -
+    SELECTIF (REC-TYPE = '05') -
+    MAX(10) -
+    CONSTANT
+    B55 = RP-SUPPLIER-3 VIA (B56) CONSTANT
+    B54 = RP-DSTRCT-3 VIA (B56) CONSTANT
+    B59 = RP-INVOICE-4 VIA (B56) CONSTANT
+    B57 = RP-DSTRCT-4 VIA (B56) CONSTANT
+    B58 = RP-SUPPLIER-4 VIA (B56) CONSTANT
+    B60 = RP-DSTRCT-5 VIA (B56) CONSTANT
+    B48 = RP-DSTRCT-1 VIA (B56) CONSTANT
+    B49 = RP-SUPPLIER-1 VIA (B56) CONSTANT
+    F51 = RP-ITEM-RT VIA (B56) CONSTANT
+    B53 = RP-INVOICE-2 VIA (B56) CONSTANT
+    B52 = RP-SUPPLIER-2 VIA (B56) CONSTANT
+    B50 = RP-INVOICE-1 VIA (B56) CONSTANT
+    B51 = RP-DSTRCT-2 VIA (B56) CONSTANT
+    B83 = REC-TYPE VIA (B56) CONSTANT
+    B69 = RP-DSTRCT-8 VIA (B56) CONSTANT
+    B68 = RP-INVOICE-7 VIA (B56) CONSTANT
+    B67 = RP-SUPPLIER-7 VIA (B56) CONSTANT
+    B84 = SEQ-NO-MSF280 VIA (B56) CONSTANT
+    B70 = RP-SUPPLIER-8 VIA (B56) CONSTANT
+    B71 = RP-INVOICE-8 VIA (B56) CONSTANT
+    B61 = RP-SUPPLIER-5 VIA (B56) CONSTANT
+    B63 = RP-DSTRCT-6 VIA (B56) CONSTANT
+    B62 = RP-INVOICE-5 VIA (B56) CONSTANT
+    B66 = RP-DSTRCT-7 VIA (B56) CONSTANT
+    B65 = RP-INVOICE-6 VIA (B56) CONSTANT
+    B64 = RP-SUPPLIER-6 VIA (B56) CONSTANT
+    B10 = BRANCH-NAME OF MSF000 -
+    WHERE (DSTRCT-CODE            = SPACES, -
+           CONTROL-REC-TYPE      >= 'BK') -
+    SELECTIF (BRANCH-CODE = %BRANCH-CODE% AND BANK-ACCT-NO = %BANK-ACCT-NO%) -
+    MAX(1) -
+    CONSTANT
+    A09 = ACCT-NAME VIA (B10) CONSTANT
+    A11 = BRANCH-NAME VIA (B10) CONSTANT
+    B85 = PUT(F51 ) MAX (10 )
+    C96 = SINGLE(B85 (4 ))
+    D18 = SUBSTR(C96 ,115 ,2 )
+    E61 = SINGLE(B85 (9 ))
+    E28 = SINGLE(B85 (8 ))
+    E59 = SUBSTR(E28 ,161 ,6 )
+    E57 = SUBSTR(E28 ,155 ,4 )
+    E55 = SUBSTR(E28 ,139 ,6 )
+    E54 = SUBSTR(E28 ,137 ,2 )
+    E53 = SUBSTR(E28 ,133 ,4 )
+    A17 = PUT(B84 ) MAX (10 )
+    A59 = SINGLE(A17 (5 ))
+    E50 = SUBSTR(E28 ,115 ,2 )
+    E49 = SUBSTR(E28 ,111 ,4 )
+    E47 = SUBSTR(E28 ,95 ,6 )
+    E46 = SUBSTR(E28 ,93 ,2 )
+    E45 = SUBSTR(E28 ,89 ,4 )
+    E43 = SUBSTR(E28 ,73 ,6 )
+    E42 = SUBSTR(E28 ,71 ,2 )
+    A68 = SINGLE(A17 (6 ))
+    E41 = SUBSTR(E28 ,67 ,4 )
+    E39 = SUBSTR(E28 ,51 ,6 )
+    E38 = SUBSTR(E28 ,49 ,2 )
+    E37 = SUBSTR(E28 ,45 ,4 )
+    E35 = SUBSTR(E28 ,29 ,6 )
+    E34 = SUBSTR(E28 ,27 ,2 )
+    E33 = SUBSTR(E28 ,23 ,4 )
+    E31 = SUBSTR(E28 ,7 ,6 )
+    E30 = SUBSTR(E28 ,5 ,2 )
+    E29 = SUBSTR(E28 ,1 ,4 )
+    E58 = SUBSTR(E28 ,159 ,2 )
+    D95 = SINGLE(B85 (7 ))
+    E26 = SUBSTR(D95 ,161 ,6 )
+    E24 = SUBSTR(D95 ,155 ,4 )
+    E22 = SUBSTR(D95 ,139 ,6 )
+    E21 = SUBSTR(D95 ,137 ,2 )
+    E20 = SUBSTR(D95 ,133 ,4 )
+    E18 = SUBSTR(D95 ,117 ,6 )
+    E17 = SUBSTR(D95 ,115 ,2 )
+    E16 = SUBSTR(D95 ,111 ,4 )
+    E14 = SUBSTR(D95 ,95 ,6 )
+    E13 = SUBSTR(D95 ,93 ,2 )
+    E12 = SUBSTR(D95 ,89 ,4 )
+    E10 = SUBSTR(D95 ,73 ,6 )
+    E09 = SUBSTR(D95 ,71 ,2 )
+    E08 = SUBSTR(D95 ,67 ,4 )
+    E06 = SUBSTR(D95 ,51 ,6 )
+    E05 = SUBSTR(D95 ,49 ,2 )
+    E04 = SUBSTR(D95 ,45 ,4 )
+    E02 = SUBSTR(D95 ,29 ,6 )
+    E01 = SUBSTR(D95 ,27 ,2 )
+    E00 = SUBSTR(D95 ,23 ,4 )
+    D98 = SUBSTR(D95 ,7 ,6 )
+    D97 = SUBSTR(D95 ,5 ,2 )
+    D96 = SUBSTR(D95 ,1 ,4 )
+    E25 = SUBSTR(D95 ,159 ,2 )
+    D62 = SINGLE(B85 (6 ))
+    D93 = SUBSTR(D62 ,161 ,6 )
+    D91 = SUBSTR(D62 ,155 ,4 )
+    D89 = SUBSTR(D62 ,139 ,6 )
+    E62 = SUBSTR(E61 ,1 ,4 )
+    A50 = SINGLE(A17 (4 ))
+    E63 = SUBSTR(E61 ,5 ,2 )
+    D88 = SUBSTR(D62 ,137 ,2 )
+    D87 = SUBSTR(D62 ,133 ,4 )
+    D19 = SUBSTR(C96 ,117 ,6 )
+    D85 = SUBSTR(D62 ,117 ,6 )
+    D14 = SUBSTR(C96 ,93 ,2 )
+    D09 = SUBSTR(C96 ,67 ,4 )
+    D13 = SUBSTR(C96 ,89 ,4 )
+    D21 = SUBSTR(C96 ,133 ,4 )
+    D11 = SUBSTR(C96 ,73 ,6 )
+    D10 = SUBSTR(C96 ,71 ,2 )
+    E64 = SUBSTR(E61 ,7 ,6 )
+    D84 = SUBSTR(D62 ,115 ,2 )
+    E94 = SINGLE(B85 (10 ))
+    F25 = SUBSTR(E94 ,161 ,6 )
+    F23 = SUBSTR(E94 ,155 ,4 )
+    D83 = SUBSTR(D62 ,111 ,4 )
+    F21 = SUBSTR(E94 ,139 ,6 )
+    F20 = SUBSTR(E94 ,137 ,2 )
+    F19 = SUBSTR(E94 ,133 ,4 )
+    D81 = SUBSTR(D62 ,95 ,6 )
+    F17 = SUBSTR(E94 ,117 ,6 )
+    F16 = SUBSTR(E94 ,115 ,2 )
+    F15 = SUBSTR(E94 ,111 ,4 )
+    D80 = SUBSTR(D62 ,93 ,2 )
+    F13 = SUBSTR(E94 ,95 ,6 )
+    F12 = SUBSTR(E94 ,93 ,2 )
+    F11 = SUBSTR(E94 ,89 ,4 )
+    D79 = SUBSTR(D62 ,89 ,4 )
+    F09 = SUBSTR(E94 ,73 ,6 )
+    E66 = SUBSTR(E61 ,23 ,4 )
+    F08 = SUBSTR(E94 ,71 ,2 )
+    F07 = SUBSTR(E94 ,67 ,4 )
+    D77 = SUBSTR(D62 ,73 ,6 )
+    F05 = SUBSTR(E94 ,51 ,6 )
+    F04 = SUBSTR(E94 ,49 ,2 )
+    F03 = SUBSTR(E94 ,45 ,4 )
+    D76 = SUBSTR(D62 ,71 ,2 )
+    F01 = SUBSTR(E94 ,29 ,6 )
+    F00 = SUBSTR(E94 ,27 ,2 )
+    E67 = SUBSTR(E61 ,27 ,2 )
+    E68 = SUBSTR(E61 ,29 ,6 )
+    E70 = SUBSTR(E61 ,45 ,4 )
+    E71 = SUBSTR(E61 ,49 ,2 )
+    E72 = SUBSTR(E61 ,51 ,6 )
+    A41 = SINGLE(A17 (3 ))
+    E74 = SUBSTR(E61 ,67 ,4 )
+    E75 = SUBSTR(E61 ,71 ,2 )
+    E76 = SUBSTR(E61 ,73 ,6 )
+    E78 = SUBSTR(E61 ,89 ,4 )
+    E79 = SUBSTR(E61 ,93 ,2 )
+    E80 = SUBSTR(E61 ,95 ,6 )
+    E82 = SUBSTR(E61 ,111 ,4 )
+    E83 = SUBSTR(E61 ,115 ,2 )
+    A31 = SINGLE(A17 (2 ))
+    E84 = SUBSTR(E61 ,117 ,6 )
+    E86 = SUBSTR(E61 ,133 ,4 )
+    E87 = SUBSTR(E61 ,137 ,2 )
+    E88 = SUBSTR(E61 ,139 ,6 )
+    E90 = SUBSTR(E61 ,155 ,4 )
+    E91 = SUBSTR(E61 ,159 ,2 )
+    E92 = SUBSTR(E61 ,161 ,6 )
+    F24 = SUBSTR(E94 ,159 ,2 )
+    A18 = SINGLE(A17 (1 ))
+    D75 = SUBSTR(D62 ,67 ,4 )
+    D73 = SUBSTR(D62 ,51 ,6 )
+    D72 = SUBSTR(D62 ,49 ,2 )
+    D71 = SUBSTR(D62 ,45 ,4 )
+    D69 = SUBSTR(D62 ,29 ,6 )
+    D68 = SUBSTR(D62 ,27 ,2 )
+    D67 = SUBSTR(D62 ,23 ,4 )
+    E99 = SUBSTR(E94 ,23 ,4 )
+    E51 = SUBSTR(E28 ,117 ,6 )
+    A16 = SIZE(B83 )
+    A14 = CHOOSE('Cheque'  IF (RC-PMT-METH-IND = 'C' ) , 'E.F.T.' )
+    A13 = GET (DISPLAY-DATE FROM (RC-SETTLE-DATE ))
+    A12 = GET (DISPLAY-DATE FROM (RC-DUE-DATE ))
+    D15 = SUBSTR(C96 ,95 ,6 )
+    B86 = SINGLE(B85 (1 ))
+    B87 = SUBSTR(B86 ,1 ,4 )
+    D22 = SUBSTR(C96 ,137 ,2 )
+    B89 = SUBSTR(B86 ,5 ,2 )
+    E95 = SUBSTR(E94 ,1 ,4 )
+    B91 = SUBSTR(B86 ,7 ,6 )
+    E96 = SUBSTR(E94 ,5 ,2 )
+    D17 = SUBSTR(C96 ,111 ,4 )
+    D65 = SUBSTR(D62 ,7 ,6 )
+    B95 = SUBSTR(B86 ,23 ,4 )
+    B96 = SUBSTR(B86 ,27 ,2 )
+    B97 = SUBSTR(B86 ,29 ,6 )
+    D64 = SUBSTR(D62 ,5 ,2 )
+    D63 = SUBSTR(D62 ,1 ,4 )
+    C00 = SUBSTR(B86 ,45 ,4 )
+    C01 = SUBSTR(B86 ,49 ,2 )
+    C02 = SUBSTR(B86 ,51 ,6 )
+    D92 = SUBSTR(D62 ,159 ,2 )
+    D29 = SINGLE(B85 (5 ))
+    D60 = SUBSTR(D29 ,161 ,6 )
+    C06 = SUBSTR(B86 ,71 ,2 )
+    C07 = SUBSTR(B86 ,73 ,6 )
+    D59 = SUBSTR(D29 ,159 ,2 )
+    D58 = SUBSTR(D29 ,155 ,4 )
+    C10 = SUBSTR(B86 ,89 ,4 )
+    C11 = SUBSTR(B86 ,93 ,2 )
+    C12 = SUBSTR(B86 ,95 ,6 )
+    D56 = SUBSTR(D29 ,139 ,6 )
+    D55 = SUBSTR(D29 ,137 ,2 )
+    C15 = SUBSTR(B86 ,111 ,4 )
+    C16 = SUBSTR(B86 ,115 ,2 )
+    C17 = SUBSTR(B86 ,117 ,6 )
+    D54 = SUBSTR(D29 ,133 ,4 )
+    D52 = SUBSTR(D29 ,117 ,6 )
+    C20 = SUBSTR(B86 ,133 ,4 )
+    C21 = SUBSTR(B86 ,137 ,2 )
+    C22 = SUBSTR(B86 ,139 ,6 )
+    D51 = SUBSTR(D29 ,115 ,2 )
+    D50 = SUBSTR(D29 ,111 ,4 )
+    C25 = SUBSTR(B86 ,155 ,4 )
+    C26 = SUBSTR(B86 ,159 ,2 )
+    C27 = SUBSTR(B86 ,161 ,6 )
+    D48 = SUBSTR(D29 ,95 ,6 )
+    D47 = SUBSTR(D29 ,93 ,2 )
+    C30 = SINGLE(B85 (2 ))
+    C31 = SUBSTR(C30 ,1 ,4 )
+    C32 = SUBSTR(C30 ,5 ,2 )
+    C33 = SUBSTR(C30 ,7 ,6 )
+    D46 = SUBSTR(D29 ,89 ,4 )
+    C35 = SUBSTR(C30 ,23 ,4 )
+    C36 = SUBSTR(C30 ,27 ,2 )
+    C37 = SUBSTR(C30 ,29 ,6 )
+    D44 = SUBSTR(D29 ,73 ,6 )
+    C39 = SUBSTR(C30 ,45 ,4 )
+    C40 = SUBSTR(C30 ,49 ,2 )
+    C41 = SUBSTR(C30 ,51 ,6 )
+    D43 = SUBSTR(D29 ,71 ,2 )
+    C43 = SUBSTR(C30 ,67 ,4 )
+    C44 = SUBSTR(C30 ,71 ,2 )
+    C45 = SUBSTR(C30 ,73 ,6 )
+    D42 = SUBSTR(D29 ,67 ,4 )
+    C47 = SUBSTR(C30 ,89 ,4 )
+    C48 = SUBSTR(C30 ,93 ,2 )
+    C49 = SUBSTR(C30 ,95 ,6 )
+    D40 = SUBSTR(D29 ,51 ,6 )
+    C51 = SUBSTR(C30 ,111 ,4 )
+    C52 = SUBSTR(C30 ,115 ,2 )
+    C53 = SUBSTR(C30 ,117 ,6 )
+    D39 = SUBSTR(D29 ,49 ,2 )
+    C55 = SUBSTR(C30 ,133 ,4 )
+    C56 = SUBSTR(C30 ,137 ,2 )
+    C57 = SUBSTR(C30 ,139 ,6 )
+    D38 = SUBSTR(D29 ,45 ,4 )
+    C59 = SUBSTR(C30 ,155 ,4 )
+    C60 = SUBSTR(C30 ,159 ,2 )
+    C61 = SUBSTR(C30 ,161 ,6 )
+    D36 = SUBSTR(D29 ,29 ,6 )
+    C63 = SINGLE(B85 (3 ))
+    C64 = SUBSTR(C63 ,1 ,4 )
+    C65 = SUBSTR(C63 ,5 ,2 )
+    C66 = SUBSTR(C63 ,7 ,6 )
+    D35 = SUBSTR(D29 ,27 ,2 )
+    C68 = SUBSTR(C63 ,23 ,4 )
+    C69 = SUBSTR(C63 ,27 ,2 )
+    C70 = SUBSTR(C63 ,29 ,6 )
+    D34 = SUBSTR(D29 ,23 ,4 )
+    C72 = SUBSTR(C63 ,45 ,4 )
+    C73 = SUBSTR(C63 ,49 ,2 )
+    C74 = SUBSTR(C63 ,51 ,6 )
+    D32 = SUBSTR(D29 ,7 ,6 )
+    C76 = SUBSTR(C63 ,67 ,4 )
+    C77 = SUBSTR(C63 ,71 ,2 )
+    C78 = SUBSTR(C63 ,73 ,6 )
+    D31 = SUBSTR(D29 ,5 ,2 )
+    C80 = SUBSTR(C63 ,89 ,4 )
+    C81 = SUBSTR(C63 ,93 ,2 )
+    C82 = SUBSTR(C63 ,95 ,6 )
+    D30 = SUBSTR(D29 ,1 ,4 )
+    C84 = SUBSTR(C63 ,111 ,4 )
+    C85 = SUBSTR(C63 ,115 ,2 )
+    C86 = SUBSTR(C63 ,117 ,6 )
+    C05 = SUBSTR(B86 ,67 ,4 )
+    C88 = SUBSTR(C63 ,133 ,4 )
+    C89 = SUBSTR(C63 ,137 ,2 )
+    C90 = SUBSTR(C63 ,139 ,6 )
+    D27 = SUBSTR(C96 ,161 ,6 )
+    C92 = SUBSTR(C63 ,155 ,4 )
+    C93 = SUBSTR(C63 ,159 ,2 )
+    C94 = SUBSTR(C63 ,161 ,6 )
+    D26 = SUBSTR(C96 ,159 ,2 )
+    E97 = SUBSTR(E94 ,7 ,6 )
+    C97 = SUBSTR(C96 ,1 ,4 )
+    C98 = SUBSTR(C96 ,5 ,2 )
+    C99 = SUBSTR(C96 ,7 ,6 )
+    D25 = SUBSTR(C96 ,155 ,4 )
+    D01 = SUBSTR(C96 ,23 ,4 )
+    D02 = SUBSTR(C96 ,27 ,2 )
+    D03 = SUBSTR(C96 ,29 ,6 )
+    D23 = SUBSTR(C96 ,139 ,6 )
+    D05 = SUBSTR(C96 ,45 ,4 )
+    D06 = SUBSTR(C96 ,49 ,2 )
+    D07 = SUBSTR(C96 ,51 ,6 )
+    F59 = EXT-INV-NO OF MSF260 -
+    WHERE (DSTRCT-CODE            = B69, -
+           SUPPLIER-NO            = B70, -
+           INV-NO                 = B71) -
+    CONSTANT
+    F56 = EXT-INV-NO OF MSF260 -
+    WHERE (DSTRCT-CODE            = B60, -
+           SUPPLIER-NO            = B61, -
+           INV-NO                 = B62) -
+    CONSTANT
+    F55 = EXT-INV-NO OF MSF260 -
+    WHERE (DSTRCT-CODE            = B57, -
+           SUPPLIER-NO            = B58, -
+           INV-NO                 = B59) -
+    CONSTANT
+    F54 = EXT-INV-NO OF MSF260 -
+    WHERE (DSTRCT-CODE            = B54, -
+           SUPPLIER-NO            = B55, -
+           INV-NO                 = B56) -
+    CONSTANT
+    F52 = EXT-INV-NO OF MSF260 -
+    WHERE (DSTRCT-CODE            = B48, -
+           SUPPLIER-NO            = B49, -
+           INV-NO                 = B50) -
+    CONSTANT
+    F53 = EXT-INV-NO OF MSF260 -
+    WHERE (DSTRCT-CODE            = B51, -
+           SUPPLIER-NO            = B52, -
+           INV-NO                 = B53) -
+    CONSTANT
+    F57 = EXT-INV-NO OF MSF260 -
+    WHERE (DSTRCT-CODE            = B63, -
+           SUPPLIER-NO            = B64, -
+           INV-NO                 = B65) -
+    CONSTANT
+    A06 = DSTRCT-NAME OF MSF000 -
+    WHERE (DSTRCT-CODE            = ACCT-DSTRCT, -
+           CONTROL-REC-TYPE       = 'DC', -
+           CONTROL-REC-NO         = '0001')
+    F58 = EXT-INV-NO OF MSF260 -
+    WHERE (DSTRCT-CODE            = B66, -
+           SUPPLIER-NO            = B67, -
+           INV-NO                 = B68) -
+    CONSTANT
+    B93 = PUT(F52 ) MAX (10 )
+    E98 = SINGLE(B93 (10 ))
+    C13 = PUT(F56 ) MAX (10 )
+    D16 = SINGLE(C13 (4 ))
+    C08 = PUT(F55 ) MAX (10 )
+    D12 = SINGLE(C08 (4 ))
+    B98 = PUT(F53 ) MAX (10 )
+    D04 = SINGLE(B98 (4 ))
+    D00 = SINGLE(B93 (4 ))
+    C28 = PUT(F59 ) MAX (10 )
+    C95 = SINGLE(C28 (3 ))
+    D28 = SINGLE(C28 (4 ))
+    C18 = PUT(F57 ) MAX (10 )
+    C87 = SINGLE(C18 (3 ))
+    C79 = SINGLE(C08 (3 ))
+    C03 = PUT(F54 ) MAX (10 )
+    C75 = SINGLE(C03 (3 ))
+    C71 = SINGLE(B98 (3 ))
+    C67 = SINGLE(B93 (3 ))
+    C62 = SINGLE(C28 (2 ))
+    D37 = SINGLE(B98 (5 ))
+    C23 = PUT(F58 ) MAX (10 )
+    C58 = SINGLE(C23 (2 ))
+    C50 = SINGLE(C13 (2 ))
+    D41 = SINGLE(C03 (5 ))
+    C46 = SINGLE(C08 (2 ))
+    C42 = SINGLE(C03 (2 ))
+    C38 = SINGLE(B98 (2 ))
+    D45 = SINGLE(C08 (5 ))
+    C34 = SINGLE(B93 (2 ))
+    C29 = SINGLE(C28 (1 ))
+    C91 = SINGLE(C23 (3 ))
+    D49 = SINGLE(C13 (5 ))
+    C24 = SINGLE(C23 (1 ))
+    C54 = SINGLE(C18 (2 ))
+    C19 = SINGLE(C18 (1 ))
+    D53 = SINGLE(C18 (5 ))
+    C83 = SINGLE(C13 (3 ))
+    C14 = SINGLE(C13 (1 ))
+    D20 = SINGLE(C18 (4 ))
+    D57 = SINGLE(C23 (5 ))
+    C09 = SINGLE(C08 (1 ))
+    D08 = SINGLE(C03 (4 ))
+    C04 = SINGLE(C03 (1 ))
+    D61 = SINGLE(C28 (5 ))
+    D33 = SINGLE(B93 (5 ))
+    B99 = SINGLE(B98 (1 ))
+    D24 = SINGLE(C23 (4 ))
+    B94 = SINGLE(B93 (1 ))
+    D66 = SINGLE(B93 (6 ))
+    A27 = CATENATE(C10 ,B88 ,C11 ,B90 ,C12 ,B92 ,C14 ) I-PIC (X(44))
+    E85 = SINGLE(C18 (9 ))
+    A28 = CATENATE(C15 ,B88 ,C16 ,B90 ,C17 ,B92 ,C19 ) I-PIC (X(44))
+    D70 = SINGLE(B98 (6 ))
+    A29 = CATENATE(C20 ,B88 ,C21 ,B90 ,C22 ,B92 ,C24 ) I-PIC (X(44))
+    A23 = CATENATE(B87 ,B88 ,B89 ,B90 ,B91 ,B92 ,B94 ) I-PIC (X(44))
+    E93 = SINGLE(C28 (9 ))
+    D74 = SINGLE(C03 (6 ))
+    A24 = CATENATE(B95 ,B88 ,B96 ,B90 ,B97 ,B92 ,B99 ) I-PIC (X(44))
+    F02 = SINGLE(B98 (10 ))
+    F06 = SINGLE(C03 (10 ))
+    D78 = SINGLE(C08 (6 ))
+    F10 = SINGLE(C08 (10 ))
+    F14 = SINGLE(C13 (10 ))
+    F18 = SINGLE(C18 (10 ))
+    D82 = SINGLE(C13 (6 ))
+    F22 = SINGLE(C23 (10 ))
+    F26 = SINGLE(C28 (10 ))
+    A25 = CATENATE(C00 ,B88 ,C01 ,B90 ,C02 ,B92 ,C04 ) I-PIC (X(44))
+    D86 = SINGLE(C18 (6 ))
+    A26 = CATENATE(C05 ,B88 ,C06 ,B90 ,C07 ,B92 ,C09 ) I-PIC (X(44))
+    E89 = SINGLE(C23 (9 ))
+    B08 = CATENATE(F23 ,B88 ,F24 ,B90 ,F25 ,B92 ,F26 ) I-PIC (X(44))
+    D90 = SINGLE(C23 (6 ))
+    B07 = CATENATE(F19 ,B88 ,F20 ,B90 ,F21 ,B92 ,F22 ) I-PIC (X(44))
+    B06 = CATENATE(F15 ,B88 ,F16 ,B90 ,F17 ,B92 ,F18 ) I-PIC (X(44))
+    B05 = CATENATE(F11 ,B88 ,F12 ,B90 ,F13 ,B92 ,F14 ) I-PIC (X(44))
+    D94 = SINGLE(C28 (6 ))
+    B04 = CATENATE(F07 ,B88 ,F08 ,B90 ,F09 ,B92 ,F10 ) I-PIC (X(44))
+    B03 = CATENATE(F03 ,B88 ,F04 ,B90 ,F05 ,B92 ,F06 ) I-PIC (X(44))
+    B02 = CATENATE(E99 ,B88 ,F00 ,B90 ,F01 ,B92 ,F02 ) I-PIC (X(44))
+    B01 = CATENATE(E95 ,B88 ,E96 ,B90 ,E97 ,B92 ,E98 ) I-PIC (X(44))
+    D99 = SINGLE(B93 (7 ))
+    B00 = CATENATE(E90 ,B88 ,E91 ,B90 ,E92 ,B92 ,E93 ) I-PIC (X(44))
+    A99 = CATENATE(E86 ,B88 ,E87 ,B90 ,E88 ,B92 ,E89 ) I-PIC (X(44))
+    A98 = CATENATE(E82 ,B88 ,E83 ,B90 ,E84 ,B92 ,E85 ) I-PIC (X(44))
+    E03 = SINGLE(B98 (7 ))
+    E81 = SINGLE(C13 (9 ))
+    A97 = CATENATE(E78 ,B88 ,E79 ,B90 ,E80 ,B92 ,E81 ) I-PIC (X(44))
+    E73 = SINGLE(C03 (9 ))
+    A95 = CATENATE(E70 ,B88 ,E71 ,B90 ,E72 ,B92 ,E73 ) I-PIC (X(44))
+    E69 = SINGLE(B98 (9 ))
+    A94 = CATENATE(E66 ,B88 ,E67 ,B90 ,E68 ,B92 ,E69 ) I-PIC (X(44))
+    E60 = SINGLE(C28 (8 ))
+    A92 = CATENATE(E57 ,B88 ,E58 ,B90 ,E59 ,B92 ,E60 ) I-PIC (X(44))
+    E56 = SINGLE(C23 (8 ))
+    A91 = CATENATE(E53 ,B88 ,E54 ,B90 ,E55 ,B92 ,E56 ) I-PIC (X(44))
+    E48 = SINGLE(C13 (8 ))
+    A89 = CATENATE(E45 ,B88 ,E46 ,B90 ,E47 ,B92 ,E48 ) I-PIC (X(44))
+    E44 = SINGLE(C08 (8 ))
+    A88 = CATENATE(E41 ,B88 ,E42 ,B90 ,E43 ,B92 ,E44 ) I-PIC (X(44))
+    E36 = SINGLE(B98 (8 ))
+    A86 = CATENATE(E33 ,B88 ,E34 ,B90 ,E35 ,B92 ,E36 ) I-PIC (X(44))
+    E32 = SINGLE(B93 (8 ))
+    A85 = CATENATE(E29 ,B88 ,E30 ,B90 ,E31 ,B92 ,E32 ) I-PIC (X(44))
+    E23 = SINGLE(C23 (7 ))
+    A83 = CATENATE(E20 ,B88 ,E21 ,B90 ,E22 ,B92 ,E23 ) I-PIC (X(44))
+    E19 = SINGLE(C18 (7 ))
+    A82 = CATENATE(E16 ,B88 ,E17 ,B90 ,E18 ,B92 ,E19 ) I-PIC (X(44))
+    E11 = SINGLE(C08 (7 ))
+    A80 = CATENATE(E08 ,B88 ,E09 ,B90 ,E10 ,B92 ,E11 ) I-PIC (X(44))
+    E07 = SINGLE(C03 (7 ))
+    A79 = CATENATE(E04 ,B88 ,E05 ,B90 ,E06 ,B92 ,E07 ) I-PIC (X(44))
+    A77 = CATENATE(D96 ,B88 ,D97 ,B90 ,D98 ,B92 ,D99 ) I-PIC (X(44))
+    A76 = CATENATE(D91 ,B88 ,D92 ,B90 ,D93 ,B92 ,D94 ) I-PIC (X(44))
+    E27 = SINGLE(C28 (7 ))
+    A84 = CATENATE(E24 ,B88 ,E25 ,B90 ,E26 ,B92 ,E27 ) I-PIC (X(44))
+    A74 = CATENATE(D83 ,B88 ,D84 ,B90 ,D85 ,B92 ,D86 ) I-PIC (X(44))
+    A73 = CATENATE(D79 ,B88 ,D80 ,B90 ,D81 ,B92 ,D82 ) I-PIC (X(44))
+    E15 = SINGLE(C13 (7 ))
+    A81 = CATENATE(E12 ,B88 ,E13 ,B90 ,E14 ,B92 ,E15 ) I-PIC (X(44))
+    A71 = CATENATE(D71 ,B88 ,D72 ,B90 ,D73 ,B92 ,D74 ) I-PIC (X(44))
+    A70 = CATENATE(D67 ,B88 ,D68 ,B90 ,D69 ,B92 ,D70 ) I-PIC (X(44))
+    E40 = SINGLE(C03 (8 ))
+    A69 = CATENATE(D63 ,B88 ,D64 ,B90 ,D65 ,B92 ,D66 ) I-PIC (X(44))
+    A67 = CATENATE(D58 ,B88 ,D59 ,B90 ,D60 ,B92 ,D61 ) I-PIC (X(44))
+    A66 = CATENATE(D54 ,B88 ,D55 ,B90 ,D56 ,B92 ,D57 ) I-PIC (X(44))
+    A87 = CATENATE(E37 ,B88 ,E38 ,B90 ,E39 ,B92 ,E40 ) I-PIC (X(44))
+    A65 = CATENATE(D50 ,B88 ,D51 ,B90 ,D52 ,B92 ,D53 ) I-PIC (X(44))
+    A64 = CATENATE(D46 ,B88 ,D47 ,B90 ,D48 ,B92 ,D49 ) I-PIC (X(44))
+    A63 = CATENATE(D42 ,B88 ,D43 ,B90 ,D44 ,B92 ,D45 ) I-PIC (X(44))
+    A72 = CATENATE(D75 ,B88 ,D76 ,B90 ,D77 ,B92 ,D78 ) I-PIC (X(44))
+    A62 = CATENATE(D38 ,B88 ,D39 ,B90 ,D40 ,B92 ,D41 ) I-PIC (X(44))
+    A61 = CATENATE(D34 ,B88 ,D35 ,B90 ,D36 ,B92 ,D37 ) I-PIC (X(44))
+    A60 = CATENATE(D30 ,B88 ,D31 ,B90 ,D32 ,B92 ,D33 ) I-PIC (X(44))
+    E52 = SINGLE(C18 (8 ))
+    A58 = CATENATE(D25 ,B88 ,D26 ,B90 ,D27 ,B92 ,D28 ) I-PIC (X(44))
+    A57 = CATENATE(D21 ,B88 ,D22 ,B90 ,D23 ,B92 ,D24 ) I-PIC (X(44))
+    A56 = CATENATE(D17 ,B88 ,D18 ,B90 ,D19 ,B92 ,D20 ) I-PIC (X(44))
+    A90 = CATENATE(E49 ,B88 ,E50 ,B90 ,E51 ,B92 ,E52 ) I-PIC (X(44))
+    A55 = CATENATE(D13 ,B88 ,D14 ,B90 ,D15 ,B92 ,D16 ) I-PIC (X(44))
+    A54 = CATENATE(D09 ,B88 ,D10 ,B90 ,D11 ,B92 ,D12 ) I-PIC (X(44))
+    A53 = CATENATE(D05 ,B88 ,D06 ,B90 ,D07 ,B92 ,D08 ) I-PIC (X(44))
+    A75 = CATENATE(D87 ,B88 ,D88 ,B90 ,D89 ,B92 ,D90 ) I-PIC (X(44))
+    A52 = CATENATE(D01 ,B88 ,D02 ,B90 ,D03 ,B92 ,D04 ) I-PIC (X(44))
+    A51 = CATENATE(C97 ,B88 ,C98 ,B90 ,C99 ,B92 ,D00 ) I-PIC (X(44))
+    A49 = CATENATE(C92 ,B88 ,C93 ,B90 ,C94 ,B92 ,C95 ) I-PIC (X(44))
+    A48 = CATENATE(C88 ,B88 ,C89 ,B90 ,C90 ,B92 ,C91 ) I-PIC (X(44))
+    E65 = SINGLE(B93 (9 ))
+    A47 = CATENATE(C84 ,B88 ,C85 ,B90 ,C86 ,B92 ,C87 ) I-PIC (X(44))
+    A46 = CATENATE(C80 ,B88 ,C81 ,B90 ,C82 ,B92 ,C83 ) I-PIC (X(44))
+    A45 = CATENATE(C76 ,B88 ,C77 ,B90 ,C78 ,B92 ,C79 ) I-PIC (X(44))
+    A93 = CATENATE(E62 ,B88 ,E63 ,B90 ,E64 ,B92 ,E65 ) I-PIC (X(44))
+    A44 = CATENATE(C72 ,B88 ,C73 ,B90 ,C74 ,B92 ,C75 ) I-PIC (X(44))
+    A43 = CATENATE(C68 ,B88 ,C69 ,B90 ,C70 ,B92 ,C71 ) I-PIC (X(44))
+    A42 = CATENATE(C64 ,B88 ,C65 ,B90 ,C66 ,B92 ,C67 ) I-PIC (X(44))
+    A78 = CATENATE(E00 ,B88 ,E01 ,B90 ,E02 ,B92 ,E03 ) I-PIC (X(44))
+    A40 = CATENATE(C59 ,B88 ,C60 ,B90 ,C61 ,B92 ,C62 ) I-PIC (X(44))
+    A39 = CATENATE(C55 ,B88 ,C56 ,B90 ,C57 ,B92 ,C58 ) I-PIC (X(44))
+    A38 = CATENATE(C51 ,B88 ,C52 ,B90 ,C53 ,B92 ,C54 ) I-PIC (X(44))
+    E77 = SINGLE(C08 (9 ))
+    A37 = CATENATE(C47 ,B88 ,C48 ,B90 ,C49 ,B92 ,C50 ) I-PIC (X(44))
+    A36 = CATENATE(C43 ,B88 ,C44 ,B90 ,C45 ,B92 ,C46 ) I-PIC (X(44))
+    A35 = CATENATE(C39 ,B88 ,C40 ,B90 ,C41 ,B92 ,C42 ) I-PIC (X(44))
+    A96 = CATENATE(E74 ,B88 ,E75 ,B90 ,E76 ,B92 ,E77 ) I-PIC (X(44))
+    A34 = CATENATE(C35 ,B88 ,C36 ,B90 ,C37 ,B92 ,C38 ) I-PIC (X(44))
+    A33 = CATENATE(C31 ,B88 ,C32 ,B90 ,C33 ,B92 ,C34 ) I-PIC (X(44))
+    A30 = CATENATE(C25 ,B88 ,C26 ,B90 ,C27 ,B92 ,C29 ) I-PIC (X(44))
+    F62 = CT-AMOUNT FROM MSF281 -
+    WHERE (PAY-RUN-ID             = CHEQUE-RUN-NO, -
+           ACCT-DSTRCT            = ACCT-DSTRCT, -
+           BRANCH-CODE            = BRANCH-CODE, -
+           BANK-ACCT-NO           = BANK-ACCT-NO, -
+           CHEQUE-RUN-NO         >= CHEQUE-RUN-NO, -
+           CHEQUE-RUN-NO         <= CHEQUE-RUN-NO)
+    F60 = SD-AMOUNT VIA (F62)
+    F61 = PP-AMOUNT VIA (F62)
+    B78 = INV-NO VIA (F62)
+    B75 = CHEQUE-RUN-NO VIA (F62)
+    B74 = BANK-ACCT-NO VIA (F62)
+    B76 = INV-DSTRCT VIA (F62)
+    B77 = ORD-SUPPLIER-NO VIA (F62)
+    B12 = SUPP-TO-PAY VIA (F62)
+    B13 = CHQ-AMOUNT VIA (F62)
+    B73 = BRANCH-CODE VIA (F62)
+    A   = HANDLE-CDE VIA (F62)
+    B72 = ACCT-DSTRCT VIA (F62)
+    A00 = HANDLE-CDE VIA (F62)
+    F27 = CHOOSE(1  IF (B13 > 0 ) , 0 )
+    A01 = SUPP-TO-PAY VIA (F62)
+    A02 = INV-DSTRCT VIA (F62)
+    A03 = INV-NO VIA (F62)
+    A04 = CATENATE(A00 ,A01 ,A02 ,A03 )
+    B14 = COMPUTE-AND-KEEP ( B14 + F27 , 0 )  I-PIC (9(6))
+    F47 = CHOOSE(F62  IF (B13 >= 0 ) , ZERO )
+    B42 = TOTAL(F47 ) D-PIC ( ZZZZZZZZZZZZZ9.99- )
+    F45 = CHOOSE(F60  IF (B13 >= 0 ) , ZERO )
+    B40 = TOTAL(F45 ) D-PIC ( ZZZZZZZZZZZZZ9.99- )
+    F46 = CHOOSE(F61  IF (B13 >= 0 ) , ZERO )
+    B41 = TOTAL(F46 ) D-PIC ( ZZZZZZZZZZZZZ9.99- )
+    F44 = CHOOSE(B13  IF (B13 > 0 ) , ZERO )
+    B39 = TOTAL(F44 ) D-PIC ( ZZZZZZZZZZZZZ9.99- )
+    F31 = ORDER-ZIP OF MSF200 -
+    WHERE (SUPPLIER-NO            = B12)
+    F28 = PAYMENT-NAME VIA (F31)
+    F30 = PAYMENT-ZIP VIA (F31)
+    F29 = SUPPLIER-NAME VIA (F31)
+    B15 = CHOOSE(F28  IF (F28 <> SPACES ) , F29 )
+    B16 = CHOOSE(F30  IF (F28 <> SPACES AND F30 <> SPACES ) , F31 ) I-PIC (X(10))
+    A1  = INV-DSTRCT FROM MSF282 -
+    WHERE (ACCT-DSTRCT            = B72, -
+           BRANCH-CODE            = B73, -
+           BANK-ACCT-NO           = B74, -
+           CHEQUE-RUN-NO          = B75, -
+           HANDLE-CDE             = A, -
+           SUPP-TO-PAY           >= B12, -
+           SUPP-TO-PAY           <= B12) -
+    START (ACCT-DSTRCT            = B72, -
+           BRANCH-CODE            = B73, -
+           BANK-ACCT-NO           = B74, -
+           CHEQUE-RUN-NO          = B75, -
+           HANDLE-CDE             = A, -
+           SUPP-TO-PAY            = B12, -
+           INV-DSTRCT             = B76, -
+           ORD-SUPPLIER-NO        = B77, -
+           INV-NO                 = B78) -
+    STOPIF   (B76 <> SPACES AND INV-DSTRCT <> B76) -
+    STOPIF   (B77 <> SPACES AND ORD-SUPPLIER-NO <> B77) -
+    STOPIF   (B78 <> SPACES AND INV-NO <> B78)
+    F33 = INV-DATE VIA (A1)
+    B17 = ORD-SUPPLIER-NO VIA (A1)
+    F34 = DUE-DATE VIA (A1)
+    B79 = INV-NO VIA (A1)
+    B25 = CT-AMOUNT VIA (A1) D-PIC ( ZZZZZZZ9.99- )
+    B24 = SD-AMOUNT VIA (A1) D-PIC ( ZZZZZZZZZ9.99- )
+    B26 = PP-AMOUNT VIA (A1) D-PIC ( ZZZZZZZZ9.99- )
+    B22 = INV-ORIG-AMT VIA (A1) D-PIC ( ZZZZZZZZZ9.99- )
+    B23 = INV-AMOUNT VIA (A1) D-PIC ( ZZZZZZZZZ9.99- )
+    F41 = CT-AMOUNT VIA (A1)
+    B32 = TOTAL(F41 ) D-PIC ( ZZZZZZZZ9.99- )
+    B46 = CHOOSE(B23  IF (B23 < 0 ) , 0 )
+    F50 = CHOOSE(B23  IF (B13 >= 0 ) , ZERO )
+    B45 = TOTAL(F50 ) D-PIC ( ZZZZZZZZZZZZZ9.99- )
+    F38 = INV-AMOUNT VIA (A1)
+    B30 = TOTAL(F38 ) D-PIC ( ZZZZZZZZZ9.99- )
+    B19 = GET (DISPLAY-DATE FROM (F33 ))
+    B20 = GET (DISPLAY-DATE FROM (F34 ))
+    B35 = TOTAL(F38 ) D-PIC ( ZZZZZZZZZZ9.99- )
+    F39 = PP-AMOUNT VIA (A1)
+    F40 = SD-AMOUNT VIA (A1)
+    B47 = TOTAL(B46 ) D-PIC ( ZZZZZZZZZZZZZ9.99- )
+    B31 = TOTAL(F40 ) D-PIC ( ZZZZZZZZZZ9.99- )
+    B33 = TOTAL(F39 ) D-PIC ( ZZZZZZZZZ9.99- )
+    B29 = SUPP-NIV-TAX-F OF MSSATX -
+    WHERE (OPTION-ATX             = 'A', -
+           DSTRCT-CODE            = A1, -
+           SUPPLIER-NO            = B17, -
+           INV-NO                 = B79, -
+           BASE-VALUE-F           = B23)
+    B28 = DEDUCT-TAX-F VIA (B29)
+    A2  = CURRENCY-TYPE OF MSF260 -
+    WHERE (DSTRCT-CODE            = A1, -
+           SUPPLIER-NO            = B17, -
+           INV-NO                 = B79)
+    F36 = PP-OFFSET-AMT VIA (A2)
+    F37 = FOR-INV-ORIG VIA (A2)
+    F35 = FOR-INV-AMD VIA (A2)
+    F32 = EXT-INV-NO VIA (A2)
+    F43 = SUPP-NIV-TAX-F VIA (B29)
+    F42 = DEDUCT-TAX-F VIA (B29)
+    B18 = CHOOSE(B79  IF (F32 = SPACES ) , F32 )
+    B27 = CALC ( F38 - F39 - F40 - F41 - F42 + F43 )  D-PIC ( ZZZZZZZZZZZ9.99- )
+    B34 = TOTAL(B27 ) D-PIC ( ZZZZZZZZZZZ9.99- )
+    B36 = TOTAL(F42 )
+    B37 = TOTAL(F43 )
+    F48 = CHOOSE(B28  IF (B13 >= 0 ) , ZERO )
+    B43 = TOTAL(F48 ) D-PIC ( ZZZZZZZZZZZZZ9.99- )
+    F49 = CHOOSE(B29  IF (B13 >= 0 ) , ZERO )
+    B44 = TOTAL(F49 ) D-PIC ( ZZZZZZZZZZZZZ9.99- )
+    B21 = CHOOSE(F35  IF (F35 <> 0 ) ,F35  IF (F36 <> 0 ) , F37 ) D-PIC ( ZZZZZZZZZ9.99- )
+

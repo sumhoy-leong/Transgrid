@@ -1,0 +1,72 @@
+%PROGRAM-ID
+       TRR81Z
+%AUTHOR
+       Mincom LTD
+%NARRATIVE
+      ** Testing numeric occurs field
+%FILES
+        MFILE = MSF810
+        LFILE = MSF803
+        RFILE = TRR81ZA
+%VERSION
+        001
+%ORDER
+    ASCENDING   EMPLOYEE-ID
+%SELECTION
+     SELECTIF (EMPLOYEE-ID >= '0000016748', -
+               EMPLOYEE-ID <= '0000016748')
+%ROUTINES
+    MSSCNV 
+%REPORT
+    A
+%TITLE
+    'Testing numeric occurs field'
+%DETAIL
+%*   'CFR1='{CFR1         } 
+%*   'CFR2='{CFR2         } 
+%*   'CFR3='{CFR3         } 
+%*   'CFR4='{CFR4         } 
+%*   'CFR5='{CFR5         } 
+%*   'CFR6='{CFR6         } 
+%*   'CFR7='{CFR7         } 
+%*   'CFR8='{CFR8         } 
+
+<REPEAT>
+   'CFR='{CFR          }    'CFR9='{CFR9         } 
+<ENDREPEAT>
+
+%*
+%VARIABLES
+%*  
+        AWD      = '9D02'
+        SALP     = 'SP29'
+%*Lookup MSF803
+        FRRT    = FREQ-RATE OF MSF803 -
+		           WHERE ( AWARD-CODE = AWD,-
+                           RATE-REF-CODE = SALP, -
+                           INVERSE-DATE >= SPACES) -
+                   MAX (1)
+        CFR      = COMP-FREQ-RATE VIA (FRRT)  
+        CFR9     = CALC (CFR * 1) I-PIC (S9(7)V9(4)) 
+%*        CFR1     = SINGLE (CFR(1)) D-PIC (-----------9.99)
+%*        CFR2     = SINGLE (CFR(2)) D-PIC (-----------9.99)
+%*        CFR3     = SINGLE (CFR(3)) D-PIC (-----------9.99)
+%*        CFR4     = SINGLE (CFR(4)) D-PIC (-----------9.99)
+%*        CFR5     = SINGLE (CFR(5)) D-PIC (-----------9.99)
+%*        CFR6     = SINGLE (CFR(6)) D-PIC (-----------9.99)
+%*        CFR7     = SINGLE (CFR(7)) D-PIC (-----------9.99)
+%*        CFR8     = SINGLE (CFR(8)) D-PIC (-----------9.99)
+%*        FRRT1    = NUMERIC (FRRT)
+%*        CFR11    = NUMERIC (CFR1)
+%*        CFR12    = NUMERIC (CFR2)
+%*        CFR13    = NUMERIC (CFR3)
+%*        CFR14    = NUMERIC (CFR4)
+%*        CFR15    = NUMERIC (CFR5)
+%*        CFR16    = NUMERIC (CFR6)
+%*        CFR17    = NUMERIC (CFR7)
+%*        CFR18    = NUMERIC (CFR8)
+%*        WROP     = CALC (FRRT + CFR1 + CFR2 + CFR3 + CFR4 + CFR5 + CFR6 + CFR7 + CFR8) -
+%*                   I-PIC (S9(11)V9(4)) -
+%*                   D-PIC (-----------9.99)
+%*
+%*End of Program

@@ -1,0 +1,362 @@
+%*** TRR17T.RDL
+%***
+%*** Copyright (c) 1991, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 11-Apr-13  AIT IG    Transfer ESR17B to E8 as TRR17T (v001).
+%*** .................... MSS1HB now used to get BinLoc instead of MSF190
+%*** .................... MSSSOH now used to get SOH instead of MSF170
+%*** .................... Multwarehouse variable no longer in E8 - now checking
+%*** ....................  if whouse id supplied or not.
+%***
+%PROGRAM-ID
+       TRR17T
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  Owned Stock Take Count Transactions - Report A
+      **  Consignment Stock Take Count Transactions - Report B
+      **
+%VERSION
+       001
+%MODULE
+       3140
+%FILES
+        MFILE = MSF900
+        LFILE = MSF083
+        LFILE = MSF010
+        LFILE = MSF100
+        LFILE = MSF170
+        LFILE = MSF180
+        LFILE = MSF190
+        RFILE = TRR17TA
+        RFILE = TRR17TB
+%ROUTINES
+        MSSSOH
+        MSS1HB
+%SELECTION
+%*** Enter selection criteria for MSF900
+<IF %TRAN-FROM% <> SPACES OR %TRAN-TO% <> SPACES>
+       WHERE (DSTRCT-CODE     = %DISTRICT-CODE%, -
+              PROCESS-DATE   >= UK1)
+       START (DSTRCT-CODE     = %DISTRICT-CODE%, -
+              PROCESS-DATE    = UK1, -
+              TRANSACTION-NO  = UK2, -
+              USERNO          = UK3N, -
+              REC900-TYPE     = UK3)
+       SELECTIF (TRAN-TYPE = 'STO')
+       SELECTIF (TRAN-TYPE = 'STC')
+       STOPIF (%TRAN-TO% <> SPACES, -
+               KEY-900    > TKEY)
+<ELSE>
+       WHERE (DSTRCT-CODE    >= %DISTRICT-CODE%, -
+              DSTRCT-CODE    <= %DISTRICT-CODE%)
+       START (DSTRCT-CODE     = %DISTRICT-CODE%, -
+              PROCESS-DATE    = RK1, -
+              TRANSACTION-NO  = RK2, -
+              USERNO          = RK3N, -
+              REC900-TYPE     = RK3)
+       SELECTIF (TRAN-TYPE = 'STO')
+       SELECTIF (TRAN-TYPE = 'STC')
+       REJECTIF (KEY-900 = RST-KEY)
+<ENDIF>
+%ORDER
+       DSTRCT-CODE
+       WHOUSE-ID-A
+       TRAN-AMOUNT
+       STOCK-CODE-A
+%CONTROL-BREAKS
+       DSTRCT-CODE
+       WHOUSE-ID-A
+%REPORT
+       A
+%REPORT-TITLE
+       'OWNED STOCK TAKE COUNT TRANSACTIONS'
+%PAGE HEADING
+'Tolerance amount:'{TH   } 'Tolerance percent:'{THP}
+{L1      }'C S'            'Transaction  Tran ----STOCK-----'  'Inventory Val Before/  Current SOH After Adjustment     Transaction'
+{L2     } 'L T UOI ABCD XYZ     Id.'     'Typ ---SECTIONS---'   'Inventory Val After    S.O.H.   Count    Quantity      Value'
+               'C.S.O.H'
+
+%*<IF WX-MULTIWHOUSE = 'Y'>
+<IF A <> SPACES>
+
+{L3     } AAAA {WHDESC                                          }
+{L4     }
+<ENDIF>
+%PAGE FOOTING
+
+                                             'Endorsed By........................Position........................Date..............'
+%BREAK WHOUSE-ID-A HEADING ON NEW-PAGE SUPPRESS-PAGE-HEADING
+{L1      }'C S'            'Transaction  Tran ----STOCK-----'  'Inventory Val Before/  Current SOH After Adjustment     Transaction'
+{L2     } 'L T UOI ABCD XYZ     Id.'     'Typ ---SECTIONS---'   'Inventory Val After    S.O.H.   Count    Quantity      Value'
+
+%*<IF WX-MULTIWHOUSE = 'Y'>
+<IF A <> SPACES>
+
+{L3     } AAAA {WHDESC                                          }
+{L4     }
+<ENDIF>
+{UNDERLINE                                                                                                                         }
+
+%DETAIL
+<IF I = 'STO'>
+  <IF P > THV>
+BBBBBBBBB  C D EEEE F    G  HHHHHHHHHHHHH III JJ JJ JJ JJ JJ       KKKKKKKKKKKKKKKKKKMMMMMMMMMMNNNNNNNNNNOOOOOOOOOO{PA              }
+{L7      }{A36       } 
+{INAME                                 }      JJ JJ JJ JJ JJ       QQQQQQQQQQQQQQQQQQ
+    <SUPPRESS>
+{IDESC                                 } 'Auth By :'{AUTH    } {ADESC                                           }
+    <SUPPRESS>
+{IDESC                                 }
+    <SUPPRESS>
+{IDESC                                 }
+    <SUPPRESS>
+{IDESC                                 }
+
+  <ENDIF>
+<ENDIF>
+%BREAK WHOUSE-ID-A FOOTING
+%*<IF WX-MULTIWHOUSE = 'Y'>
+<IF A <> SPACES>
+{L3     }'Total for counts printed:'                                                                               {SA             }
+               'for ALL counts:'                                                                                   {TA             }
+<ENDIF>
+%REPORT-SUMMARY 
+
+{L5  }'Total for write offs   :'                                                              {CNTSTON        }    {VALSTON        }
+            'for write ups    :'                                                              {CNTSTOP        }    {VALSTOP        }
+            'for 0 adjustments:'                                                              {CNTSTO0        }    
+
+            'for counts printed (write ups + write offs):'                                                         {SA             }
+            'for ALL counts (NET):'                                                            {CNTALL         }   {TA             }
+
+
+             'Transaction Types selected for this Report'
+              {UNDERLINE                               }
+             'STO' {STO                                             }
+
+
+                               '<<<<<<<<<<<<<<<<<< END OF REPORT >>>>>>>>>>>>>>>>>'
+%CONTROL REPORT A
+       TRIM-REPORT
+       UPDATE-RESTART-FILE = UPD-KEY
+%REPORT
+       B
+%REPORT-TITLE
+       'CONSIGNMENT STOCK TAKE COUNT TRANSACTIONS'
+%PAGE HEADING
+'Tolerance amount:'{TH   } 'Tolerance percent:'{THP}
+{L6       }                    'Transaction  Tran  ----STOCK-----  Consign Val Before/ Current SOH After Adjustment     Transaction'
+{L2     }  'CL ST UOI  ABCD XYZ     Id.'     'Typ  ---SECTIONS---  Consign Val After   S.O.H.   Count    Quantity       Value'
+
+%*<IF WX-MULTIWHOUSE = 'Y'>
+<IF A <> SPACES>
+
+{L3     } AAAA {WHDESC                                          }
+{L4     }
+<ENDIF>
+%BREAK DSTRCT-CODE ON NEW-PAGE SUPPRESS-PAGE-HEADING
+
+
+             'Transaction Types selected for this Report'
+              {UNDERLINE                               }
+
+             'STC' {STC                                             }
+%BREAK WHOUSE-ID-A HEADING ON NEW-PAGE SUPPRESS-PAGE-HEADING
+{L6       }                    'Transaction  Tran  ----STOCK-----  Consign Val Before/ Current SOH After Adjustment     Transaction'
+{L2     }  'CL ST UOI  ABCD XYZ     Id.'     'Typ  ---SECTIONS---  Consign Val After   S.O.H.   Count    Quantity       Value'
+
+%*<IF WX-MULTIWHOUSE = 'Y'>
+<IF A <> SPACES>
+
+{L3     } AAAA {WHDESC                                          }
+{L4     }
+<ENDIF>
+{UNDERLINE                                                                                                                         }
+
+%DETAIL
+<IF I = 'STC'>
+  <IF P > THV>
+BBBBBBBBB   C  D  EEEE  F    G  HHHHHHHHHHHHH III  JJ JJ JJ JJ JJ  KKKKKKKKKKKKKKKKKKMMMMMMMMMMNNNNNNNNNNOOOOOOOOOO{PB             }
+{INAME                                 }           JJ JJ JJ JJ JJ  QQQQQQQQQQQQQQQQQQ
+    <SUPPRESS>
+{IDESC                                 } 'Auth By :'{AUTH    } {ADESC                                           }
+    <SUPPRESS>
+{IDESC                                 }
+    <SUPPRESS>
+{IDESC                                 }
+    <SUPPRESS>
+{IDESC                                 }
+
+  <ENDIF>
+<ENDIF>
+%BREAK WHOUSE-ID-A FOOTING
+%*<IF WX-MULTIWHOUSE = 'Y'>
+<IF A <> SPACES>
+{L3     }'Total for counts printed:'                                                                               {SB             }
+               'for ALL counts:'                                                                                   {TB             }
+<ENDIF>
+%REPORT-SUMMARY ON NEW-PAGE SUPPRESS-PAGE-HEADING
+
+{L5  }'Total for counts printed (write ups + write offs):'                                                         {SB             }
+            'for ALL counts (NET):'                                                                                {TB             }
+%CONTROL REPORT B
+       TRIM-REPORT
+%REQUEST-PARAMETERS
+       TRAN-FROM PIC (X(24)) TEXT 'Transaction Id From'
+       TRAN-TO   PIC (X(24)) TEXT '               To'
+       TH        PIC (9(7))  TEXT 'Tolerance Amount'
+       THP       PIC (9(3))  TEXT 'Tolerance Percent'
+%VARIABLES
+       TH1 = %TH% CONSTANT
+       THP1 = %THP% CONSTANT
+       TH = numeric (TH1) CONSTANT
+       THP = numeric (THP1) CONSTANT
+%*     split up user key into key elements
+       UK1     = substr (%TRAN-FROM%,1,8)  CONSTANT
+       UK2     = substr (%TRAN-FROM%,9,11)  CONSTANT
+       UK3N    = substr (%TRAN-FROM%,20,4)  CONSTANT
+       UK3     = substr (%TRAN-FROM%,24,1)  CONSTANT
+       TPKEY   = choose (%TRAN-TO% IF (%TRAN-TO% <> SPACES), -
+                         %TRAN-TO%) I-PIC (X(24)) CONSTANT
+       DST     = %DISTRICT-CODE% CONSTANT
+       TKEY    = catenate (DST,TPKEY) CONSTANT
+
+       RST-KEY = LAST-SAVE-KEY OF MSF083 -
+                               WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                                      PROG-NAME   = 'TRR17T') -
+                               CONSTANT
+%*     split up system key into key elements
+       RK1     = substr (RST-KEY,5,8)  CONSTANT
+       RK2     = substr (RST-KEY,13,11)  CONSTANT
+       RK3N    = substr (RST-KEY,24,4)  CONSTANT
+       RK3     = substr (RST-KEY,28,1) CONSTANT
+
+       STO     = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'TR', -
+                                   TABLE-CODE = 'STO') -
+                            CONSTANT
+       STC     = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'TR', -
+                                   TABLE-CODE = 'STC') -
+                            CONSTANT
+       L1      = 'Stock Cde/' CONSTANT
+       L2      = 'Name/Desc' CONSTANT
+       L3      = 'Warehouse' CONSTANT
+       L4      = underline() CONSTANT
+       L5      = 'Report' CONSTANT
+       L6      = 'Stock Code/' CONSTANT
+       L7      = 'Bin Loc - ' CONSTANT
+
+       K9      = max (KEY-900)
+       UPD-KEY = choose (K9 IF (%TRAN-FROM% = SPACES, -
+                                %TRAN-TO% = SPACES), -
+                         RST-KEY)
+       A       = WHOUSE-ID-A
+       WHDESC  = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'WH', -
+                                   TABLE-CODE = A)
+       B       = STOCK-CODE-A
+       AUTH    = AUTH-BY-A
+       ADESC1 = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = AUTH)
+       ADESC  = FORMATTED-NAME via (ADESC1)
+
+       C       = CLASS OF MSF170 -
+                       WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+                              STOCK-CODE  = B)
+       D       = STOCK-TYPE        VIA (C)
+       E       = UNIT-OF-ISSUE     VIA (C)
+       F       = ABCD-LEVEL        VIA (C)
+       G       = XYZ-LEVEL         VIA (C)
+       H       = substr (KEY-900,5,13)
+       I       = TRAN-TYPE
+       J       = STOCK-SECTION OF MSF100 -
+                               WHERE (STOCK-CODE = B)
+       INAME   = ITEM-NAME         VIA (J)
+       IDESC   = DESC-LINE         VIA (J)
+       K       = VALUE-BFR-A D-PIC (Z(13)9.99-)
+	   
+%* MSF170-SOH moved to MSF1HD-SOH in Ellipse 8 (use MSSSOH)
+						
+       M1      = OWNED-SOH OF MSSSOH -
+                 WHERE (OPTION-SOH = '2', -
+                        DSTRCT-CODE = DSTRCT-CODE, -
+                        STOCK-CODE  = B) D-PIC (Z(8)9-)
+       M2      = OWNED-SOH OF MSSSOH -
+                 WHERE (OPTION-SOH = '2', -
+                        DSTRCT-CODE = DSTRCT-CODE, -
+                        STOCK-CODE  = B, -
+                        WHOUSE-ID   = A) D-PIC (Z(8)9-)
+						
+%*       M1      = SOH               VIA (C)
+%*       M2      = SOH OF MSF180 
+%*                     WHERE (DSTRCT-CODE = DSTRCT-CODE, 
+%*                            STOCK-CODE  = B, 
+%*                            WHOUSE-ID   = A)
+       M       = choose (M2 IF (A <> SPACES), -
+                         M1) D-PIC (Z(8)9-)
+       A36    = RET-BIN-CODE OF MSS1HB -
+                 WHERE (OPTION-1HB = 'R', -
+                        RETRIEVAL-FLAG = 'P', -
+                        DSTRCT-CODE  = %DISTRICT-CODE%, -
+                        STOCK-CODE   = B, -
+                        WHOUSE-ID = A, -
+                        PRIME-LOCATION = '1', -
+                        NO-BIN-RETURN = 1)     
+%*       A36 = BIN-CODE OF MSF190 -
+%*             WHERE (DSTRCT-CODE            = %DISTRICT-CODE%, 
+%*                    STOCK-CODE             = B, 
+%*                    WHOUSE-ID              = A, 
+%*                    PRIME-LOCATION         = '1', 
+%*                    BIN-CODE              >= SPACES) 
+%*              MAX(1)
+       N1      = SOH-AFTER-A
+       N2      = SOH-AFTER-WH-A
+       N       = choose (N2 IF (A <> SPACES), -
+                         N1) D-PIC (Z(8)9-)
+       O       = QTY-ADJ-UOI-A D-PIC (Z(8)9-)
+       P1      = TRAN-AMOUNT
+       PA      = CHOOSE (TRAN-AMOUNT IF (I = 'STO'), 0) -
+                             D-PIC (Z(12)9.99-)
+       PB      = CHOOSE (TRAN-AMOUNT IF (I = 'STC'), 0) -
+                             D-PIC (Z(12)9.99-)
+       PC      = calc (TRAN-AMOUNT * (-1))
+       P       = choose (P1 IF (P1 > ZERO), -
+                         PC)
+       Q       = VALUE-AFT-A D-PIC (Z(13)9.99-)
+       THC     = calc (K * (THP / 100))
+       THV     = choose (THC IF (THP <> 0 AND TH = 0), -
+                         THC IF (THP <> 0 AND TH <> 0 AND THC < TH), -
+                         TH IF (TH <> 0 AND THP = 0), -
+                         TH IF (TH <> 0 AND THP <> 0 AND TH < THC), -
+                         ZERO)
+
+       TREPA   = choose (P IF (P > THV AND I = 'STO'), -
+                         ZERO)
+       SA      = total (TREPA) D-PIC (Z(12)9.99-)
+       TA      = total (PA) D-PIC (Z(12)9.99-)
+       TREPB   = choose (P IF (P > THV AND I = 'STC'), -
+                         ZERO)
+       SB      = total (TREPB) D-PIC (Z(12)9.99-)
+       TB      = total (PB) D-PIC (Z(12)9.99-)
+%*** DAVID G Add counts and sub-totals for write ups & write offs.
+       PA-NEG  = choose (PA IF (PA < 0),0)
+       PA-NEGC = choose (1 IF (PA-NEG <> 0),0)
+       PA-POS  = choose (PA IF (PA > 0),0)
+       PA-POSC = choose (1 IF (PA-POS <> 0),0)
+%* value of negative adjustments
+       VALSTON = total (PA-NEG)
+%* value of positive adjustments
+       VALSTOP = calc (TA - VALSTON)
+%* count all adjustments
+       CNTALL  = COUNT (*)
+%* count negative adjustments
+       CNTSTON = total (PA-NEGC)
+%* count positive adjustments
+       CNTSTOP = total (PA-POSC)
+%* count 0 adjustments
+       CNTSTO0 = calc (CNTALL - CNTSTON - CNTSTOP)

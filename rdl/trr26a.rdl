@@ -1,0 +1,304 @@
+%*Revision History:
+%*----------------
+%*   26-Dec-2012      a9nh4814 MO164
+%*                    Changed main file to MSF26A
+%*   03-Oct-2012      a9jw6280 MO164 (Version 0001)
+%*                    Reset version number into 0001 for E8 convert.
+%*                    Added quote for words after TEXT in req param.
+%*   06-Jun-2005      AIesho   P05060270
+%*                    Modified program to cope with district consolidation
+%*                    into GRID. Append Warehouse id to purchase order
+%*   10-May-2002      E Fredeluces    P02041129
+%*                    Not picking-up the correct invoice number
+%*                    if it is more than 10 characters.
+%*   23-Jun-2000      E Fredeluces    W00060563
+%*                    The Total Paid must be GST inclusive.
+%*   23-Feb-2000      G Presser       W00020579         (Version 0002)
+%*                    Include the TAX code for GST invoices on the
+%*                    report
+%*   19-Jan-2000      E Fredeluces  W00010191
+%*                    To include the Date From/To parameter.
+%*                    The selection criteria should test that
+%*                    the Payment Status <> '50'.
+%*   22-Jun-1999      EFredeluces
+%*                    Changed the Approved Loaded Date to Friday
+%*                    if the "Day" falls on Saturday, Sunday and
+%*                    Monday.
+%*   03-Jun-1999      EFredeluces
+%*                    Included Control Totals and Period Loaded.
+%*   28-May-1999      EFredeluces
+%*                    Included the Order Value and Current Price (UOI).
+%*                    Access to the MSF221 file.
+%*   11-Mar-1999      EFredeluces
+%*                    Included access to the Invoice Amendment
+%*                    File (MSF261).
+%*   03-Mar-1999      DDiolaso  
+%*                    Original version
+%*
+%PROGRAM-ID
+     TRR26A
+
+%AUTHOR
+     Danny A. Diolaso
+
+%NARRATIVE
+     This report generates a printout of invoices loaded to approved.
+     Parameter is dstrct-code which is optional.
+
+%MODULE                                         
+     3210
+
+%VERSION
+     0001
+
+%FILES
+     MFILE = MSF26A
+     LFILE = MSF260
+     LFILE = MSF200
+     LFILE = MSF221
+     LFILE = MSF261
+     LFILE = MSF263
+     RFILE = TRR26AA
+
+%SELECTION
+%* When a specific district code is entered as parameter, only Invoice Master
+%* file records with the specified district code will be selected otherwise,
+%* all records will be considered
+     <IF %DIST-CODE% > SPACES>
+         WHERE    (DSTRCT-CODE  = %DIST-CODE%, -
+                   SUPPLIER-NO >= SPACES)
+         SELECTIF (APPR-STATUS  = '10')
+     <ELSE>
+         WHERE    (DSTRCT-CODE >= SPACES)
+         SELECTIF (APPR-STATUS  = '10')
+     <ENDIF>
+%ROUTINES
+     MSSDAT
+%ORDER
+         DSTRCT-CODE
+         WHOUSE-ID VIA (ORDVAL)
+         INV-NO
+         INV-ITEM-NO
+%* Records will be sorted by dstrct-code/date-loaded/inv-no/inv-item-no on
+%* ascending sequence except for date-loaded which is on descending order
+%*       ASCENDING  DSTRCT-CODE
+%*       DESCENDING LOADED-DATE
+%*       ASCENDING  INV-NO
+%*       ASCENDING  INV-ITEM-NO  VIA (B01)
+%BREAK-FIELDS
+       DSTRCT-CODE
+       WHOUSE-ID VIA (ORDVAL)
+%REPORT
+     A
+%TITLE
+'List of Invoices Loaded to Approved'
+%PAGE HEADING
+'                          Following Claims were Paid as Loaded to Approved During the Period'{DATEF  }'To'{DATET  }
+
+'                                                                  -------- From MSO221 Screen --------'
+' Date   Order                                                  Tax       Total    Quantity     Current'
+'Loaded  No./Item     +-- Invoice No. /Item ---+      Amount  Cde        Paid       UOI          UOI    +------ Supplier Name -----+'
+%BREAK DSTRCT-CODE HEADING
+
+' District: '{A00}
+' ================'
+%DETAIL
+ <IF PRFLAG = 'Y'>
+
+{B02   } {POPR   }ZIII{INV               }Z{B03} {B04      } {AT} {ORDVAL    } {ORDQTY   } {ORDPRC    } {A01 } {C01                 }
+'Authorised By:' {B06     } {E02                            }           'Loaded By:' {A05     } {D02                            }
+
+ <ENDIF>
+%BREAK WHOUSE-ID VIA (ORDVAL) FOOTING
+<IF (WHI = WHOUSEI OR WHOUSEI = SPACES) AND W <> SPACES AND T01 > 0>
+
+'Total Amount Loaded for Warehouse'WW'='        {TB04     }                    'Total Number of  Records = '{T01   }
+
+ <ENDIF>
+%BREAK DSTRCT-CODE FOOTING
+
+'Total Amount Loaded for Dist' {A00} '='        {TB04     }                    'Total Number of  Records = '{T01   }
+
+%REPORT-SUMMARY
+<IF %DIST-CODE% = SPACES>
+
+
+'Total Amount Loaded for All Districts=' {TB04     }                    'Total Number of  Records = '{T01   }
+<ENDIF>
+%REQUEST-PARAMETERS
+      DIST-CODE     PIC (X(4))    TEXT   'District Code    :'
+      LODTEFR       PIC (X(8))    TEXT   'Loaded Date From :'
+      LODTETO       PIC (X(8))    TEXT   'Loaded Date To   :'
+      WHOUSEI       PIC (X(2))    TEXT   'Warehouse ID     :'
+%VARIABLES
+       WHOUSEI         = %WHOUSEI%      CONSTANT
+       LOADFR          = %LODTEFR%      CONSTANT
+       LOADTO          = %LODTETO%      CONSTANT
+       TODAY           = DATE ()        CONSTANT 
+       YESTERDAY       = DATE2 OF MSSDAT -
+                         WHERE (OPTION = '1', -
+                                DATE1  = TODAY, -
+                                DAYS   = -1) CONSTANT 
+       YESDIS          = DISPLAY-DATE VIA (YESTERDAY) CONSTANT
+%*   To determine the DAY today
+      DY              = DAYS OF MSSDAT       -
+                        WHERE (OPTION = '6', -
+                               DATE1  = TODAY)  CONSTANT
+%*   DAY Values
+      D               = CHOOSE ('MON' IF (DY = 1), -
+                                'TUE' IF (DY = 2), -
+                                'WED' IF (DY = 3), -
+                                'THU' IF (DY = 4), -
+                                'FRI' IF (DY = 5), -
+                                'SAT' IF (DY = 6), -
+                                'SUN' IF (DY = 7), -
+                                '   ')    CONSTANT
+%*
+%*    To choose the Friday Date if today is Sunday in the Approved Loaded Date
+%*
+      SUNDAY          = DATE2 OF MSSDAT      -
+                        WHERE (OPTION = '1', -
+                               DATE1  = TODAY,  -
+                               DAYS   = -2)     -
+                        CONSTANT
+      SUNDIS          = DISPLAY-DATE VIA (SUNDAY) CONSTANT
+%*
+%*    To choose the Friday date if today is Monday in the Approved Loaded Date
+%*
+      MONDAY          = DATE2 OF MSSDAT      -
+                        WHERE (OPTION = '1', -
+                               DATE1  = TODAY,  -
+                               DAYS   = -3)     -
+                        CONSTANT
+      MONDIS          = DISPLAY-DATE VIA (MONDAY) CONSTANT
+      YESTYY          = SUBSTR (YESDIS,7,2)       CONSTANT
+      SUNYY           = SUBSTR (SUNDIS,7,2)       CONSTANT
+      MONYY           = SUBSTR (MONDIS,7,2)       CONSTANT
+      YESTMM          = SUBSTR (YESDIS,4,2)       CONSTANT
+      SUNMM           = SUBSTR (SUNDIS,4,2)       CONSTANT
+      MONMM           = SUBSTR (MONDIS,4,2)       CONSTANT
+      YESTDD          = SUBSTR (YESDIS,1,2)       CONSTANT
+      SUNDD           = SUBSTR (SUNDIS,1,2)       CONSTANT
+      MONDD           = SUBSTR (MONDIS,1,2)       CONSTANT
+      YESTCC          = CHOOSE ('20' IF (YESTYY < '25'), '19') CONSTANT
+      SUNCC           = CHOOSE ('20' IF (SUNYY  < '25'), '19') CONSTANT
+      MONCC           = CHOOSE ('20' IF (MONYY  < '25'), '19') CONSTANT
+      YEST            = CATENATE (YESTCC,YESTYY,YESTMM,YESTDD) CONSTANT
+      MON             = CATENATE (MONCC,MONYY,MONMM,MONDD)     CONSTANT
+      SUN             = CATENATE (SUNCC,SUNYY,SUNMM,SUNDD)     CONSTANT
+%*
+      DTE             = CHOOSE (SUN IF (DY = 7), -
+                                MON IF (DY = 1), -
+                                YEST) CONSTANT
+%*
+%*    Determine the Date From/To
+      DATEFR          = CHOOSE (LOADFR IF (LOADFR <> SPACES), -
+                                DTE) CONSTANT
+      DATEF           = CHOOSE (DATEFR IF (DATEFR <> SPACES), DATEFR) -
+                               FORMAT (DATE) CONSTANT
+      DATETO          = CHOOSE (LOADTO IF (LOADTO <> SPACES), -
+                                DTE) CONSTANT
+      DATET           = CHOOSE (DATETO IF (DATETO <> SPACES), DATETO) -
+                               FORMAT (DATE) CONSTANT
+%*
+
+      Z               = '/' CONSTANT
+      U               = UNDERLINE ()
+      A00             = DSTRCT-CODE
+      A01             = SUPPLIER-NO
+      A02             = INV-NO    
+      B01             = PO-NO
+      BS              = APPR-STATUS
+      PS              = ITM-PMT-STATUS
+      B02             = LOADED-DATE FORMAT DATE
+      B03             = INV-ITEM-NO
+      H               = INV-ITEM-NO
+      B041            = LOC-VAL-INVD
+      B05             = PO-ITEM-NO
+      I               = PO-ITEM-NO
+      B06             = AUTHSD-BY
+      B07             = PO-NO
+      B08             = PO-ITEM-NO
+      B09             = LAST-AMEND-NO
+      B10             = ATAX-AMT-LOC
+      ORG-AMT         = CALC (B041 + B10)
+      W-LOADED-APPR   = CHOOSE ('Y' IF (B01  > SPACES), 'N')
+      DTEFLAG         = CHOOSE ('Y' IF (B02 >= DATEFR,  -
+                                        B02 <= DATETO), -
+                                'N')
+%* Look-up MSF260
+      M260            = INV-NO OF MSF260       -
+                        WHERE  (DSTRCT-CODE  = A00, -
+                                SUPPLIER-NO  = A01, -
+                                INV-NO       = A02)
+      EINV            = EXT-INV-NO VIA (M260)
+      INV             = CHOOSE (EINV IF (EINV <> SPACES), A02)    
+      A03             = INV-TYPE VIA (M260)
+      A05             = ACCOUNTANT VIA (M260)
+      INVFLAG         = CHOOSE ('Y' IF (A03 = '1'), -
+                                'Y' IF (A03 = '2'), 'N')
+%* Look-up File    - Invoice Amendments File
+      B042            = LOC-AMD-VAL OF MSF261       -
+                        WHERE  (DSTRCT-CODE  = A00, -
+                                SUPPLIER-NO  = A01, -
+                                INV-NO       = A02, -
+                                INV-ITEM-NO  = B03, -
+                                AMENDMENT-NO = B09)
+      AMD-AMT         = CALC (B042 + B10)
+%*    B04             = CHOOSE (B042 IF (B042 <> 0),-
+%*                                B041)  D-PIC (ZZZZ,ZZ9.99)
+      B04             = CHOOSE (AMD-AMT IF (AMD-AMT <> 0),-
+                                ORG-AMT)  D-PIC (ZZZZ,ZZ9.99)
+%* Look-up File    - Order Item File 
+      ORDVAL          = VAL-APPR OF MSF221 -
+                        WHERE (PO-NO      = B01, -
+                               PO-ITEM-NO = B05) -
+                               D-PIC (ZZZZZ,ZZ9.99)
+      WHI             = WHOUSE-ID VIA (ORDVAL)
+      W               = WHOUSE-ID VIA (ORDVAL)
+      PO221           = PO-NO     VIA (ORDVAL)
+      POPR1           = CATENATE(B07,'-',WHI) I-PIC (X(9))
+      POPR2           = CATENATE(B07,'   ') I-PIC (X(9))
+      POPR            = CHOOSE(POPR1 IF(DSTRCT-CODE = 'GRID'), -
+                               POPR2) I-PIC (X(9))
+      WHC             = CHOOSE('N' IF(WHI <> WHOUSEI, WHOUSEI <> SPACES), 'Y')
+      ORDPRC          = CURR-NET-PR-I VIA (ORDVAL) D-PIC (ZZZZZ,ZZ9.99)
+      ORDQTY          = CURR-QTY-I    VIA (ORDVAL) D-PIC (ZZZZ,ZZ9.99)
+%*    STFLAG          = CHOOSE ('Y' IF (PS <> '50'), 'N')
+      PRFLAG          = CHOOSE ('Y' IF (W-LOADED-APPR = 'Y',  -
+                                        DTEFLAG       = 'Y', -
+                                        WHC = 'Y', -
+                                        INVFLAG = 'Y'), -
+                                'N')
+      T1              = CHOOSE ( 1  IF (PRFLAG = 'Y'), 0)
+      T01             = TOTAL  (T1)     D-PIC (ZZZ,ZZ9)
+      CB04            = CHOOSE (B04 IF (PRFLAG = 'Y'), 0)
+      TB04            = TOTAL  (CB04)   D-PIC (ZZZZ,ZZ9.99)
+%* Look-up File    - Supplier Master File
+      C01             = SUPPLIER-NAME OF MSF200              -
+                        WHERE (SUPPLIER-NO = A01)
+
+%* Look-up File    - Employee Core Record     (For loaded by)
+      D01             = HRGET (EMPLOYEE-ID                   -
+                               FROM ('MSSEMP,MSF810')        -
+                               KEY  (EMPLOYEE-ID = A05))
+      D02             = FORMATTED-NAME VIA (D01)
+
+%* Look-up File    - Employee Core Record     (For Authorised by)
+      E01             = HRGET (EMPLOYEE-ID                   -
+                               FROM ('MSSEMP,MSF810')        -
+                               KEY  (EMPLOYEE-ID = B06))
+      E02             = FORMATTED-NAME VIA (E01)
+
+%* Look-up File    - Tax Code for Invoice
+      M263            = INV-DSTRCT-CODE OF MSF263        -
+                        WHERE (INV-DSTRCT-CODE = A00,    -
+                               INV-SUPPLIER-NO = A01,    -
+                               INV-NO          = A02,    -
+                               INV-ITEM-NO     = B03,    -
+                               DEFAULTED-IND  >= SPACES) -
+                        MAX (1)
+      AT              = ATAX-CODE              VIA (M263)  
+%*
+%*      End of Program
+%*

@@ -1,0 +1,182 @@
+%*** Revision History:
+%*** 05-Sep-12 N Perry       MO164 (Version 0001)
+%*** ......................  Reset version number to 0001 for E8 upgrade
+%*** 27-Jul-12 N Perry       MO164    
+%*** ......................  Convert to Ellipse 8 format.
+%*** 14-Aug-01  E Fredeluces  W01060322
+%***                          Initial Coding.
+%***
+%PROGRAM-ID
+    TRR90S
+%NARRATIVE
+    This program will extract Manual Journals with MPJ transaction type
+    in the MSF900 file.  The output file will be in a MIMS to Fleet 
+    Interface format and will be used to update the Fleet System.
+%VERSION
+    0001
+%FILES
+    MFILE = MSF000
+    AFILE = MSF900C
+    LFILE = MSF600
+    RFILE = TRR90SA
+    OFILE = TRT90SA
+%SELECTION
+    WHERE    (DSTRCT-CODE       = SPACES, -
+              CONTROL-REC-TYPE  = 'AD',   -
+              CONTROL-REC-NO   >= SPACES)
+    REJECTIF (CONTROL-REC-NO   <> %DC%,   -
+              %DC%             <> SPACES)
+    REJECTIF (DSTRCT-STATUS    <> 'A')
+%ROUTINES
+   MSSCNV 
+%REPORT
+    A
+%REPORT-TITLE
+'MIMS To Fleet Interface of MPJ Transactions'
+%REPORT-SUMMARY
+
+
+
+                        'Number of Transactions Processed :  '{TCNT    }
+
+                        'Amount Posted                    :  '{TVAL            }
+
+
+
+                                  '*** End of Report ***'
+%OUTPUT-FILE
+      A
+%CONTROL
+      RECORD-LENGTH = 132 
+%DETAIL
+<IF PFLAG = 'Y'>
+{FL}DD{ACCNT  }{KEY900         }{TRDTE   }{MANJNL                      }-
+{JNLDESC                     }Q{QTY    }{HRS     }A{AMT    }
+<ENDIF>
+%SUMMARY
+{ZD}XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXP{TOTREC }XXXXXXXXXXT{TOTAMT }
+%REQUEST-PARAMETERS
+    DC     D-PIC (X(4))  TEXT  'District Code    (Blank for All) : '
+    PRDFR  D-PIC (X(6))  TEXT  'Full Period From (ccyymm)        : '
+    PRDTO  D-PIC (X(6))  TEXT  'Full Period To   (ccyymm)        : '
+%VARIABLES
+    HRS    = '+000000000' CONSTANT
+    P      = '+'          CONSTANT
+    X      = ' '          CONSTANT
+    ZD     = 'ZZZZ'       CONSTANT
+    DIST   = CONTROL-REC-NO
+%*
+%*  Read MSF900
+%*
+    M900   = DSTRCT-CODE FROM MSF900C              -
+             WHERE    (DSTRCT-CODE-4   = DIST,     -
+                       FULL-PERIOD-4  >= %PRDFR%,  -
+                       FULL-PERIOD-4  <= %PRDTO%)  -
+             REJECTIF (REC900-TYPE    <> 'M')      -
+             REJECTIF (TRAN-TYPE      <> 'MPJ')
+    ACCNT  = ACCOUNT-CODE   VIA (M900)
+    EQNO   = EQUIP-NO-M     VIA (M900)
+    REVDT  = TRNDTE-REV-9   VIA (M900)
+    KEY900 = KEY-900        VIA (M900)
+    MANJNL = MANJNL-VCHR-M  VIA (M900)
+    JNLDESC= JOURNAL-DESC-M VIA (M900)
+%*
+%*  Quantity
+%*
+    QNTY   = QTY-AMOUNT-M   VIA (M900)      
+    Q      = CHOOSE ('+' IF (QNTY >= 0), '-')       D-PIC (X(1)) 
+    QTYNEG = CALC (QNTY * -1)                       I-PIC (9(7)V99) 
+    QTYPOS = CALC (QNTY *  1)                       I-PIC (9(7)V99)
+    QTY-9  = CHOOSE (QTYPOS IF (QNTY >= 0), QTYNEG) I-PIC (9(7)V99)
+    QTY-W  = SUBSTR (QTY-9,1,7)
+    QTY-D  = SUBSTR (QTY-9,8,2)    
+    QTY    = CATENATE (QTY-W,QTY-D)                 D-PIC (X(9)) 
+%*
+%*  Amount
+%*
+    AMNT   = TRAN-AMOUNT    VIA (M900)              
+    A      = CHOOSE ('+' IF (AMNT >= 0), '-')       D-PIC (X(1))
+    AMTNEG = CALC (AMNT * -1)                       I-PIC (9(7)V99)
+    AMTPOS = CALC (AMNT *  1)                       I-PIC (9(7)V99)
+    AMT-9  = CHOOSE (AMTPOS IF (AMNT >= 0), AMTNEG) I-PIC (9(7)V99)
+    AMT-W  = SUBSTR (AMT-9,1,7)
+    AMT-D  = SUBSTR (AMT-9,8,2)  
+    AMT    = CATENATE (AMT-W,AMT-D)                 D-PIC (X(9)) 
+%*
+    FLT9   = SUBSTR (EQNO,3,4) 
+   	AC     = SUBSTR (ACCNT,4,3)
+    ELT    = SUBSTR (ACCNT,7,3)
+    EQNO12 = SUBSTR (EQNO,1,2)
+    TRDT   = CALC (99999999 - REVDT)    I-PIC (9(8))
+    TRCCYY = SUBSTR (TRDT,1,4)
+    TRMM   = SUBSTR (TRDT,5,2)
+    TRDD   = SUBSTR (TRDT,7,2)
+    TRDTE  = CATENATE (TRDD,'/',TRMM,'/',TRCCYY) 
+%*
+%*  Read MSF600
+%*
+    M600  = EQUIP-NO OF MSF600 -
+            WHERE    (EQUIP-NO = EQNO)
+    CL    = EQUIP-CLASS VIA (M600)
+    PLNO  = PLANT-NO    VIA (M600)
+    FLT6  = SUBSTR (PLNO,3,4)
+%*
+%*  Determine Fleet No.
+%*     
+    FL    = CHOOSE (FLT9 IF (EQNO12 = 'FL'), -
+                    FLT6 IF (CL     = 'FL'), -
+                    SPACES)
+%*
+%*  Determine Fleet District
+%*
+    D     = CHOOSE ('HO' IF (DIST = 'GRID'), -
+                    'WV' IF (DIST = 'SWST'), -
+                    'HO' IF (DIST = 'PKOP'), -
+                    'NC' IF (DIST = 'NEWC'), -
+                    'NC' IF (DIST = 'QREL'), -
+                    'OR' IF (DIST = 'ORAN'), -
+                    'TW' IF (DIST = 'TMWT'), -
+                    'WG' IF (DIST = 'WGGA'), -
+                    'YS' IF (DIST = 'YASS'), -
+                    SPACES)    
+%*
+%*  Activity Centre must not be '999'
+%*  Element         must not be '308'    
+%*
+    ACFLG = CHOOSE ('N' IF (ELT = '308'), -
+                    'N' IF (AC  = '999'), -
+                    'Y')
+%*
+%*  Equip-no must start with 'FL'
+%*  or
+%*  Equip Class in MSF600 must be 'FL'      
+%*
+    EQFLG = CHOOSE ('Y' IF (EQNO12 = 'FL'), -
+                    'Y' IF (CL     = 'FL'), -
+                    'N') 
+%*
+%*  Determine whether to Extract
+%*
+    PFLAG = CHOOSE ('Y' IF (ACFLG = 'Y', -
+                            EQFLG = 'Y'),-
+                    'N')
+%*
+   CNT    = CHOOSE (1 IF (PFLAG = 'Y'), 0)
+   TCNT   = TOTAL  (CNT)     D-PIC ZZ,ZZZ,ZZ9
+   TOTCNT = CALC (TCNT * 1)  I-PIC (9(7)V99)
+   CNT-W  = SUBSTR (TOTCNT,1,7)
+   CNT-D  = SUBSTR (TOTCNT,8,2)
+   TOTREC = CATENATE (CNT-W,CNT-D) D-PIC (X(9))         
+   VAL    = CHOOSE (AMNT IF (PFLAG = 'Y'), 0)
+   TVAL   = TOTAL  (VAL)     D-PIC ---,---,---,--9.99
+   VALNEG = CALC (TVAL * -1) I-PIC (9(7)V99)
+   VALPOS = CALC (TVAL *  1) I-PIC (9(7)V99)
+   TOT-9  = CHOOSE (VALPOS IF (TVAL >= 0), VALNEG) I-PIC (9(7)V99) 
+   T      = CHOOSE ('+' IF (TVAL >= 0), '-') D-PIC (X(1))
+   TOT-W  = SUBSTR (TOT-9,1,7)
+   TOT-D  = SUBSTR (TOT-9,8,2)
+   TOTAMT = CATENATE (TOT-W,TOT-D)           D-PIC (X(9))
+%*
+%*            End of Program
+%*

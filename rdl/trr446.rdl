@@ -1,0 +1,117 @@
+%*
+%* Report Description        :  Heavy Plant Usage Report
+%*
+%PROGRAM-ID
+    TRR446
+%AUTHOR
+    Mincom Pty Ltd
+%NARRATIVE
+    Heavy Plant Usage Report.
+%MODULE
+    3430
+%VERSION
+    0003
+%* REVISION HISTORY
+%* 28-May-13   a9is6175 MO164 (Version 0003)
+%* .................... Moved FULL-PERIOD into WHERE on %SELECTION. 
+%* 14-Mar-13   a9is6175 MO164 (Version 0002)
+%* .................... Added apostrophe in front of account code.
+%* 05-Okt-12   a9is6175 MO164 (Version 0001)
+%* .................... Reset version number to 0001 for E8 upgrade.
+%* 14-Apr-03   RYeung   WCHG017242
+%*
+%*
+%FILES
+    MFILE = MSF900C
+    LFILE = MSF000
+    LFILE = MSF600
+    LFILE = MSF620
+    OFILE = TRT446A
+%ROUTINES
+        MSSDAT
+%SELECTION
+    WHERE     (DSTRCT-CODE-4 >= SPACES, -
+               FULL-PERIOD-4 >= DATE1,  -
+               FULL-PERIOD-4 <= DATE2)
+    REJECTIF  (TRAN-TYPE <> 'PTC')
+%ORDER
+    A08
+    A12 
+%OUTPUT-FILE
+     A
+%CONTROL
+       RECORD-LENGTH =180
+%BREAK-FIELDS
+    DUM
+%BREAK DUM HEADER
+'Equipment Reference,Equipment Description,Equipment Type,Transaction Date,Shift,Work Order,Project Number,-
+Account Code,Statistic Type,Rate,Statistic Value,Transaction Amount'
+%DETAIL
+<IF DPRINT = 'Y'>
+{A08       }S{A40                                     }S{A41 }S{A10   }SDDS{A15   }S - 
+{A50   }S{ACC                   }SCCS{A14       }S{A13      }S{A12       }
+<ENDIF>
+%*
+%*
+%REQUEST-PARAMETERS
+       IFRDTE   PIC (X(8)) FORMAT (DATE)  TEXT 'From Tran date              : '
+       ITODTE   PIC (X(8)) FORMAT (DATE)  TEXT 'To Tran date                : '
+       IMEMO    PIC (X(12))               TEXT 'Fleet Number                : '
+%*
+%VARIABLES
+       S         = ','                          CONSTANT
+       DUMMY     = 'Y'                          CONSTANT
+       PN        = PROJECT-NO-E
+       DUM       = choose ('Y' IF ( PN = PN ), DUMMY)
+       DISTRICT  = DSTRCT-CODE
+%* Find out the Accounting Period
+       DATE-S9  = numeric (%IFRDTE%)     I-PIC (9(8))  CONSTANT
+       DT-S1    = PERIOD-YRMN OF MSSDAT -
+                  WHERE (OPTION = 'B', -
+                         DATE1  = DATE-S9)          CONSTANT
+       PERY1 = substr (DT-S1,1,2)                       CONSTANT
+       PERC1 = choose ('19' IF (PERY1 > '90'), '20')     CONSTANT
+       DATE1 = CATENATE (PERC1, DT-S1)   CONSTANT
+%*
+       DATE-E9  = numeric (%ITODTE%)     I-PIC (9(8)) CONSTANT
+       DATE-E91 = DATE2-X OF MSSDAT       -
+                  WHERE (OPTION = '1',    -
+                         DATE1  = DATE-E9, -
+                         DAYS   = 90)        CONSTANT
+       DT-S2    = PERIOD-YRMN OF MSSDAT -
+                  WHERE (OPTION = 'B', -
+                         DATE1  = DATE-E91)          CONSTANT
+       PERY2 = substr (DT-S2,1,2)                       CONSTANT
+       PERC2 = choose ('19' IF (PERY2 > '90'), '20')     CONSTANT
+       DATE2 = CATENATE (PERC2, DT-S2)    CONSTANT
+
+%* ---- Memo Equipment Reference   
+       A38 = PLANT-NO OF MSF600 -
+              WHERE (EQUIP-NO    = MEMO-EQUIP-E)
+       A39 = MEMO-EQUIP-E
+       A08 = CHOOSE(A38  IF (A38 <> SPACES)  ,A39)
+       A40 = EQUIP-DESC-REC VIA (A38)
+       A41 = EQPT-TYPE VIA (A38)
+%*
+       D   = SHIFT-E
+       C   = STAT-TYPE-E
+       A13 = STAT-VALUE-E   D-PIC ( --------9.99 )
+       A12 = TRAN-AMOUNT    D-PIC ( ZZZZZZZ9.99- )
+       A14 = RATE-AMOUNT-E  D-PIC ( ZZZZZZZ9.99- )
+       IDTE = CALC (99999999 - TRNDTE-REV-9)     I-PIC (9(8))
+       A10 = GET (DISPLAY-DATE FROM (IDTE))
+       A15 = WORK-ORDER-E
+       A09 = ACCOUNT-CODE
+%*       ASB = SUBSTR (A09,1,1)
+       ACC = CATENATE (''',A09)
+%*       ACC = CHOOSE (AC1 IF (ASB ='0'), A09)
+       H = TRAN-TYPE
+%*
+       A50 = PROJECT-NO OF MSF620       -
+           WHERE (DSTRCT-CODE = DISTRICT, -
+                  WORK-ORDER  = A15)
+%*
+       DPT1      = CHOOSE ('Y' IF ( IDTE >= %IFRDTE%,   -
+                                    IDTE <= %ITODTE% ), 'N')
+       DPT2     = CHOOSE ('N' IF ( A08 <> %IMEMO%, %IMEMO% <> SPACES ), 'Y')
+       DPRINT   = CHOOSE ('Y' IF (DPT1 = 'Y', DPT2 = 'Y'), 'N')

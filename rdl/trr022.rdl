@@ -1,0 +1,90 @@
+%*** Revision History
+%*** 26-Apr-13  M Cole/       (Version 0002)
+%*** .......... P Cranna      Add check if profile used against a position.
+%*** 08-Aug-12  a9ir6369      MO164 (Version 0001)
+%*** .......................  Reset version number to 0001 for E8 upgrade.
+%*** 04-May-00  E Fredeluces  W00050044
+%*** .......................  Include Entity.                
+%*** 27-Apr-00  E Fredeluces  W00040481
+%*** .......................  Initial Coding.
+%*** 
+%PROGRAM-ID
+     TRR022 
+%* 
+%VERSION
+     0002
+%* 
+%AUTHOR
+     Ventyx
+%* 
+%NARRATIVE
+     Produces a report of obsolete MSF020 security records for Global Profiles.
+     Looks at all global profiles (defined on MSF020).
+     Checks to see if they are referenced on either: a position; or a sign-on profile
+%* 
+%FILES
+     MFILE = MSF020
+     LFILE = MSF020
+     LFILE = MSF870
+     RFILE = TRR022A
+%* 
+%SELECTION
+     WHERE    (ENTRY-TYPE      = 'G', -
+               ENTITY         >= SPACES)
+%* 
+%REPORT
+     A
+%* 
+%TITLE
+     'Unused Global Profiles'
+%* 
+%PAGE HEADING
+
+'This report lists Global Profiles which are not used.'
+'They are not used against a sign-on profile, and not used against a position.'
+
+
+'Global Profile'
+%* 
+%DETAIL
+<IF USED = 'N'>
+ {PROF    }
+<ENDIF>
+%* 
+%SUMMARY
+' '
+'*******************************  End of Report  *******************************'
+%* 
+%CONTROL
+     PAGE-WIDTH = 80
+     TRIM-REPORT
+%* 
+%VARIABLES
+%*
+     PROF    = ENTITY
+%*
+%*             This lookup determines if there is a sign-on profile
+%*             which references the global profile
+%* 
+     SIGNON  = ENTITY OF MSF020            -
+               WHERE    (ENTRY-TYPE      = 'S',    -
+                         ENTITY         >= SPACES) -
+               REJECTIF (GLOBAL-PROFILE <> PROF)  -
+               MAX      (1)
+     SUSED   = CHOOSE ('Y' IF (SIGNON <> SPACES), 'N')
+%*
+%*
+%*             This lookup determines if there is a position
+%*             which references the global profile
+%* 
+     P870    = POSITION-ID OF MSF870               -
+               WHERE    (POSITION-ID    >= SPACES) -
+               REJECTIF (GLOBAL-PROFILE <> PROF)   -
+               MAX      (1)
+     PUSED   = CHOOSE ('Y' IF (P870 <> SPACES), 'N')
+%*
+     USED    = CHOOSE ('Y' IF (SUSED = 'Y'), -
+                       'Y' IF (PUSED = 'Y'), -
+                       'N')
+%*
+%*  End of RDL

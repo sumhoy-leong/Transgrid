@@ -1,0 +1,96 @@
+%*** TRR69D.RDL
+%***
+%*** Revision History ***
+%***
+%*** 08-Aug-12 N Perry          MO164 (Version 0001)
+%*** ......................     Replace PIC Statements with D-PIC.    
+%*** ......................     Convert to Ellipse 8 format.
+%*** ......................     Reset version number to 0001 for E8 upgrade.
+%*** 12-Jun-03 L Nee            WCHG022507                                  
+%***                            Removed quotes from around the description
+%***                            fields.
+%*** 10-Sep-02 RK Mahajan       WCHG005916 The requirements necessitated to 
+%***                            rewrite the whole program.
+%***
+%PROGRAM-ID
+     TRR69D
+%AUTHOR
+     Mincom Pty Ltd
+%NARRATIVE
+    ** Standard Job Analysis Report. This program outputs a file in TXT format
+    ** with '~' character as delimitor.
+%MODULE
+     3690
+%VERSION
+     0001
+%ORDER
+     IDIST-CD
+     ISTD-JOB
+%FILES
+     IFILE = TRT69C
+     OFILE = TRT69DA
+%INPUT-FILE
+     IDIST-CD      PIC (X(4))
+     ISTD-JOB      PIC (X(6))
+     ISJ-DESC      PIC (X(40))
+     IWORK-GRP     PIC (X(7))
+     ISJ-TASK      PIC (X(3))
+     ISJT-DESC     PIC (X(40))
+     IPAR-SJ       PIC (X(6))
+     IPSJ-DESC     PIC (X(40))
+%BREAK-FIELDS
+     DUM
+     IDIST-CD
+     ISTD-JOB
+     ISJ-TASK
+%OUTPUT-FILE
+     A
+%CONTROL
+     RECORD-LENGTH = 250
+%BREAK DUM HEADER
+{HDG1                                                                  }-
+{HDG2                                       }
+%BREAK ISJ-TASK FOOTING
+{DC}Z{SJ  }Z{SJD1                                  }Z-
+{WG   }ZTTTZ{SJTD1                                 }Z-
+{PSJ1}Z{PSJD1                                 }Z-
+{PSJ2}Z{PSJD2                                 }Z-
+{PSJ3}Z{PSJD3                                 }Z
+%REQUEST-PARAMETERS
+    DISTCD    D-PIC (X(4))  TEXT 'District Code (blank for ALL) : '
+    SJFR      D-PIC (X(6))  TEXT 'Standard Job Numbers - From'
+    SJTO      D-PIC (X(6))  TEXT '                       To'
+    WKGRPFR   D-PIC (X(7))  TEXT 'Work Group - From'
+    WKGRPTO   D-PIC (X(7))  TEXT '             To'
+%VARIABLES
+    DC     = IDIST-CD
+    SJ     = ISTD-JOB
+    SJD1   = ISJ-DESC
+%*  SJDESC = catenate ('"', SJD1, '"')
+    WG     = IWORK-GRP
+    T      = ISJ-TASK
+    SJTD1  = ISJT-DESC
+%*  SJTD   = catenate ('"', SJTD1, '"')
+%*
+%* Collect the info for max 3 Parent Std Jobs with each Std Job.
+    PSJ    = PUT (IPAR-SJ) MAX (3)
+    PSJ1   = single (PSJ(1))
+    PSJ2   = single (PSJ(2))
+    PSJ3   = single (PSJ(3))
+%*
+%* Combine INFO max 3 Parent Std Job Description in one Std Job Task.
+    PSJD   = PUT (IPSJ-DESC) MAX (3)
+    PSJD1  = single (PSJD(1))
+    PSJD2  = single (PSJD(2))
+    PSJD3  = single (PSJD(3))
+%*
+%* Information about CSV/TXT file creation.
+    HDG1   = 'District~SJ No~SJ Description~Work Group~Std Job Task~Std Job Task Desc~'
+    HDG2   = 'PSJ1~PSJ1 Desc~PSJ2~PSJ2 Desc~PSJ3~PSJ3 Desc~'
+    Z      = '~'
+    DUMMY  = 'Y'
+    DUM    = CHOOSE ('Y' IF (DUMMY = 'Y'), -
+                     DUMMY)
+%*
+%* -----------------  End  of  the  Program  -------------------------
+

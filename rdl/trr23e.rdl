@@ -1,0 +1,249 @@
+%***  $Id: trr23e.rdl,v3.0 2009/03/02 11:30:00 Exp $
+%*** TRR23E.RDL
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%*** 
+%*** Revision History ***
+%*** 09-Apr-13  a9nh4814      MO164 (Version 0004)
+%*** .....................    Added filtering for bursting to send to valid
+%*** .....................    emails only.
+%*** 26-Mar-13  a9is6175      MO164 (Version 0003)
+%*** .....................    Add bursting.
+%*** 19-Feb-13  a9is6175      MO164 (Version 0002)
+%*** .....................    Changed content on %PAGE FOOTING.
+%*** 12-Sep-12  a9jw6280      MO164 (Version 0001)
+%*** .....................    Reset version number to 0001 for E8 upgrade.
+%*** .....................    Added quote for words after TEXT.
+%*** .....................    Modified PIC into D-PIC.
+%*** 01-Sep-10  G Presser     2897633                    (Version 004)
+%*** .....................    Printout all 4 lines of Description as well
+%*** .....................    as Extended Text.
+%*** 02-Mar-09  E Fredeluces  SC2223188
+%*** .................... .   Removed the TRIM-REPORT option.
+%*** 02-Dec-08  Janak Barar   SC2165651 stated that DYNAMIC PRINTER be
+%*** .....................    removed to allow to be printed other than dynamic
+%*** .....................    printer - STOREGRID.                         
+%*** 22-Feb-06  AIesho        P05110872
+%*** .....................    Append the %DISTRICT-CODE% code to STORE when
+%*** .....................    searching for a printer.  This is part of the
+%*** .....................    Ellipse Upgrade where every printer must be
+%*** .....................    unique. District code has to be before and after
+%*** .....................    the word STORE
+%*** 13-Feb-06 DDiolaso       Ellipse Upgrade [DD13]
+%*** .....................    Modification due changes to the printer naming
+%*** .....................    convention.
+%*** 08-Feb-02  L Nee         WCHG001130
+%***                          Initial coding.
+%***
+%PROGRAM-ID
+       TRR23E
+%AUTHOR
+       Laura Nee
+%NARRATIVE
+      **  This will generate the Purchase Requisitions by Team
+      **  Members and the Control Report.
+%VERSION
+        0004
+%FILES
+        IFILE = TRT23D
+        LFILE = MSF010
+        LFILE = MSF096
+        LFILE = MSF100
+        LFILE = MSF810
+        LFILE = MSF231
+        LFILE = MSF230
+        RFILE = TRR23EA
+        RFILE = TRR23EB
+%ROUTINES
+        MSSDAT
+        MSSCNV
+%INPUT-FILE
+        I-DATEFR      PIC (X(8))
+        I-DATETO      PIC (X(8))
+        I-SUPID       PIC (X(10))
+        I-AUTBY       PIC (X(10))
+        I-SUPPOS      PIC (X(10))
+        I-AUTPOS      PIC (X(10))
+        I-REQNO       PIC (X(6))
+        I-REQITEM     PIC (X(3))
+        I-DESC        PIC (X(40))
+        I-ACCTNO      PIC (X(24))
+        I-AUTDTE      PIC (X(8))
+        I-PQTY        PIC (S9(9)V99)
+        I-PRICE       PIC (S9(11)V9999)
+        I-VALUE       PIC (S9(11)V9999)
+%ORDER
+        I-SUPID
+        I-AUTBY
+%BREAK-FIELDS
+        I-SUPID
+        I-AUTBY
+%REPORT
+        A
+%CONTROL
+       LAST-DETAIL-LINE = 55
+       PAGE-WIDTH       = 132
+%REPORT-TITLE
+'PURCHASE REQUISITIONS BY THE TEAM MEMBERS'
+%BREAK I-SUPID HEADING ON NEW-PAGE
+<IF EMAIL <> SPACES>
+'<burst>'
+    '<type>EMAIL</type>'
+    '<to>'{EMAIL                                                   }'</to>'
+    '<from>trr23e@transgrid.com.au</from>'
+    '<subject>Purchase Requisitions by the Team Members</subject>'
+    '<body>Please see the attachment for details.'
+    '</body>'
+'</burst>'
+<ENDIF>
+'                                          Period      :  '{DATEFR}' To '{DATETO}  
+'                                          Position No.:  '{SUPPOS  }  {SUPID   } {SUPNAME                        }
+
+{underline                                                                                                                         }
+
+'Purchase                                                                           Date   Req' 
+'Req No    Description                        Account Code            Auth/Req-By   Auth   Type   Quantity       Price       Value'
+
+{underline                                                                                                                         }
+%DETAIL
+<IF %SUM% = 'N'>
+{PREQ}ZAAA {DESC                                  } {ACCTNO          } {AUTBY   } {DTE   }  B {PQTY      } {PRICE     } {VAL       }
+<SUPPRESS>
+           {DESC2                                 }
+<SUPPRESS>
+           {DESC3                                 }
+<SUPPRESS>
+           {DESC4                                 }
+<SUPPRESS>
+           {EXTDESC1                              }
+<SUPPRESS>
+           {EXTDESC2                              }
+<SUPPRESS>
+           {EXTDESC3                              }
+<SUPPRESS>
+           {EXTDESC4                              }
+<SUPPRESS>
+           {EXTDESC5                              }
+
+<ENDIF>
+%BREAK I-SUPID FOOTING
+
+'                                         Total '{TCNT}'Record/s for Team Leader'{SUPNAME                        }      {TOTVAL    }
+'                                                                                                                       ============'
+
+
+'                                                       Authorised By :   _____________________________________________'
+%BREAK I-AUTBY FOOTING
+
+'                                         Total '{TCNT}'Record/s for Team Member'{MEMNAME                        }      {TOTVAL    }
+'                                                                                                                       ------------'
+%PAGE FOOTING 
+'"Self authorisation" of purchase requisitions is not allowed under the Business Rules.'
+'This Control Report has been forwarded to you for action and subsequent approval.'
+'Repeat breaches will be forwarded to senior management for further action.'
+''
+'Where, in emergent circumstances, "self authorisation" is the only option available,'
+'written approval is required by the appropriate Group/Regional Manager within 5 days'
+'of the purchase requisition being authorised.'
+%SUMMARY
+
+%REPORT
+       B
+%CONTROL
+       LAST-DETAIL-LINE = 55
+       PAGE-WIDTH       = 132
+%REPORT-TITLE
+'PURCHASE REQUISITIONS BY THE TEAM MEMBERS - CONTROL REPORT'
+%PAGE HEADING
+
+'                                          Period      :  '{DATEFR}' To '{DATETO}  
+
+{underline                                                                                                                         }
+
+'Position-Id     Team Leader Name                No. of Recs          Value       Date Sent'
+
+%BREAK I-SUPID FOOTING
+<IF EMAIL <> SPACES>
+ {SUPPOS  }      {SUPNAME                        }  {TCNT}      {TOTVAL     }     {TDAY  }
+<ELSE>
+ {SUPPOS  }      {SUPNAME                        }  {TCNT}      {TOTVAL     }    '___________________'
+<ENDIF>
+%SUMMARY
+
+{underline                                                                                                                         }
+%SUMMARY
+
+%REQUEST-PARAMETERS
+       DATE1 PIC (X(8))  TEXT  'From Date                                     : '
+       DATE2 PIC (X(8))  TEXT  'To   Date                                     : '
+       POS   PIC (X(10)) TEXT  'Position-Id                                   : '
+       SUM   PIC (X(1))  TEXT  'Summary Report (Y/N)                          : '
+       CYCLE PIC (X(1))  TEXT  'Cycle: M-onthly D-daily F-Fortnightly (M/D/F) : '
+       WHOUSE PIC (X(2)) TEXT  'Warehouse Code                                : '
+%VARIABLES
+       DC      = %DISTRICT-CODE%  CONSTANT
+       Z       = '/'              CONSTANT
+
+       DATEFR  = I-DATEFR FORMAT (DATE)
+       DATETO  = I-DATETO FORMAT (DATE)
+       AUTBY   = I-AUTBY
+       SUPID   = I-SUPID
+       AUTPOS  = I-AUTPOS
+       SUPPOS  = I-SUPPOS
+       PREQ    = I-REQNO
+       A       = I-REQITEM
+       DTE     = I-AUTDTE
+       PQTY    = I-PQTY   D-PIC (Z(8)9.99)
+       PRICE   = I-PRICE  D-PIC (-Z(7)9.9(2))
+       ACCTNO  = I-ACCTNO
+       VAL     = I-VALUE  D-PIC (-Z(7)9.9(2))
+       TDAY    = DATE ()
+
+       DESC      = ITEM-DESC1 OF MSF231        -
+                   WHERE (DSTRCT-CODE  = DC,   -
+                          PREQ-NO      = PREQ, -
+                          PREQ-ITEM-NO = A)
+       DESC2     = ITEM-DESC2 VIA (DESC)
+       DESC3     = ITEM-DESC3 VIA (DESC)
+       DESC4     = ITEM-DESC4 VIA (DESC)
+       B         = REQ-TYPE VIA (DESC)
+
+       STDKEY    = catenate (DC,PREQ,A)
+       EXTDESC1  = STD-VOLAT-1 OF MSF096        -
+                   WHERE (STD-TEXT-CODE = 'PR', -
+                          STD-KEY = STDKEY,     -
+                          STD-LINE-NO = '0000')
+       EXTDESC2  = STD-VOLAT-2 VIA (EXTDESC1)
+       EXTDESC3  = STD-VOLAT-3 VIA (EXTDESC1)
+       EXTDESC4  = STD-VOLAT-4 VIA (EXTDESC1)
+       EXTDESC5  = STD-VOLAT-5 VIA (EXTDESC1)
+
+       TVAL    = choose (VAL IF (B <> SPACES), VAL)
+       TOTVAL  = total  (TVAL) PIC (-Z(7)9.9(2))
+       CNT     = choose (1 IF (B <> SPACES), 0)
+       TCNT    = total  (CNT)  PIC (ZZ,ZZ9)
+%*
+%*     Retrieve Team Leader's Name
+%*
+       SSNAME    = SURNAME OF MSF810 -
+                   WHERE (EMPLOYEE-ID = SUPID)
+       SFNAME    = FIRST-NAME VIA (SSNAME)
+       SFSNAME   = catenate (SSNAME,' ',SFNAME)
+       SUPNAME   = OUT-STRING OF MSSCNV -
+                   WHERE (OPTION      = 'P', -
+                          INP-STRING  = SFSNAME)
+%*
+%*     Retrieve Team Member's Name
+%*
+       MSNAME    = SURNAME OF MSF810 -
+                   WHERE (EMPLOYEE-ID = AUTBY)
+       MFNAME    = FIRST-NAME VIA (MSNAME)
+       MFSNAME   = catenate (MSNAME,' ',MFNAME)
+       MEMNAME   = OUT-STRING OF MSSCNV -
+                   WHERE (OPTION      = 'P', -
+                          INP-STRING  = MFSNAME)
+%*
+       EMAIL = EMAIL-ADDRESS VIA (SSNAME)
+%*                   *****  End of Program  *****
+%*

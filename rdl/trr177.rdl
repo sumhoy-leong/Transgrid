@@ -1,0 +1,233 @@
+%***  $Id: trr177.rdl,v1.0 16/04/2012 16:00:00 Exp $
+%*** Revision History ***
+%*** 09-Apr-13 a9nh4814      Version 0002
+%*** ......................  Fixed on SOH retrieval to increase performance.
+%*** 02-Jan-13 a9is6175      
+%*** ......................  Fixed result set closed issue, 
+%*** ......................  changed SELECTION if conditional content.
+%*** 21-Aug-12 N Perry
+%*** ......................  Removed Category Management from report.
+%*** 19-Aug-12 N Perry
+%*** ......................  Changed getting WHOUSE to be from MSF180 for
+%*** ......................  MSF1HD
+%*** ......................  Remove Cat Management from report.
+%*** 27-Jul-12 N Perry       
+%*** ......................  Convert to Ellipse 8 format.
+%*** ......................  Changed program to get SOH using MSSSOH
+%*** ......................  as SOH field is no longer exist in MSF180 now.
+%***  16-Apr-2012  E Fredeluces  SC3932105
+%***                             Include the warehouse from the report.
+%***                             Amend how inventory value is determined.
+%***                             Remove call for TRR178.     
+%***  17-Jan-2003  A Sahyoun.    WCHG030189
+%***  ......................     Initial Coding
+%PROGRAM-ID
+      TRR177
+%NARRATIVE
+      This program will generate the List of Category
+      Managed Inventory by District by Class.
+%MODULE
+      3140
+%FILES
+      MFILE = MSF170
+%*      AFILE = MSF180
+      AFILE = MSF1HD
+      LFILE = MSF1CS
+      LFILE = MSF194         
+      LFILE = MSF183 
+      RFILE = TRR177A
+      OFILE = TRO177A
+%VERSION
+      0003
+%ROUTINES
+        MSSSOH
+%SELECTION
+<IF %DST% <> SPACES>
+      WHERE    (DSTRCT-CODE >= %DST%,-
+                DSTRCT-CODE <= %DST%)
+      REJECTIF (%STKCLASS% <> SPACES, CLASS <> %STKCLASS%)
+      REJECTIF (INVENT-VALUE = 0)
+<ELSE>
+      WHERE    (DSTRCT-CODE >= SPACES)
+      REJECTIF (%STKCLASS% <> SPACES, CLASS <> %STKCLASS%)
+      REJECTIF (INVENT-VALUE = 0)
+<ENDIF>
+%ORDER
+      DSTRCT-CODE
+      WH   
+      CLASS 
+      INV-CAT  
+%BREAK-FIELDS
+      DSTRCT-CODE
+      WH 
+      CLASS
+%REPORT
+       A
+%REPORT-TITLE
+'Inventory Dissection by Category/Stock Class Report'
+%PAGE HEADING
+%BREAK DSTRCT-CODE HEADING TEST-PAGE (7)
+ 'District  :  '{DC}
+%BREAK WH HEADING TEST-PAGE (5)
+<IF WH-FLG = 'Y',  WH <> SPACE>
+ 'Warehouse :  '{WH}
+
+<ENDIF>
+%BREAK CLASS FOOTING
+<IF WH-FLG = 'Y', WH <> SPACE>
+       'Stock Class Total 'C                                                                          {GRVAL       }  
+<ENDIF>
+%BREAK WH FOOTING
+<IF WH-FLG = 'Y', WH <> SPACE>
+                                                                                                     '--------------'
+       'Warehouse Total'                                                                              {GRVAL       }
+
+<ENDIF>
+%BREAK DSTRCT-CODE FOOTING
+
+                                                                                                     '--------------'
+       'District Total'                                                                               {GRVAL       } 
+
+%SUMMARY
+{UNDERLINE                                                                                                                         }
+
+         'Grand Total                   '                                                             {GRVAL       }
+
+{UNDERLINE                                                                                                                         }
+
+                                                    '*** End Of Report ***'
+
+%*'                                  ***  Summary for all Districts can be found in  report TRR178  ***' 
+%OUTPUT-FILE
+       A
+%CONTROL
+      RECORD-LENGTH = 44
+%DETAIL
+<IF SOH180 <> 0>
+<IF %CSV% = 'Y', VAL <> ZERO, WH-FLG = 'Y'>
+{DC}X{WH}X{SC     }XCX  XMMX{VAL         }X 
+<ENDIF>
+<ENDIF>
+%REQUEST-PARAMETERS
+       DST          D-PIC (X(4))   TEXT  'District Code (Blank for all)             : '
+       WHID         D-PIC (X(4))   TEXT  'Whouse-Id     (Blank for all)             : '
+       STKCLASS     D-PIC (X(1))   TEXT  'Stock Class   (Blank for all)             : '
+       CSV          D-PIC (X(1))   TEXT  'Detail Required (Y/N) Download to H:Drive : ' 
+%VARIABLES
+%* Constants
+       X = ',' CONSTANT      
+%* Main File ....
+       DC     = DSTRCT-CODE
+       SC     = STOCK-CODE
+       MFLAG  = CATEG-MGT-FLG
+       PRC170 = INVENT-COST-PR
+       N      = STOCK-TYPE
+       C      = CLASS
+       CATSW  = CAT-COST-SW
+
+%* Get Warehouse
+%*      MSF180 = STOCK-CODE FROM MSF180         -
+%*               WHERE    (DSTRCT-CODE = DC,    -
+%*                         STOCK-CODE  = SC,    -
+%*                         WHOUSE-ID >= SPACES) -
+%*               REJECTIF (WHOUSE-ID <> %WHID%, -
+%*                         %WHID%    <> SPACES)
+%*      WH180  = WHOUSE-ID VIA (MSF180)
+
+%*      MSSOH = WHOUSE-ID OF MSSSOH -
+%*              WHERE (OPTION-SOH             = '2', -
+%*                     DSTRCT-CODE            = DC, -
+%*                     STOCK-CODE             = SC, -
+%*                     WHOUSE-ID              = WH180, -
+%*                     WH-SOH-REQ-SW          = 'Y')
+%*      WHSOH  = WH-OWN-SOH VIA (MSSOH)
+%*      WHCSOH = WH-CON-SOH VIA (MSSOH)
+
+%*      SOH180 = CALC( WHSOH + WHCSOH + 0)
+
+%* Determine Warehouse to Use 
+%*      WH     = CHOOSE   (WH180 IF (WH180 <> SPACES), -
+%*                         WH180)
+
+%*      WH-FLG = CHOOSE   ('Y' IF (%WHID% = SPACES),  -
+%*                         'Y' IF (WH     = %WHID%,   -
+%*                                 %WHID% <> SPACES), -
+%*                         'N')
+
+       SOH180 = SOH FROM MSF1HD -
+                WHERE    (STOCK-CODE = SC, -
+                          CUSTODIAN-ID >= SPACES) -
+                SELECTIF (STK-OWNERSHP-IND = 'O') -
+                SELECTIF (STK-OWNERSHP-IND = 'C') -
+                REJECTIF (HOLDING-TYPE    <> 'F')
+
+       CUST-ID = CUSTODIAN-ID VIA (SOH180)
+
+       WH = WHOUSE-ID OF MSF1CS -
+            WHERE    (CUSTODIAN-ID   >= CUST-ID, -
+                      CUSTODIAN-ID   <= CUST-ID) -
+            REJECTIF (CUSTODIAN-TYPE <> 'W') -
+            REJECTIF (WHOUSE-ID      <> %WHID%, -
+                      %WHID%         <> SPACES) -
+            MAX (1)
+
+       WH-FLG = CHOOSE ('N' IF (WH      = SPACES), -
+                        'Y' IF (%WHID%  = SPACES), -
+                        'Y' IF (WH      = %WHID%,  -
+                                %WHID% <> SPACES), -
+                        'N')
+
+%* Get all inventory category for each stock code...
+       MSF183 = STOCK-CODE OF MSF183             -
+                WHERE    (STOCK-CODE   = SC,     -
+                          DSTRCT-CODE  = DC,     -
+                          WHOUSE-ID    = WH,     -
+                          INVENT-CAT  >= SPACES) - 
+                REJECTIF (WHOUSE-ID    = SPACES) -
+                MAX      (1)                     
+
+       I      = INVENT-CAT  VIA (MSF183)
+       INV-CAT = CHOOSE   (I IF (I <> SPACES), I)
+
+%* Get inventory category value ...
+
+       MSF194 = INVENT-VALUE OF MSF194      -
+                WHERE    (DSTRCT-CODE = DC, -
+                          STOCK-CODE  = SC, -
+                          INVENT-CAT  = I)  
+
+       VAL194 = INVENT-VALUE   VIA (MSF194)
+       PRC194 = INVENT-COST-PR VIA (MSF194)
+
+%*  Determine Inventory Cost Price to use
+
+       PRC    = CHOOSE (PRC194 IF (MFLAG = 'Y', CATSW = 'Y'), -
+                        PRC170) 
+
+%*  Calculate Inventory Value for Non-Category Managed item 
+       INVVAL = CALC (SOH180 * PRC) 
+
+       VAL    = CHOOSE (INVVAL IF (WH-FLG = 'Y'), -
+                        0)  D-PIC (---,---,--9.99) 
+
+%*     For "MA" Inventory Value
+       MAVAL   = CHOOSE (VAL IF (I = 'MA'), 0)        D-PIC (---,---,--9.99)
+       MAVALT  = TOTAL  (MAVAL)                       D-PIC (---,---,--9.99)
+
+%*     For "PR" Inventory Value
+       PRVAL   = CHOOSE (VAL IF (I = 'PR'), 0)        D-PIC (---,---,--9.99)
+       PRVALT  = TOTAL  (PRVAL)                       D-PIC (---,---,--9.99)
+
+%*     For Other Inventory Value
+       OTVAL   = CHOOSE (VAL IF (I <> 'MA', I <> 'PR'), 0)  -
+                                                      D-PIC (---,---,--9.99)
+       OTVALT  = TOTAL  (OTVAL)                       D-PIC (---,---,--9.99)
+
+       M       = CHOOSE ('MA' IF (I = 'MA'),-
+                         'PR' IF (I = 'PR'), '  ')
+
+%*     Grand Total for Inventory Value
+       GRVAL   = CALC   (MAVALT + PRVALT + OTVALT)    D-PIC (---,---,--9.99)  
+%* 
+%*                      *** End of Program ***
+%*

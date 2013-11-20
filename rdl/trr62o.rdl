@@ -1,0 +1,760 @@
+%** Revision History - Please see at the bottom.
+%PROGRAM-ID
+       TRR62O
+%NARRATIVE
+%***      Work order history summary/detail report
+%***
+%***    --------------------------------------------------
+%***    NB  WEB620 is identical to WFB620 except for the
+%***        Request Parameters and the program selection
+%***        logic. Any change to either program's report
+%***        should be duplicated in the other program
+%***    --------------------------------------------------
+%***
+%***
+%***  FRS W-455802  The inclusion of Part-Completed work orders is handled
+%***  by the line:
+%***
+%***  REJECTIF (%STAT% = 'P', NO-TASKS-COMPL-9 = zero)
+%***
+%***  This will reject all work orders with NO completed tasks, and select
+%***  those which have some or all tasks completed.
+%***
+%***
+%***
+%******************************************************************************
+%VERSION
+       0001
+%FILES
+       MFILE = MSF620
+       AFILE = MSF623
+       LFILE = MSF600
+       LFILE = MSF621
+       LFILE = MSF696
+       LFILE = MSF696A
+       LFILE = MSF700
+       LFILE = MSF735
+       LFILE = MSF010
+       LFILE = MSF607
+       RFILE = TRR62OA
+       RFILE = TRR62OB
+       OFILE = TTE620D
+%CONTROL
+       PAGE-LENGTH = 55
+%ORDER
+       EQ2
+       COMP-CODE
+       COMP-MOD-CODE
+       CLOSED-DT
+       WORK-ORDER
+       DESC INCLSW
+%BREAK-FIELDS
+       DUM
+       WORK-ORDER
+%SELECTION
+       WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+              WORK-ORDER >= SPACES)
+       SELECTIF (%STAT%  = 'C', WO-STATUS-M = 'C')
+       SELECTIF (%STAT%  = 'F', WO-STATUS-M = 'F')
+       SELECTIF (%STAT%  = 'A', WO-STATUS-M = 'A')
+       SELECTIF (%STAT%  = ' ')
+       REJECTIF (%DTYPE% = 'R', %DFROM% <> SPACES, RAISED-DATE    <  %DFROM%)
+       REJECTIF (%DTYPE% = 'R', %DTO%   <> SPACES, RAISED-DATE    > %DTO%)
+       REJECTIF (%DTYPE% = 'C', %DFROM% <> SPACES, CLOSED-DT <  %DFROM%)
+       REJECTIF (%DTYPE% = 'C', %DTO%   <> SPACES, CLOSED-DT > %DTO%)
+       REJECTIF (%DTYPE% = 'P', %DFROM% <> SPACES, PLAN-STR-DATE  <  %DFROM%)
+       REJECTIF (%DTYPE% = 'P', %DTO%   <> SPACES, PLAN-STR-DATE  > %DTO%)
+       REJECTIF (EXCSTAND  = 'Y', WO-STATUS-U = 'S')
+       REJECTIF (%MTYPE%     <> SPACES, MAINT-TYPE     <> %MTYPE%)
+       REJECTIF (STD-JOBFR  <> SPACES, STD-JOB-NO      < STD-JOBFR)
+       REJECTIF (STD-JOBTO  <> SPACES, STD-JOB-NO      > STD-JOBTO)
+       REJECTIF (%COMPC%     <> SPACES, COMP-CODE      <> %COMPC%)
+       REJECTIF (%MOD%       <> SPACES, COMP-MOD-CODE  <> %MOD%)
+       REJECTIF (%WKGRPFROM% <> SPACES, WORK-GROUP     <  %WKGRPFROM%)
+       REJECTIF (%WKGRPTO%   <> SPACES, WORK-GROUP     > %WKGRPTO%)
+       REJECTIF (%ORIG%      <> SPACES, ORIGINATOR-ID  <> %ORIG%)
+       REJECTIF (%CBY%       <> SPACES, COMPLETED-BY   <> %CBY%)
+       REJECTIF (%ASTI%      <> SPACES, ASSIGN-PERSON  <> %ASTI%)
+       REJECTIF (%WOTYPE%    <> SPACES, WO-TYPE        <> %WOTYPE%)
+       REJECTIF (%PROJECTNO% <> SPACES, PROJECT-NO     <> %PROJECTNO%)
+       STOPIF   (DSTRCT-CODE <> %DISTRICT-CODE%)
+%OUTPUT-FILE
+        D
+%CONTROL
+        RECORD-LENGTH = 953
+        INCLUDE-EMPTY-SUMMARY
+%BREAK DUM HEADING
+'WO No.|WO Stat|Equip Ref|Equip No.|Comp Cde|Mod Cde|Std Job|Description|User Stat|WO Type|Maint Type|'-
+'Work Grp|Acc Cde|Related WO|Originator|Raised Dte|Orig Priority|Planners Priority|Req Start Dte|Req By Dte|'- 
+'Cap WO|Project No.|Parent WO|Unit Req|UOW|Shutdown Type|Description|Recall Time Hrs|Est Dur Hrs|'-
+'Plan Start Dte|Plan Start Time|Plan Finish Dte|Plan Finish Time|Crew|Assign To|Maint Sched|Res Hrs Est|'-
+'Res Hrs Calc|Res Cost Est|Res Cost Calc|Mat Cost Est|Mat Cost Calc|Equip Cost Est|Equip Cost Calc|'-
+'Other Cost Est|Other Cost Calc|Total Cost|Act Res Hrs|Act Res Cost|Act Mat Cost|Act Equip Cost|'-
+'Act Other Cost|Act Total Cost|Failure Mode|Failure Cond|Failure Cause|Consequence Cd|Job Code 5|Job Code 6|'-
+'Job Code 7|Job Code 8|Job Code 9|Job Code 10|WO Extended Text|WO Completion Text|'-
+'WO Task|Description|Completed By|Completed Code|Completed Date|Completed Time'
+%DETAIL
+<IF INCLSW = 'Y'>
+{WO    }X{WOST}X{EQ2         }X{EQ1       }X{CP  }XMMX{SJ  }X{WDESC                                    }XUUXPPX{MTDES       }X-
+{WGRP }X{ACCTCDE               }X{RELWO }X{ORIGN   }X{RD      }XGGXJJX{RSD     }X{RFD     }X-
+LX{PROJNO}X{PWO   }X{UNITREQ  }X{UW}XHHX{SHDESC                                }X{RECTHR     }X{EDH   }X-
+{PSD     }X{PST     }X{PFD     }X{PFT     }X{WGCREW  }X{WASSIGN }X{MST }X{RHRSEST    }X-
+{RHRSCAL  }X{RCSTEST        }X{RCSTCAL         }X{MCSTEST        }X{MCSTCAL        }X{ECSTEST        }X{MCSTCAL        }X-
+{OCSTEST        }X{OCSTCAL        }X{ETC1           }X{RHRSACT   }X{ALC           }X{AMC           }X{AEC           }X-
+{AOC           }X{ATC1           }X{JC1}X{JC2}X{JC3}X{JC4}X{JC5}X{JC6}X{JC7}X{JC8}X{JC9}X{JC0}X-
+{WOTEXT                                                  }X{CWTEXT                                                  }X-
+TTTX{TDESC                                  }X{WOCMP               }XKKX{WOCD    }X{WOCT  }          
+<REPEAT>
+<IF (WOTEXT <> ' ' AND CWTEXT <> ' ')>
+'       |      |              |            |      |  |      |                                           |  |  |              |-
+       |                        |        |          |          |  |  |          |          |-
+ |        |        |           |    |  |                                        |             |        |-
+          |          |          |          |          |          |      |             |-
+           |                 |                  |                 |                 |                 |                 |-   	
+                 |                 |                 |            |                |                |                |-        
+                |                 |     |     |     |     |     |     |     |     |     |     |'-
+{WOTEXT                                                  }X{CWTEXT                                                  }X-
+'  |				                         |                      |  |          |       '
+<ENDIF>
+<ENDREPEAT> 
+<ENDIF>
+%REPORT
+       A
+%CONTROL REPORT A
+       TRIM-REPORT
+%REPORT-TITLE
+       'WORK ORDER TASK HISTORY REPORT - SUMMARY'
+%PAGE HEADING
+<IF %RTYPE% = 'S'>
+'W/O No.     PLANT No.    COMP  MOD  MST  | STD JOB | W/O RAISE DATE | W/O START DATE   |  W/O COMPLETED BY     | CC | W/O COMP DATE'
+'PLANT DESCRIPTION-1                      | EST RES | MAINT. TYPE    | WORK ORDER DESCRIPTION  '
+'PLANT DESCRIPTION-2                      | EST DUR | W/O TYPE       |               '
+'TASK NUMBER         TASK DESCRIPTION               | JOB DESC TYPE  | TASK START DATE  |  TASK COMPLETED BY    | CC | TSK COMP DATE'
+<ENDIF>
+%BREAK WORK-ORDER TEST-PAGE (6)
+<IF %RTYPE% = 'S'>
+    <IF INCLSW = 'Y'>
+ {WO    }  {EQ2         } {CP  } MM {MST }X  {SJ   }X    {RD      }  X    {PSD     }   X {WOCMP               }X KK X   {WOCD    }
+ {EQDESC1                                }X{ERH   } X {MTDES       } X {WDESC                                    }
+ {EQDESC2                                }X{EDH   } X {TYDS        } X {WOTEXT                                                  }
+                                                <REPEAT>
+                                                     <SUPPRESS>
+                                                                       {WOTEXT                                                  }
+                                                <ENDREPEAT>
+   <ENDIF>
+<ENDIF>
+%DETAIL
+<IF %RTYPE% = 'S'>
+    <IF INCLSW = 'Y'>
+ TTT   {TDESC                                  }    X {JOBDES      } X    {TPSD   }    X {TSKCMP              }X CC X   {TCOMDAT }
+   <ENDIF>
+<ENDIF>
+%BREAK WORK-ORDER FOOTING
+<IF %RTYPE% = 'S'>
+    <IF INCLSW = 'Y'>
+ {UNDERLINE                                                                                                                       }
+   <ENDIF>
+<ENDIF>
+%REPORT-SUMMARY
+<IF %RTYPE% = 'S'>
+ <IF WOCOUNT > 0>
+
+'Total Number of Work Order Tasks     : '    {TKCOUNT}
+'Total Estimated Duration             : '  {TEDH     }
+'Total Estimated Duration Hrs         : '  {TERH     }
+'                                             *******    End Of TRR62O Report   *******  '
+ <ENDIF>
+<ENDIF>
+%REPORT
+       B
+%CONTROL REPORT B
+       TRIM-REPORT         
+%REPORT-TITLE
+       'WORK ORDER TASK HISTORY REPORT - DETAIL'
+%PAGE HEADING
+<IF %RTYPE% = 'D'>
+'WORK ORDER NO/TASK      LEAD GRP|W/O ASSIGN|EST DUR |ACT LAB -1       |JOB CODES -1, -2, -3, -4, -5, -6, -7, -8, -9, -10'
+'PLANT NUMBER  COMP MOD  TASK GRP|COMPD BY  |ACT DUR |ACT LAB -2       |PART CAUSING FAILURE                      PRI  SHUT STATUS'
+'PLANT DESCRIPTION               |DATE COMP |EST RES |ACT LAB -3       |                                               DOWN'
+'                                |COMP CODE |ACT RES |ACT LAB -4       |                                               CODE'
+<ENDIF>
+%DETAIL TEST-PAGE (4)
+<IF %RTYPE% = 'D'>
+     <IF INCLSW = 'Y'>
+{WO    }NTTT              {WGRP }X{WASSIGN }X{EDH   }XWWWWW QQ {ART   }X{JC1} {JC2} {JC3} {JC4} {JC5} {JC6} {JC7} {JC8} {JC9} {JC0}
+{EQ2       }   {CP} MM    {TWGRP}X{TCBY    }X{ADH   }XWWWWW QQ {ART   }X{PFAIL                   }                 JJ  HH   {FDSC}
+{EQDESC1                        }X{TCOMDAT} X{ERH   }XWWWWW QQ {ART   }X
+{EQDESC2                        }XCC        X{ARH   }XWWWWW QQ {ART   }X
+
+'ORIGINATOR = ' {ORIGN                             }
+'Work Order Text:       '{WDESC                                 }
+                   <REPEAT>
+                         {WOTEXT                                                    }
+                   <ENDREPEAT>
+
+          <IF MISWITCH = 'Y'>
+'Routine Instructions:  '{DESC1                                      }
+                         {DESC2                                      }
+                   <REPEAT>
+                         {MITEXT                                                    }
+                   <ENDREPEAT>
+          <ENDIF>
+
+'Task Job Instructions: '{TDESC                                 }
+                   <REPEAT>
+                         {JITEXT                                                    }
+                   <ENDREPEAT>
+
+          <IF CWSIZE > 0>
+'History Text:          '{CWTEXT                                                    }
+                   <REPEAT>
+                         {CWTEXT                                                    }
+                   <ENDREPEAT>
+          <ENDIF>
+{UNDERLINE                                                                                                                         }
+     <ENDIF>
+<ENDIF>
+%REPORT-SUMMARY
+<IF %RTYPE% = 'D'>
+
+'Total Number of Work Order Tasks : ' {TKCOUNT}
+
+'                                             *******    End Of TRR62O Report   *******  '
+<ENDIF>
+
+%REQUEST-PARAMETERS
+   RTYPE            PIC (X(1))   TEXT 'Summary/Detail (S/D)'
+   WKGRPFROM        PIC (X(7))   TEXT 'Work Group  From'
+   WKGRPTO          PIC (X(7))   TEXT 'Work Group To'
+   PROJECTNO        PIC (X(7))   TEXT 'Project No'
+   PLANTFR          PIC (X(30))  TEXT 'Plant Number  From'
+   PLANTTO          PIC (X(30))  TEXT 'Plant Number To'
+   PARENTSJ         PIC (X(6))   TEXT 'Parent Standard Job Number'
+   DTYPE            PIC (X(1))   TEXT 'Date: R=Raise, C=Close, P=Plan Start'
+   DFROM            PIC (X(8))   TEXT 'Work Order Date From'
+   DTO              PIC (X(8))   TEXT 'Work Order Date To'
+   STAT             PIC (X(1))   TEXT 'WO Status (A)uth, (C)losed or (F)inalised'
+   MTYPE            PIC (X(2))   TEXT 'Maintenance Type'
+   WOTYPE           PIC (X(2))   TEXT 'Work Order Type'
+   JOBCD            PIC (X(2))   TEXT 'Job Code Table (e.g. W4)'
+   JOBTY            PIC (X(5))   TEXT 'Job Code Value (e.g. Parts)'
+   SJOBFROM         PIC (X(6))   TEXT 'Standard Job No. - From'
+   SJOBTO           PIC (X(6))   TEXT 'Standard Job No. - To'
+   EXCSTAND         PIC (X(1))   TEXT 'Exclude Standing W/OS (Y/N)'
+   COMPC            PIC (X(4))   TEXT 'Component Code'
+   MOD              PIC (X(2))   TEXT 'Modifier Code'
+   ORIG             PIC (X(10))  TEXT 'Originator'
+   ASTI             PIC (X(10))  TEXT 'Assign To'
+   CBY              PIC (X(10))  TEXT 'Completed By'
+
+%VARIABLES
+%***  CONSTANTS
+       ORIGN      = ORIGINATOR-ID
+       EXCSTAND   = %EXCSTAND%  CONSTANT
+       N          = '/'         CONSTANT
+       X          = '|'         CONSTANT
+       Y          = ','         CONSTANT
+       R          = '"'         CONSTANT
+       STD-JOBFR  = %SJOBFROM%  CONSTANT
+       STD-JOBTO  = %SJOBTO%    CONSTANT
+       JC1     = WO-JOB-CODE (1)
+       JC2     = WO-JOB-CODE (2)
+       JC3     = WO-JOB-CODE (3)
+       JC4     = WO-JOB-CODE (4)
+       JC5     = WO-JOB-CODE (5)
+       
+       JC6     = WO-JOB-CODE (6)
+       JC7     = WO-JOB-CODE (7)
+       JC8     = WO-JOB-CODE (8)
+       JC9     = WO-JOB-CODE (9)
+       JC0     = WO-JOB-CODE (10)
+       WO      = WORK-ORDER
+       WOS     = WO-STATUS-M
+       U       = WO-STATUS-U
+       PROJNO  = PROJECT-NO
+       A       = PAPER-HIST
+       PWO     = PARENT-WO
+       FINCOST = FINAL-COSTS
+       WGRP    = WORK-GROUP
+       PFAIL   = FAILURE-PART
+       H       = SHUTDOWN-TYPE
+       J       = PLAN-PRIORITY
+       SDNUMBER= SHUTDOWN-NO
+       MST     = MAINT-SCH-TASK
+       WASSIGN = ASSIGN-PERSON
+       EQ1     = EQUIP-NO
+       CP      = COMP-CODE
+       M       = COMP-MOD-CODE
+       WOCD    = CLOSED-DT FORMAT(DATE)
+       WOCT    = CLOSED-TIME FORMAT(TIME)
+       WDESC   = WO-DESC
+       PSD     = PLAN-STR-DATE FORMAT(DATE)
+       PFD     = PLAN-FIN-DATE FORMAT(DATE)
+       MT      = MAINT-TYPE
+       SJ      = STD-JOB-NO
+       WT      = WO-TYPE
+       CMPBY   = COMPLETED-BY
+       K       = COMPLETED-CODE
+       RD      = RAISED-DATE   FORMAT(DATE)
+       TSKCNT  = NO-OF-TASKS-9
+       RFD     = REQ-BY-DATE FORMAT(DATE)
+       DRS     = REQ-START-DATE FORMAT(DATE)
+
+%*     RSD     = CHOOSE (PSD IF (PSD <> SPACES), -
+%*                       RD) FORMAT(DATE)
+       RSD     = CHOOSE (DRS IF (DRS <> SPACES), -
+                         PSD IF (PSD <> SPACES), -
+                         RD) FORMAT(DATE)
+
+%*EF1201 Read MSF696 File
+       PSJ     = SJP-PSJ-NO OF MSF696                 -
+                 WHERE (DSTRCT-CODE = %DISTRICT-CODE%,-
+                        SJP-PSJ-IND = 'P',            -
+                        SJP-PSJ-NO  = %PARENTSJ%,     -
+                        PSJ-SJ-IND  = 'S',            -
+                        PSJ-SJ-NO   = SJ)             -
+                 MAX   (1)
+
+
+       PSJFLG  = CHOOSE ('Y' IF (%PARENTSJ%  = SPACES), -
+                         'Y' IF (%PARENTSJ%  = PSJ,     -
+                                 %PARENTSJ% <> SPACES), -
+                         'N')
+%* Get PSJ for a given SJ
+
+       PSJOB   = SJP-PSJ-NO-2 OF MSF696A                 -
+                 WHERE (DSTRCT-CODE-2 = DSTRCT-CODE,   -
+                        PSJ-SJ-IND-2  = 'S',           -
+                        PSJ-SJ-NO-2  >= STD-JOB-NO,    -
+                        PSJ-SJ-NO-2  <= STD-JOB-NO)    -
+                 MAX   (1)
+
+       SELPSJ = CHOOSE ('Y' IF ('Y' = 'Y'), 'Y')
+%*     SELPSJ = CHOOSE ('Y' IF (%PSJ1% = SPACES, %PSJ2% = SPACES, %PSJ3% = SPACES), -
+%*                      'Y' IF (%PSJ1% <> SPACES, %PSJ1% = PSJOB), -
+%*                      'Y' IF (%PSJ2% <> SPACES, %PSJ2% = PSJOB), -
+%*                      'Y' IF (%PSJ3% <> SPACES, %PSJ3% = PSJOB), -
+%*                      'N')
+
+
+       MTDES   = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'MT',-
+                                             TABLE-CODE = MT)
+
+       WOCMP1 = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = CMPBY)
+       WOCMP  = FORMATTED-NAME via (WOCMP1)
+
+%* Creating dummy field to write header in CSV file.
+        DUMMY      = 'Y'            CONSTANT
+        DUM        = choose ('Y' IF (WO=WO), DUMMY)
+
+       PH      = choose ('Yes' IF (A = 'Y'),-
+                         'No ' IF (A = 'N'), A )
+
+       WOST    = choose ('Open   ' IF (WOS = 'O'),-
+                         'Closed ' IF (WOS = 'C'),-
+                         'Authd. ' IF (WOS = 'A'), WOS )
+
+       TYDS    = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'WO',-
+                                             TABLE-CODE = WT)
+
+%***   MSF623 Variables
+
+       T       = WO-TASK-NO FROM MSF623 WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                                               WORK-ORDER  = WO,  -
+                                               WO-TASK-NO >= SPACES) -
+                                       REJECTIF (WORK-ORDER <> WO) -
+                                                   MAX (20)
+       TASSIGN = ASSIGN-PERSON  VIA (T)
+       TYKEY   = KEY-623        VIA (T)
+       TDESC   = WO-TASK-DESC   VIA (T)
+       TWGRP   = WORK-GROUP     VIA (T)
+       C       = COMPLETED-CODE VIA (T)
+       TCBY    = COMPLETED-BY   VIA (T)
+       WTS     = TASK-STATUS    VIA (T)
+       TCD     = CLOSED-DT VIA (T)
+       TPSD    = PLAN-STR-DATE  VIA (T) FORMAT (DATE)
+       JDC     = JOB-DESC-CODE  VIA (T)
+       S       = SAFETY-INSTR   VIA (T)
+       SIDD = TABLE-DESC OF MSF010 -
+           WHERE (TABLE-TYPE             = 'SI', -
+           TABLE-CODE             = S)
+       SID = SUBSTR(SIDD,1,32)
+       TCOMDAT = GET (DISPLAY-DATE FROM (TCD))
+
+       TSKCMP1 = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = TCBY)
+       TSKCMP  = FORMATTED-NAME via (TSKCMP1)
+       JOBDES  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'JD',-
+                                             TABLE-CODE = JDC)
+       FDSC    = choose ('Open  ' IF (WTS = 'O'), -
+                         'Authd.' IF (WTS = 'A'), -
+                         'Closed' IF (WTS = 'C'), -
+                         'Final.' IF (FINAL-COSTS = 'F'), SPACES )
+%*W99100284 Inserted msf607
+%*        LTYPE   = LIST-TYP OF MSF607 -
+%*                  WHERE (LIST-TYP    = EQ-TYPE,       -
+%*                         LIST-ID     = EQ-ID,         -
+%*                         MEM-TYPE   >= SPACES)        -
+%*                  SELECTIF(MEM-EQUIP-NO = EQ1)        -
+%*                  MAX (1)  IF EQ-TYPE > SPACES AND EQ-ID > SPACES
+%*
+%*        LTYPE2  = LIST-TYP OF MSF607 -
+%*                  WHERE (LIST-TYP   >= EQ-TYPE,       -
+%*                         LIST-ID    <= EQ-TYPE)       -
+%*                  SELECTIF(MEM-EQUIP-NO = EQ1)        -
+%*                  MAX (1)  IF EQ-TYPE > SPACES AND EQ-ID = SPACES
+%*
+%*        LTYPE3  = LIST-TYP OF MSF607 -
+%*                  WHERE (LIST-TYP   >= SPACES)        -
+%*                  REJECTIF(MEM-EQUIP-NO <> EQ1)       -
+%*                  REJECTIF(LIST-ID      <> EQ-ID)     -
+%*                  MAX (1)  IF EQ-ID > SPACES AND EQ-TYPE = SPACES
+%*
+%*       LID       = LIST-ID VIA (LTYPE3)
+%***
+%***   MSF060 Variables
+%***
+%*W99100284   LEQ1 = EQUIP-NO-EN OF MSF060 WHERE (PART-1-060     = 'EG',     -
+%*W99100284                                       PART-2-060     = 'EN',     -
+%*W99100284                                       DATA-1-060     = %EQLIST%, -
+%*W99100284                                       REVSD-XREF-060 = 'ENEG',   -
+%*W99100284                                       DATA-2-060     =  EQ1 )
+%***
+%***   MSF600 variables
+%***
+       EQ2     = PLANT-NO OF MSF600 WHERE (EQUIP-NO = EQ1)
+       EQDESC1 = ITEM-NAME-1    VIA (EQ2)
+       EQDESC2 = ITEM-NAME-2    VIA (EQ2)
+       NAMC    = ITEM-NAME-CODE VIA (EQ2)
+
+%***   MSF735 variables Tasks only
+       W = RESOURCE-TYPE OF MSF735 WHERE (REC-735-TYPE   = 'WT',   -
+                                          KEY-735-ID     = TYKEY,  -
+                                          RESOURCE-TYPE >= SPACES) -
+                                          MAX (10)
+       TYSIZE = SIZE (W)
+       Q      = CREW-SIZE-9    VIA (W)
+       ERT    = EST-RESRCE-HRS VIA (W) D-PIC (Z(4)9.99)
+       ART    = ACT-RESRCE-HRS VIA (W) D-PIC (Z(4)9.99)
+%***   MSF700 variables
+
+      DESC1 = SCHED-DESC-1 OF MSF700 WHERE (REC-700-TYPE   = 'ES',          -
+                                            EQUIP-NO       = EQ1,      -
+                                            COMP-CODE      = COMP-CODE,     -
+                                            COMP-MOD-CODE  = COMP-MOD-CODE, -
+                                            MAINT-SCH-TASK = MAINT-SCH-TASK)
+      DESC2 = SCHED-DESC-2 VIA (DESC1)
+%*** MSF096 Variables
+
+       CWTEXT = GET (READ-TEXT FROM ('MSF096') CODE ('CW') -
+                     KEY (DSTRCT-CODE, WORK-ORDER)) MAX (300)
+       MITEXT = GET (READ-TEXT FROM ('MSF096') CODE ('MI') -
+                     KEY (EQ1, CP, M, MST)) MAX (300)
+       WOTEXT = GET (READ-TEXT FROM ('MSF096') CODE ('WO') -
+                     KEY (DSTRCT-CODE, WORK-ORDER)) MAX (450)
+       JITEXT = GET (READ-TEXT FROM ('MSF096') CODE ('WI') -
+                     KEY (DSTRCT-CODE, WORK-ORDER, T)) MAX (300)
+       CWSIZE  = SIZE (CWTEXT)
+       MISIZE  = SIZE (MITEXT)
+
+%***  selection logic for whether or not to print "Routine Instructions"
+%***  heading:
+
+       MSW1     = choose ('Y' IF (DESC1 <> SPACES), 'N')
+       MSW2     = choose ('Y' IF (DESC2 <> SPACES), 'N')
+       MSW3     = choose ('Y' IF (MISIZE > 0),      'N')
+       MISWITCH = choose ('N' IF (MSW1 = 'N', MSW2 = 'N', MSW3 = 'N'), 'Y')
+
+%***  selection logic for these parameter cannot be done with REJECTIF
+%***  in %SELECT.   Select record based on info. of lookup files
+           WJC1  = WO-JOB-CODE (1)
+           WJC2  = WO-JOB-CODE (2)
+           WJC3  = WO-JOB-CODE (3)
+           WJC4  = WO-JOB-CODE (4)
+           WJC5  = WO-JOB-CODE (5)
+           WJC6  = WO-JOB-CODE (6)
+           WJC7  = WO-JOB-CODE (7)
+           WJC8  = WO-JOB-CODE (8)
+           WJC9  = WO-JOB-CODE (9)
+           WJC10 = WO-JOB-CODE (10)
+       SW1   = choose ('N' IF (%JOBCD% = 'W0', WJC1 <> %JOBTY%), 'Y')
+       SW2   = choose ('N' IF (%JOBCD% = 'W1', WJC2 <> %JOBTY%), 'Y')
+       SW3   = choose ('N' IF (%JOBCD% = 'W2', WJC3 <> %JOBTY%), 'Y')
+       SW4   = choose ('N' IF (%JOBCD% = 'W3', WJC4 <> %JOBTY%), 'Y')
+       SW5   = choose ('N' IF (%JOBCD% = 'W4', WJC5 <> %JOBTY%), 'Y')
+       SW6   = choose ('N' IF (%JOBCD% = 'W5', WJC6 <> %JOBTY%), 'Y')
+       SW7   = choose ('N' IF (%JOBCD% = 'W6', WJC7 <> %JOBTY%), 'Y')
+       SW8   = choose ('N' IF (%JOBCD% = 'W7', WJC8 <> %JOBTY%), 'Y')
+       SW9   = choose ('N' IF (%JOBCD% = 'W8', WJC9 <> %JOBTY%), 'Y')
+       SW10  = choose ('N' IF (%JOBCD% = 'W9', WJC10 <> %JOBTY%), 'Y')
+%***
+%*       SWTGP = choose ('N' IF (%TASKWG% <> SPACES, %TASKWG% <> TWGRP),     'Y')
+%*       SNAMC = choose ('N' IF (%NAMCD%  <> SPACES, %NAMCD%  <> NAMC),      'Y')
+       SPTFR = choose ('N' IF (%PLANTFR%<> SPACES, EQ2      <  %PLANTFR%), 'Y')
+       SPTTO = choose ('N' IF (%PLANTTO%<> SPACES, EQ2       > %PLANTTO%), 'Y')
+%*DD   SLEQ1 = choose ('N' IF (%EQLIST% <> SPACES, LEQ1     <> EQ1),       'Y')
+%*W99100284 Inserted SLEQ1
+%*       SLEQ1 = CHOOSE ('Y' IF(EQ-TYPE = SPACES AND EQ-ID = SPACES),     -
+%*                       'Y' IF(EQ-TYPE <> SPACES AND EQ-ID <> SPACES AND -
+%*                              EQ-TYPE = LTYPE   AND EQ-ID = LID),       -
+%*                       'Y' IF(EQ-TYPE <> SPACES AND EQ-ID = SPACES  AND -
+%*                              EQ-TYPE = LTYPE2),                         -
+%*                       'Y' IF(EQ-TYPE = SPACES  AND EQ-ID <> SPACES AND -
+%*                              EQ-ID = LID), 'N')
+%*
+%*       STSK1   = choose ('N' IF (%STAT% = 'P', WTS  <> 'C'), 'Y')
+%*
+       INCLSW  = choose ('Y' IF (SW1   = 'Y', SW2    = 'Y', SW3   = 'Y', -
+                                 SW4   = 'Y', SW5    = 'Y', SW6   = 'Y', -
+                                 SW7   = 'Y', SW8    = 'Y', SW9   = 'Y', -
+                                 SW10  = 'Y', -
+                                 SPTFR = 'Y', SPTTO = 'Y', SELPSJ = 'Y', -
+                                 PSJFLG = 'Y'),-
+                         'N')
+       INCLSW1 = choose ('Y' IF (SW1   = 'Y', SW2   = 'Y', SW3    = 'Y', -
+                                 SW4   = 'Y', SW5   = 'Y', SW6    = 'Y', -
+                                 SW7   = 'Y', SW8   = 'Y', SW9    = 'Y', -
+                                 SW10  = 'Y', SELPSJ = 'Y', -
+                                 SPTFR = 'Y', SPTTO = 'Y', PSJFLG = 'Y'),-
+                         'N')
+%*
+%*** MORE MSF620
+%*
+       INCLWO  = choose (1 IF (INCLSW1 = 'Y'),0)
+       WOCOUNT = TOTAL (INCLWO) D-PIC (ZZZZ)
+       INCLTSK  = choose (1 IF (INCLSW = 'Y', TSKCNT <> 0), 0)
+       TKCOUNT = TOTAL (INCLTSK) D-PIC (ZZZZ)
+%*  MSF621 for Estimates and Actual
+       MSF621  = WORK-ORDER OF MSF621 -
+                 WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                        WORK-ORDER  = WO)
+       ADH     = ACT-DUR-HRS VIA (MSF621) D-PIC (ZZZZ9.99)
+       ARH     = ACT-LAB-HRS VIA (MSF621) D-PIC (ZZZZ9.99)
+
+       EDH     = EST-DUR-HRS VIA (MSF621) D-PIC (ZZZZ9.99)
+       EDH1    = CHOOSE(EDH IF (INCLSW = 'Y'), 0)
+       TEDH    = TOTAL(EDH1) D-PIC (ZZZZZZ9.99)
+
+       ERH     = EST-LAB-HRS VIA (MSF621) D-PIC (ZZZZ9.99)
+       ERH1    = CHOOSE(ERH IF (INCLSW = 'Y'), 0)
+       TERH    = TOTAL(ERH1) D-PIC (ZZZZZZ9.99)
+
+
+       ETC1    = EST-TOTAL-COST VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       ETC2    = CHOOSE (ETC1 IF (INCLSW = 'Y'), 0)
+       ETC     = SUM(ETC2)  D-PIC (-ZZZZZZZZZZZZZ9.99)
+
+
+       ALC     = ACT-LAB-COST   VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       AMC     = ACT-MAT-COST   VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       AEC     = ACT-EQUIP-COST VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       AOC     = ACT-OTHER-COST VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+
+       ATC1    = CALC(ALC + AMC + AEC + AOC) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       ATC2    = CHOOSE (ATC1 IF (INCLSW = 'Y'), 0)
+       ATC     = SUM(ATC2) D-PIC (-ZZZZZZZZZZZZZ9.99)
+
+%*** New Variables       
+       BLANKSP = ' '
+       ACCTCDE = ACCOUNT-CODE
+       RELWO   = RELATED-WO
+       P       = WO-TYPE
+       G       = ORIG-PRIORITY
+       L       = CAPITAL-SW
+       UNITREQ = UNITS-REQUIRED D-PIC (-ZZZZZZ9.99)
+       UW      = UNIT-OF-WORK
+       SHDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'SD',-
+                                             TABLE-CODE = H)
+       RECTHR  = RECALL-TIME-HRS D-PIC (Z(8)9.9(2))
+       PST     = PLAN-STR-TIME FORMAT(TIME)
+       PFT     = PLAN-FIN-TIME FORMAT(TIME)       
+       WGCREW  = CREW            
+       RHRSACT = ACT-LAB-HRS     VIA (MSF621) D-PIC (-ZZZZZZZZ9.99)
+       RHRSEST = EST-LAB-HRS     VIA (MSF621) D-PIC (-ZZZZZZZZ9.99)
+       RHRSCAL = CALC-LAB-HRS    VIA (MSF621) D-PIC (-ZZZZZZZZ9.99)
+       RCSTCAL = CALC-LAB-COST   VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)            
+       RCSTEST = EST-LAB-COST    VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)    
+       MCSTEST = EST-MAT-COST    VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       MCSTCAL = CALC-MAT-COST   VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       ECSTEST = EST-EQUIP-COST  VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       ECSTCAL = CALC-EQUIP-COST VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       OCSTEST = EST-OTHER-COST  VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+       OCSTCAL = CALC-OTH-COST   VIA (MSF621) D-PIC (-ZZZZZZZZZZZZZ9.99)
+
+      
+%*** End
+
+%*
+%***                        End of Coding
+%******************************************************************************
+%*** Revision History ***
+%*** 17-Oct-12 a9jw6280     MO164 ---
+%*** .....................  Changed output file into new layout based on the URL.
+%*** .....................  Removed Report TRR62OC since option (B)riefs in request 
+%*** .....................  parameters is no longer valid.
+%*** .....................  Removed schedule completion code1 - 3 from req. parameters.
+%*** 22-Aug-12 a9jw6280     MO164 Version 001
+%*** .....................  Converted from W5R620, reset version number to 0001.
+%*** .....................  Changed PIC into D-PIC.
+%*** 25-Sep-07 Janak Barar  SC1593029 wanted investigation on 'Required Start
+%***                        Date' to be independent column with its detail and
+%***                        not to cover with 'Plan Start date'.
+%*** 11-Aug-06 Assia Sahyoun
+%***                        Modifications made to request parameters and data
+%***                        extract layout.
+%*** 18-Nov-05 E Fredeluces P05110870
+%***                        Fix compilation errors in Ellipse 5.2.3.7.
+%*** 25-Mar-03 R Yeung      WCHG015463
+%***                        Add safety instruction, description fields
+%*** 27-Feb-03 R Yeung      WHD0057019
+%***                        Fixed the bug in Job No From and To.
+%*** 14-Mar-02 E Fredeluces The output file and the report file does not
+%***                        reconcile.
+%*** 12-Mar-01 E Fredeluces Remove the LIKE in the Request-parameters
+%***                        and entered the correct field size instead.
+%*** 03-Dec-01 E Fredeluces WCHG000128
+%***                        Use the Parent Standard Job in the request-
+%***                        parameter instead of the Parent Work Order.
+%***                        ADD MSF696 lookup file.
+%*** 21-Sep-01 E Fredeluces W01080108
+%***                        Not outputting file details for Detailed option.
+%*** 27-Oct-00 RK Mahajan   W00100320 - Create an excel type output for 'A'
+%*** ...................... type report (CSV file).
+%*** 14-Sep-00 D Diolaso    W00060891
+%*** ...................... When originator id is entered as a parameter,
+%*** ...................... the report being generated is empty.
+%*** 20-Dec-99 D DIOLASO    W99100284
+%*** ...................... Split equipment list into list-type and list-id.
+%*** 19-Mar-97 Whitley
+%*** ...................... There was a problem when there was only one
+%*** ...................... scheduled completion code entered. eg they entered
+%*** ...................... code 1 OK
+%*** ...................... The problem was it would except all schedule codes
+%*** ...................... becuase if they entered one schedule completion
+%*** ...................... code and the other two where = to spaces it would
+%*** ...................... not reject the record. I fixed this by checking
+%*** ...................... that if a parameter completion code is not = to
+%*** ...................... spaces and the other schedule completion code is =
+%*** ...................... to spaces and the msf620 schedule completion code
+%*** ...................... is not eqal to the parameter/s entered then reject
+%*** ...................... that record.
+%*** 13-Feb-97 Whitley      W702120045
+%*** ...................... The 'Total Resource Cost' wasn't costing correctly
+%*** ...................... and was also irelevant. So the 'Total Resource
+%*** ...................... Cost' in the report-summary sections has been and
+%*** ...................... also the variable section has been commented out.
+%*** 13-Feb-97 Whitley      W702250002
+%*** ...................... There was a problem when there was more then one
+%*** ...................... scheduled completion code entered. eg they entered
+%*** ...................... code 1 OK
+%*** ...................... code 2 AT
+%*** ...................... code 3 AW
+%*** ...................... The problem was it would check the individual
+%*** ...................... schedule completion code. If the individual
+%*** ...................... completion code was not = to the completion code on
+%*** ...................... MSF620 it would reject that record. The problem
+%*** ...................... was that allow the msf620 completion code may be
+%*** ...................... valid on the second param it would be rejected on
+%*** ...................... the first completion code parameter as it was not
+%*** ...................... equal to the msf620 competion code. I fixed this by
+%*** ...................... checking that the msf620 completion code was not
+%*** ...................... equal to the 3 completion code parameters. That is
+%*** ...................... it would make sure MSF620 competion code was not
+%*** ...................... equal to sched code 1 AND sched code2 AND sched
+%*** ...................... code 3.
+%*** 18-dec-96 Mark Cole
+%*** ...................... W609050032
+%*** ...................... Brought use of W/order status param into line with
+%*** ...................... WER620 and WEB620.
+%*** ...................... Param value of C now means Complete but not
+%*** ...................... Complete and Finalised.
+%*** ...................... Also, fixed up unidentified bug in program
+%*** ...................... where, if using status "P", if first task for
+%*** ...................... w/order not complete but subsequent tasks are
+%*** ...................... complete, the subsequent tasks were not getting
+%*** ...................... reported. Fixed this up by adding a new sort
+%*** ...................... value at end (descending INCLSW) so separate tasks
+%*** ...................... that should be included and those that shouldn't.
+%*** ...................... This bug was only occurring on Summary report, due
+%*** ...................... to use of break fields.
+%*** ......................
+%*** ...................... NB: W/Orders with NO tasks not to be ignored
+%*** ...................... but not to be included in the count of
+%*** ...................... the number of Work Order tasks.
+%*** ......................
+%*** ...................... W/O status values available now are;
+%*** ...................... O = O(pen) Status W/ords
+%*** ...................... A = A(uth) Status W/ords
+%*** ...................... U = O(pen) & A(uth) Status W/Ords
+%*** ...................... C = C(losed) Status W/Ords where Finalised cost
+%*** ......................     flag NOT = "y"
+%*** ...................... F = W/Ords where Finalised cost flag = "Y"
+%*** ...................... B = C(losed) Status W/Ords AND W/Ords where
+%*** ......................     Finalised cost flags = "Y"
+%*** ...................... P = C(losed) Status Tasks on W/ords (W/ords
+%*** ......................     may be any status !)
+%*** ...................... " " = Any status W/Ords.
+%***
+%*** 18-dec-96 Mark Cole
+%*** ...................... W612090015
+%*** ...................... Put main key of Sort order back to plant number,
+%*** ...................... not raised date, reversing LC's change of
+%*** ...................... 16/10/96 as it was causing operational problems.
+%***
+%*** 12-Nov-1996 Mincom LC All references to WO-STATUS changed to WO-STATUS-M
+%***
+%*** 16-Oct-1996 Mincom LC Removed sort order of plant and replaced with
+%***                       sort order of Raised-date
+%***
+%*** 27-Sep-1996 Mincom LC Included parameter of Exclude standing work-order,
+%***                       concatinated standard job no from and to into one field.
+%***
+%*** 31-May-96 Wolodzko
+%*** .................... Changed report summary to only print totals when
+%*** .................... the work order count is greater than zero. INCLSW
+%*** .................... should not be checked for that because it is not
+%*** .................... current when summary is printed.
+%*** 16-Apr-96 Mincom        Replace 'RC' table access with HRGET macro.
+%*** ....................
+%*** 26-MAR-95 Neil Whitley
+%*** ...................... Changed report summary so only when INCLSW = Y will
+%*** ...................... the total details be printed.
+%*** 15-NOV-95 Peter Lacey
+%*** ...................... Converted from 3.010 to 3.013. Changed
+%*** ...................... MSF620/623-COMPLETED-DATE to MSF620/623-CLOSED-DATE.
+%*** 15-06-95 Zev. F   E-564301 Add sort for Work Order Type to selection
+%***                   criteria.
+%***
+%*** 23-03-95 J.Merl   W-556002 Add Shutdown Equipment parameter
+%***
+%*** 03-08-94 Lourdes  W530701 Modify WO status selection parameter to
+%***                   provide the following options.
+%***                   O - select all open WO records
+%***                   A - select all authorized WO records
+%***                   U - select all open or authorized WO records
+%***                   C - select all closed Task or WO records
+%***                   F - select all finalized WO records
+%***                   Blank - select all WO records
+%***
+%*** 18-05-93 Shane R. Copied to TRR62O for FRS W-488101
+%*** 24-03-93 Lourdes  FRS W481601 Change shutdown equipment length from
+%***                   12 to 24 to consider colloquials which are more than
+%***                   12 characters long.
+%*** 12-Feb-93 Lourdes W-478901 Fix %Selection section to put stopif
+%*** ................. statement to speed up processing and add last line
+%*** ................. to print 'end of report'.
+%*** 11-Sep-92 HenryG  W-462902 Change MAX(120) to MAX(300)
+%***  8-Jul-92 HenryG  W-455802 Optionally include part completed W/O
+%*** 29-Apr-92 HenryG  W-446701/W-448001 Add 2 line MST Description
+%*** 24-Apr-92 Lourdes W-446701/W-448001 Print MI/JI/WO text and print
+%*** ................  Estimated/Actual Duration/Resource Hours as well
+%***  1-Sep-91 Owen    Changed Plant Number formula; deleted MSF600A as LFILE
+%*** 29-Aug-91 Isabel  Change heading text  Change detail line to 132 chrs. by
+%*** ................  reducing the size of equipment description.
+%*** ................  Refer to EM dated 28/08/91 Owen Durkin
+%*** 13-Jun-91 Mabel   Add parameter Equipment List
+%*** 03-Jun-91 Mabel   Developed based on ESB620.rdl
+%******************************************************************************

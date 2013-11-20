@@ -1,0 +1,62 @@
+%*** trr020.rdl
+%***
+%*** Revision History
+%***  24-Jul-12  a9ir6369     MO164 (Version 0001)
+%***  ......................  Reset version number to 0001 for E8 upgrade.
+%*** 21-Sep-98 EFredeluces
+%*** ....................  To be sorted in ascending surname.
+%*** 10-Sep-96 BradD       Transgrid EMIS Project (MIMS HR Converion)
+%*** ....................  Initial Coding.
+%***
+%PROGRAM-ID
+     TRR020
+%AUTHOR
+     MINCOM PTY LTD
+%NARRATIVE
+     This RDL produces a file of signon profiles and associated employee info.
+%VERSION
+       0001
+%FILES
+     MFILE = MSF020
+     LFILE = MSF810
+     RFILE = TRR020A
+%SELECTION
+     WHERE (ENTRY-TYPE = 'S', -
+            ENTITY    >= SPACES)
+     REJECTIF (%RDC% <> SPACES, DSTRCT-CODE <> %RDC%)
+%ORDER
+     ASCENDING DSTRCT-CODE
+     ASCENDING LNAME
+%REPORT
+     A
+%TITLE
+     'List Of Sign-On Profiles'
+%BREAK-FIELDS
+     DSTRCT-CODE VIA (DC)
+%BREAK DSTRCT-CODE VIA (DC) HEADER
+ 
+'DISTRICT : '{DC}
+'----------------'
+ 
+%PAGE HEADING
+'Profile    Global     Menu       Employee   Name'
+ 
+%DETAIL
+ {PROF    } {GPROF   } {MENU    } {EMP     } {SNAME             } {FNAME     }
+%CONTROL
+     PAGE-WIDTH = 80
+%REQUEST-PARAMETERS
+     RDC     PIC (X(4)) TEXT 'Requested District : '
+%VARIABLES
+     PROF    = ENTITY
+     GPROF   = GLOBAL-PROFILE
+     MENU    = DEFAULT-MENU
+     DC      = DSTRCT-CODE
+     EMP     = EMPLOYEE-ID
+     FNAME   = FIRST-NAME OF MSF810 -
+                          WHERE (EMPLOYEE-ID = EMP)
+     SNAME   = SURNAME VIA (FNAME)
+     LNAME   = choose (SNAME IF (SNAME <> SPACES), SNAME)
+%*
+%*  End of RDL
+%*

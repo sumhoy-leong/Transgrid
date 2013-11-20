@@ -1,0 +1,137 @@
+%PROGRAM-ID
+       TRR53A
+%***
+%*** Revision History
+%*** 05 Nov 2012 neilp         Added MSF760 so we can get the language spoken.
+%*** 01-Aug-12 a9nh4814        MO164 (Version 0001)
+%*** ........................  - Refined report to pass Transgrid RDL compiler.
+%*** ........................  - Replace tabs with spaces.
+%*** ........................  - Reset version number to 0001 for E8 upgrade.
+%*** 09-Nov-05 E Fredeluces    P05110870
+%***                           Fix compilation errors in Ellipse 5.2.3.7.
+%*** 31-Aug-2004 RYeung        WCHG067389
+%*** ........................  Change ASCO Code by using pos-report-cde-5 from msf870.
+%*** 13-Apr-2004 Lubanovic     WCHG52922
+%*** ........................  Added ASCO code to the report
+%*** 08-Jan-2002 D Diolaso     WCHG000743
+%*** ........................  Inclusion of total for the number of claims
+%*** ........................  reported
+%*** 21-Aug-2001 E Fredeluces  W01080017
+%***                           Use Date Received instead of Date Raised.
+%*** 19-Apr-1999 E Fredeluces  W904190019
+%*** ........................  It should be reporting on Date Lodged
+%*** ........................  instead of Date Received.
+%*** 20-Nov-1997 L CAPPLE    
+%*** ........................  Initial Coding.
+%***
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      This RDL will produce a report of all claims closed/received within a 
+      user specificed date range.
+%VERSION
+       0001
+%MODULE
+       3820
+%FILES
+       MFILE = MSF536
+       LFILE = MSF510
+       LFILE = MSF537
+       LFILE = MSF810
+       LFILE = MSF871
+       LFILE = MSF878A
+       LFILE = MSF870
+       LFILE = MSF760
+       RFILE = TRR53AA
+%SELECTION
+         <IF ITYPE = 'E'>
+             SELECTIF (DATE-RECEIVED >= SDATE, DATE-RECEIVED <= EDATE)
+         <ELSE>
+             SELECTIF (DATE-CLOSED   >= SDATE, DATE-CLOSED <= EDATE)
+         <ENDIF>
+%ORDER
+    L
+    EMPID
+%CONTROL-BREAKS
+    L 
+%REPORT-TITLE 
+'Claims Entered/Closed Report'
+%PAGE HEADING 
+<IF ITYPE = 'E'>
+                                                     'Entered Claims Report'
+<ELSE>
+                                                     'Closed Claims Report'
+<ENDIF>
+                                                'For Period' {SDATE } 'To' {EDATE  }
+
+<IF ITYPE = 'E'>
+'WC  Employee                                    Incident   Claim      Date     ASCO    Lang'
+'Loc Id         ------------  Name  ------------ No.        No.        Entered  Code V2      ------------- Description ------------'
+<ELSE>
+'WC  Employee                                    Incident   Claim      Date     ASCO    Lang Stat Prior'
+'Loc Id         ------------  Name  ------------ No.        No.        Closed   Code V2      Closing  ------- Description ---------'
+<ENDIF>
+%DETAIL
+<IF ITYPE = 'E'>
+ LL  {EMPID   } {SNAME        } {FNAME         } IIIIIIIIII {CLNO    } {DESDAT} {PC }   AAAA {DESC                               }
+<ELSE>
+ LL  {EMPID   } {SNAME        } {FNAME         } IIIIIIIIII {CLNO    } {DESDAT} {PC }   AAAA {STAT  } {DESC                        }
+<ENDIF>
+%BREAK L FOOTER
+' '
+%REPORT-SUMMARY
+
+
+'    Total Number of Claims Reported : ' {CTOT  }
+
+'                                                 *** End Of Report ***'
+%PARAMETERS
+    ISDATE  PIC(X(8)) TEXT  'Date Entered From               :'
+    IEDATE  PIC(X(8)) TEXT  'Date Entered To                 :'
+    ITYPE   PIC(X(1)) TEXT  'Closed or Entered Claims (C/E)  :'
+%VARIABLES 
+    SDATE       = %ISDATE% FORMAT(DATE) CONSTANT 
+    EDATE       = %IEDATE% FORMAT(DATE) CONSTANT
+    DSDATE      = %ISDATE%
+    DEDATE      = %IEDATE%
+    ITYPE       = %ITYPE%
+    CLNO        = CLAIM-NO
+    CTOT        = COUNT (*)
+    LOC         = WC-LOCATION OF MSF537 -
+                  WHERE (CLAIM-NO = CLNO)
+    L           = CHOOSE(LOC IF(LOC > SPACES), LOC)
+    EMPID       = EMPLOYEE-ID
+    I           = INCIDENT-NO
+    RECDATE     = DATE-RECEIVED 
+    CLDATE      = DATE-CLOSED
+    RODATE      = DATE-REOPEN
+    STAT        = CHOOSE('Closed' IF (CLDATE > RODATE), 'Reopened')
+    DESDAT      = CHOOSE(RECDATE  IF (ITYPE = 'E'), CLDATE) FORMAT(DATE)
+    SNAME       = SURNAME OF MSF810 -
+                  WHERE(EMPLOYEE-ID = EMPID)
+    FNAME       = FIRST-NAME VIA(SNAME)
+    DIST        = DSTRCT-CODE
+    DESC        = INCIDENT-DESC OF MSF510 -
+                  WHERE(DSTRCT-CODE = DIST, -
+                        INCIDENT-NO =  I)
+%*
+%* MSF878 - Get current position of employee
+    POS   = POSITION-ID OF MSF878A           -
+            WHERE (EMPLOYEE-ID-1   = EMPID,  -
+                   PRIMARY-POS-1   = '0',    -
+                   INV-STR-DATE-1 >= SPACES) -
+                   MAX (1)
+%*
+%* MSF871 - Get position classification
+%*    PC    =  POS-CLASSIF-1 OF MSF871 -
+%*             WHERE (POSITION-ID = POS)
+%*
+%* MSF870 - Get ASCO occupation
+    PC   = POS-REPORT-CDE-5 OF MSF870 -
+           WHERE (POSITION-ID = POS)
+
+%* MSF760 - Get Language spoken
+    A = ETHNICITY OF MSF760 -
+           WHERE (EMPLOYEE-ID = EMPID)
+
+%* END PROGRAM

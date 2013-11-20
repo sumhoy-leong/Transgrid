@@ -1,0 +1,277 @@
+%*** Revision History
+%***
+%*** 02-May-13 AIT IG         v001 Ellipse 5 to ELlipse 8 conversion
+%*** ....................     Selection parameters fixed. Placed inside IF statment.
+%*** ....................     MSSDAT WHERE clause placed outside of ().
+%*** ....................     Add supplier to PRTSW so that nothing is printed if no
+%*** ....................     records found
+%*** ....................     Summary modified to display a statement if no recs 
+%*** ....................     found, otherwise blank pdf produced.
+%*** 11-Jul-05 Lubanovic      P05060270
+%*** ....................     added new code so that we append the whouse id
+%*** ....................     to the purchase order number if the district
+%*** ....................     is 'GRID'. Added a new parameter - whouse id.
+%*** 04-Nov-03  Lubanovic     WCHG038424  Modified program to display
+%***                                      the description and extended
+%***                                      description of the stock code or
+%***                                      purchase req.
+%*** 11-Mar-02  E Fredeluces  WCHG001381  To make the supplier number
+%***                                      a non-mandatory field.  It should
+%***                                      default to "ALL" for blank entry.
+%*** 16-Nov-01  E Fredeluces  WCHG000136  Initial Coding.
+%***
+%PROGRAM-ID
+    TRR245
+%AUTHOR
+    Elizabeth Fredeluces
+%NARRATIVE
+    The program will generate the List of Discrepancy Report
+    based on a given parameters.
+%VERSION
+    001
+%FILES
+    MFILE = MSF245A
+    AFILE = MSF246
+    LFILE = MSF010
+    LFILE = MSF100
+    LFILE = MSF200
+    LFILE = MSF220
+    LFILE = MSF221
+    LFILE = MSF231
+    RFILE = TRR245A
+%SELECTION
+   <IF %SUPLR% <> SPACES>
+    WHERE    (SUPP-DSTRCT-WH  = SSUPLR,   -
+              DR-STATUS      >= SPACES)  
+	REJECTIF (SUPP-TYPE <> 'S')
+    REJECTIF (DR-STATUS      <> %STAT%,   -
+              %STAT%         <> SPACES)
+    REJECTIF (DSTRCT-CODE    <> %DIST%,   -
+              %DIST%         <> SPACES)
+    REJECTIF (RAISED-DATE     < DATEFR)
+    REJECTIF (RAISED-DATE     > DATETO)
+   <ELSE>
+    WHERE    (SUPP-DSTRCT-WH >= 'S')  
+	REJECTIF (SUPP-TYPE <> 'S')
+    REJECTIF (DR-STATUS      <> %STAT%,   -
+              %STAT%         <> SPACES)
+    REJECTIF (DSTRCT-CODE    <> %DIST%,   -
+              %DIST%         <> SPACES)
+    REJECTIF (RAISED-DATE     < DATEFR)
+    REJECTIF (RAISED-DATE     > DATETO)
+   <ENDIF>     
+%ROUTINES
+    MSSDAT
+%ORDER
+    PRTSW
+    SRTDTL
+%*  sort includes Supplier-No, District, Dr-Status & Raised-Date
+%BREAK-FIELDS
+    SRTSUP
+%REPORT-TITLE
+'Discrepancy Report'
+%PAGE HEADING
+<IF PRTSW = 'Y'>
+'                                          Period Covered:' {DATEFR}'To'{DATETO}
+
+
+{Underline                                                                                                                         }
+    'P.O.      Preq No./   Report     Raised                                                       '
+{H }'No.       Stk-Code   No./Item     Date     Contact Name/Description                  Reference  +--Discrepancy Type--+  Status'
+<ENDIF>
+%BREAK SRTSUP HEADING
+<IF PRTSW = 'Y'>
+
+
+'Supplier: '{SRTSUP}{SUPNM                          }
+'==================================================='
+
+<ENDIF>
+%DETAIL
+<IF PRTSW = 'Y'>
+{DC} {P      } {N      }  {DRNO}XIII  {RAISDT}  AA {SCNTACT           } AA                {REF     } DD {DDESC            }  SSSSSSS
+   <IF DESC <> SPACES>
+                                                   {DESC                                                         }
+   <ENDIF> 
+     <REPEAT>
+       <SUPPRESS>
+                                                   {DLIN                                                         }
+     <ENDREPEAT>
+     <IF DLSIZE <> 0>
+'Stock/Preq Description'
+        <REPEAT>
+        <SUPPRESS>
+                                                   {DL                                                           }
+        <ENDREPEAT>
+      <ENDIF>
+      <IF T = 'S' AND STKSIZE <> 0>
+'Extended Description'
+          <REPEAT>
+          <SUPPRESS>
+                                                   {STKEXT                                                       }
+          <ENDREPEAT>
+      <ENDIF>
+      <IF T = 'P' AND PRSIZE <> 0>
+'Extended Description'
+          <REPEAT>
+          <SUPPRESS>
+                                                   {PREXT                                                        }
+          <ENDREPEAT>
+      <ENDIF>
+
+<ENDIF>
+%REPORT-SUMMARY
+<IF PRTTOT > 0>
+
+{Underline                                                                                                                         }
+
+
+                                                  '*** End Of Report ***'
+<ELSE>
+
+
+                                 'No Records meet the selection criteria'
+<ENDIF>
+%REQUEST-PARAMETERS
+    SUPLR        PIC (X(6))               TEXT 'Supplier Number  (Blank for All)                       : '
+    DIST         PIC (X(4))               TEXT 'District Code    (Blank for All)                       : '
+    STAT         PIC (X(1))               TEXT 'Status: 0-Raised  1-Printer  9-Closed or Blank for All : '
+    RDATE-FR     PIC (X(8)) FORMAT (DATE) TEXT 'Raised Date From (Defaults to Previous Period)         : '         
+    RDATE-TO     PIC (X(8)) FORMAT (DATE) TEXT 'Raised Date To   (Defaults to Previous Period)         : '
+    WHOUSE       PIC (X(4))               TEXT 'Warehouse Id     (Blank for All)                       : '
+%VARIABLES
+    A       = '*'                          CONSTANT
+    X       = '/'                          CONSTANT
+    H       = 'Dist'                       CONSTANT
+    RDATEF  = %RDATE-FR%                   CONSTANT
+    RDATET  = %RDATE-TO%                   CONSTANT
+    CP      = WX-STORES-CP                 CONSTANT
+    SUPLR   = %SUPLR%                      CONSTANT
+    SSUPLR  = CATENATE ('S',SUPLR)         CONSTANT
+    LP      = PERIOD-YRMN OF MSSDAT     -
+              WHERE (OPTION      = 'I', -
+                     PERIOD-YRMN = CP,  -
+                     DAYS        = -1)     CONSTANT
+    LP1     = PERIOD-YRMN OF MSSDAT     -
+              WHERE (OPTION      = 'H', -
+                     PERIOD-YRMN = LP)     CONSTANT 
+    ST-DATE = STARTING-DATE-1-9  VIA (LP1) CONSTANT FORMAT (DATE)
+    ED-DATE = ENDING-DATE-1-9    VIA (LP1) CONSTANT FORMAT (DATE)
+%*
+%*  Determine Raised Date From & To
+%* 
+    DATEFR  = CHOOSE (RDATEF IF (RDATEF <> SPACES), -
+                      ST-DATE)  CONSTANT FORMAT (DATE)
+    DATETO  = CHOOSE (RDATET IF (RDATET <> SPACES), -
+                      ED-DATE)  CONSTANT FORMAT (DATE)
+%*
+    DC      = DSTRCT-CODE
+    SUP     = SUPPLIER-NO
+    STAT    = DR-STATUS
+    S       = CHOOSE ('Raised ' IF (STAT = '0'),-
+                      'Printed' IF (STAT = '1'),-
+                      'Closed ' IF (STAT = '9'),-
+                      'Unknown')
+    DRNO    = DR-NO
+    RAISDT  = RAISED-DATE  FORMAT (DATE)
+    SCNTACT = SUPP-CTACT
+%*
+%*  Read MSF246 Details
+%*
+    PO      = PO-NO FROM MSF246           -
+              WHERE (DSTRCT-CODE = DC,    -
+                     DR-NO       = DRNO,  -
+                     DR-ITEM-NO >= SPACES)
+    POITM   = PO-ITEM-NO      VIA (PO)
+    I       = DR-ITEM-NO      VIA (PO)
+    REF     = DR-REF          VIA (PO)
+    DISTYP  = DISCREP-TY-DATA VIA (PO)
+    D       = SUBSTR (DISTYP,1,2)
+    DDESC   = TABLE-DESC OF MSF010      -
+              WHERE (TABLE-TYPE = 'F1', -
+                     TABLE-CODE = D)
+    STKNO   = STOCK-CODE      VIA (PO)
+    DESC    = DR-DESC         VIA (PO)
+%*
+%*  Obtain the Supplier Number from the MSF220 File
+%*
+    SUPNO   = SUPPLIER-NO OF MSF220 -
+              WHERE (PO-NO = PO)
+    SRTSUP  = CHOOSE (SUP IF (SUP <> SPACES), SUPNO)
+%* 
+%*  Sort Keys
+%*
+    SRTDT   = CATENATE (SRTSUP, DC, STAT, RAISDT)
+    SRTDTL  = CHOOSE   (SRTDT IF (SRTDT <> SPACES), SRTDT)
+%*
+%*  Obtain Discrepancy Report Extended Description
+%* 
+   DRKEY   = CATENATE (DC,DRNO,I)
+   DLIN    = GET (READ-TEXT FROM ('MSF096')   -
+                            CODE ('DC')       -
+                            KEY  (DRKEY))     -
+             MAX (10) TEXT-WIDTH (60)
+%*
+%*  Obtain Supplier Name
+%*
+    SUPNM   = SUPPLIER-NAME OF MSF200 -
+              WHERE (SUPPLIER-NO = SRTSUP)
+%*
+%* Natasha Lubanovic - WCHG038424
+%* Added new code to print out full description &
+%* extended description 
+%*
+    PREQSC  = PREQ-STK-CODE OF MSF221 -
+              WHERE (PO-NO      = PO, -
+                     PO-ITEM-NO = POITM)
+    POTYPE  = PO-ITEM-TYPE VIA (PREQSC)
+    PREQ    = PURCH-REQ    VIA (PREQSC)
+    PREQI   = PREQ-ITEM    VIA (PREQSC)
+    WH      = WHOUSE-ID    VIA (PREQSC)
+%*
+%* Set a flag to identify if stock code ('S') or 
+%* Purchase Req ('P')
+    T       = CHOOSE ('P'  IF (POTYPE = 'P'), -
+                      'P'  IF (POTYPE = 'S'), -
+                      'P'  IF (POTYPE = 'F'), -
+                      'S')
+%* Natasha Lubanovic - P05060270
+%* Added new code to append the warehouse id to the po number
+%* if the d/c is 'GRID' and also added printsw
+%*
+    WHID    = substr (WH,1,2)
+    POWH    = catenate (PO,'-',WH)  D-PIC (X(9))
+    P       = choose (POWH IF (DC='GRID', T = 'P'), - 
+                      PO)   D-PIC (X(9))
+    PRTSW   = choose ('Y'  IF  (WH = %WHOUSE%, -
+	                            %WHOUSE% <> SPACES, -
+								SRTSUP <> SPACES), -
+                      'Y'  IF  (%WHOUSE% = SPACES, -
+								SRTSUP <> SPACES), -
+                      'N')
+
+    PRTCNT = choose (1 IF (PRTSW = 'Y'), 0)
+    PRTTOT = total (PRTCNT)
+%*
+%* Get Stock Code description and extended description
+    DL100   = DESC-LINE OF MSF100 -
+              WHERE (STOCK-CODE = STKNO)
+%*
+    STKEXT  = GET (READ-TEXT FROM ('MSF096') CODE ('SC') KEY (STKNO))
+    STKSIZE = SIZE (STKEXT)
+%*
+%* Get Purchase Req description and extended description
+    DL231   = ITEM-DESC OF MSF231 -
+              WHERE (DSTRCT-CODE  = DC, -
+                     PREQ-NO      = PREQ, -
+                     PREQ-ITEM-NO = PREQI) 
+%*
+    PREXT  = GET (READ-TEXT FROM ('MSF096') CODE ('PR') KEY (DC, PREQ, PREQI)) MAX(100)
+    PRSIZE = SIZE (PREXT)
+%*
+    N      = CHOOSE (STKNO  IF (T = 'S'), PREQSC)
+    DL     = CHOOSE (DL100  IF (T = 'S'), DL231)
+    DLSIZE = SIZE (DL)
+%*
+%*  End of Program
+%* 

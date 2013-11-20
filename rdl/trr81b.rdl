@@ -1,0 +1,101 @@
+%*** Revision History
+%***
+%*** 11-Dec-2012  a9jw6280      MO164 ---
+%***                            Added output file TRO81BA.              
+%*** 12-Sep-2012  a9jw6280      MO164 (Version 0001)
+%***                            Reset version number to 0001 for E8 upgrade.
+%*** 08-Nov-2000  E Fredeluces  W00100290
+%***                            Initial Coding.
+%***
+%PROGRAM-ID
+    TRR81B
+%AUTHOR
+    Elizabeth Fredeluces
+%NARRATIVE
+    This program will generate the List of Employee Payments
+    that are GST related.  It is called by TRR81A.
+%MODULE
+    3820
+%VERSION
+    0001
+%FILES
+    IFILE = TRT81A
+    LFILE = MSF810
+    RFILE = TRR81BA           
+    OFILE = TRT81BA          
+%INPUT-FILE
+    EMPLOYEE-ID  PIC (X(10))
+    TRAN-CODE    PIC (X(3))
+    ACCOUNT-CODE PIC (X(12))
+    AMOUNT       PIC (X(17))
+    CODE-DESC    PIC (X(30))
+%ORDER
+    TRAN-CODE
+    EMPLOYEE-ID
+%BREAK-FIELDS
+    DUM
+    TRAN-CODE
+    TRNEMP
+	EMP
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH 109
+%BREAK DUM HEADING
+'Earn Code,Code Description,Emp ID,Employee Name,Employee Init,Account Code,Amount'
+%BREAK EMP FOOTING
+{C}X{DESC                        }X{EMP     }X{LNAME                       }XIX{ACC       }X{TAMT           }
+%SUMMARY
+
+%REPORT
+    A	
+%TITLE                                   
+'List of Employee Payments - GST Related'
+%PAGE HEADING
+'                                     For Week Ending : ' {PSD   }' - '{PED   } 
+ 
+{underline                                                                                                                         }
+'+--- Earnings Code & Description ---+   +------ Employee-Id & Name ------+    Account Code                Amount'
+%BREAK TRNEMP FOOTING
+ {DTL                               }    {EMP     }  {LNAME             } I    {ACC       }   {TAMT             }
+%BREAK TRAN-CODE FOOTING
+'                                                                                             -------------------' 
+'                                        Total for Earnings Code :' CCC                       {TAMT             }
+'                                                                                             -------------------' 
+
+%SUMMARY
+
+{underline                                                                                                                         }
+
+'                                                                                             ==================='
+'                                        Grand Total : '                                      {TAMT             }
+'                                                                                             ===================' 
+
+%REQUEST-PARAMETERS
+    PSD  PIC (X(8)) FORMAT (DATE) TEXT  'Week Ending Date From :'
+    PED  PIC (X(8)) FORMAT (DATE) TEXT  'Week Ending Date To   :'
+%VARIABLES
+    X      = ',' CONSTANT
+    DUMMY  = 'Y' CONSTANT
+    DUM    = choose (DUMMY IF (DUMMY = DUMMY), 'Y')
+    PSD    = %PSD%  FORMAT (DATE) CONSTANT
+    PED    = %PED%  FORMAT (DATE) CONSTANT
+    EMP    = EMPLOYEE-ID
+    C      = TRAN-CODE
+    EMPC   = CATENATE (EMP,C)
+    TRNEMP = CHOOSE (EMPC IF (EMPC <> SPACES), EMPC)
+    ACC    = ACCOUNT-CODE
+    AMT    = NUMERIC (AMOUNT) D-PIC (-Z(12)9.99)
+    CAMT   = CHOOSE (AMT IF (AMT <> 0), AMT) D-PIC (-Z(12)9.99)
+    TAMT   = TOTAL  (CAMT)  D-PIC (-ZZZ,ZZZ,ZZZ,ZZ9.99) D-PIC (-Z(12)9.99)
+    DESC   = CODE-DESC
+    DTL    = CATENATE (C,' - ',DESC)  SUPPRESS
+%*
+%*  Obtain Employee Name
+    MSF810 = SURNAME OF MSF810 -
+             WHERE (EMPLOYEE-ID = EMP)
+    LNAME  = SURNAME       VIA (MSF810)
+    I      = FIRST-INITIAL VIA (MSF810)
+%*
+%*          *** End of Program ***
+%*

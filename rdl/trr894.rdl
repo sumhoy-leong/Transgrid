@@ -1,0 +1,325 @@
+%PROGRAM-ID
+       TRR894
+%AUTHOR
+       Ventyx
+%ROUTINES
+       MSSDAT
+%*
+%NARRATIVE
+      **************************************************************************
+      **
+      **  Exception Report - Excess Part Time Hours.
+      **
+      **  This report will produce all current part time employees or who have
+      **  had part time history in the anniversary year when their anniversary
+      **  fell within the previous pay period.  A hard copy report will be
+      **  produced for actioning manually by Payroll users.
+      **
+      **************************************************************************
+      **  Revision History
+      **  01-May-2013 a9wp3261      Changes:
+      **                            1. Removed unused variables
+      **                            2. Changed MSF835 browse to AIX
+      **                            3. Removed process for contract part time contrct hours
+      **                            4. Select only leave type A and S
+      **                            5. Changed request parameter from end date to start date
+      **  06-Mar-2013 a9nl6176      Changes:
+      **                            1. Add MSF8P4 as LFILE
+      **                            2. Add additional break-fields
+      **                            3. Add details in report layout
+      **                            4. Add part time award code validation
+      **                            5. Change the way to get employee's name
+      **                            6. Add some new variables and remove unused old variables
+      **  15-Oct-2012 O Santa-Ana   Initial Coding.
+      **
+      **************************************************************************
+%FILES
+       MFILE = MSF820
+       AFILE = MSF880
+       LFILE = MSF010
+       LFILE = MSF810
+       LFILE = MSF801
+       LFILE = MSF828
+       AFILE = MSF835A
+       LFILE = MSF8P1
+       AFILE = MSF8P4
+       RFILE = TRR894A
+%VERSION
+        003
+%SELECTION
+     WHERE    (EMPLOYEE-ID >= SPACES)
+     REJECTIF (PAY-LOCATION <> %PAYLOC% , %PAYLOC% <> SPACES)
+%*
+%REPORT
+       A
+%REPORT-TITLE
+       'Exception Report - Excess Part Time Hours'
+%BREAK-FIELDS
+       PAY-LOC
+       EMP
+       LTYPE
+%ORDER
+       PAY-LOC   TEXT 'Pay Location'
+       EMP       TEXT 'Employee'
+%PAGE HEADING
+<IF VAL = 'Y'>
+  <IF PLOC = SPACES>
+                         'Pay Location: Blank for all'                       'Pay Period: '{DPPSTR}
+  <ELSE>
+                         'Pay Location: '{PLOC}                              'Pay Period: '{DPPSTR}
+  <ENDIF>
+{UNDERLINE                                                                                                                         }
+'Emp ID    Name                   Leave  Anniv      Award    Start       End        Part Time'
+'                                 Type   Date       Code     Date        Date       Att Hours'
+<ELSE>                                                                
+'Line/Field Ref/Value              Error/Warning Message'             
+<ENDIF>                                                               
+%BREAK PAY-LOC HEADER                                                 
+<IF VAL = 'Y' AND PLOC = SPACES>                                      
+      'Pay Location: '{PAY-LOC}' - '{PLDESC                      }    
+<ENDIF>                                                               
+%DETAIL                                                               
+%BREAK LTYPE FOOTING                                                   
+<IF A01 = 'Y' AND A02 = 'Y' AND A04 = 'Y' AND VAL = 'Y'>              
+{EMP     } {EMPNAME             } L      {ANVDT   } {AW}     {STRDTA}    {ENDDTA}   UUUUUUUUUU
+<ENDIF>
+%BREAK EMP FOOTER
+<IF A01 = 'Y' AND A02 = 'Y' AND A04 = 'Y' AND VAL = 'Y'>
+                                                              'Total for Employee'  UUUUUUUUUU 
+'                                                                                                                                  '
+<ENDIF>
+%SUMMARY
+<IF VAL = 'N'>
+    <IF VAL1 = SPACES AND PTA1 <> SPACES>
+{PTA1}                            'Invalid Part Time Award Code'
+  <ENDIF>
+    <IF VAL2 = SPACES AND PTA2 <> SPACES>
+{PTA2}                            'Invalid Part Time Award Code'
+  <ENDIF>
+    <IF VAL3 = SPACES AND PTA3 <> SPACES>
+{PTA3}                            'Invalid Part Time Award Code'
+  <ENDIF>
+    <IF VAL4 = SPACES AND PTA4 <> SPACES>
+{PTA4}                            'Invalid Part Time Award Code'
+  <ENDIF>
+    <IF VAL5 = SPACES AND PTA5 <> SPACES>
+{PTA5}                            'Invalid Part Time Award Code'
+  <ENDIF>
+    <IF VAL6 = SPACES AND PTA6 <> SPACES>
+{PTA6}                            'Invalid Part Time Award Code'
+  <ENDIF>
+    <IF VAL7 = SPACES AND PTA7 <> SPACES>
+{PTA7}                            'Invalid Part Time Award Code'
+  <ENDIF>
+    <IF VAL8 = SPACES AND PTA8 <> SPACES>
+{PTA8}                            'Invalid Part Time Award Code'
+  <ENDIF>
+    <IF VAL9 = SPACES AND PTA9 <> SPACES>
+{PTA9}                            'Invalid Part Time Award Code'
+  <ENDIF>
+    <IF VAL10 = SPACES AND PTA10 <> SPACES>
+{PTA10}                           'Invalid Part Time Award Code'
+  <ENDIF>
+<ENDIF>
+'(end of report)'
+%REQUEST-PARAMETERS
+   PAYLOC    PIC (X(2))  TEXT 'Pay Location          - Blank for All : '
+   PPSTRDT   PIC (9(8))  TEXT 'Previous Period Start Date            : '
+   PTAW1     PIC (X(4))  TEXT 'Part Time Award 1                     : '
+   PTAW2     PIC (X(4))  TEXT 'Part Time Award 2                     : '
+   PTAW3     PIC (X(4))  TEXT 'Part Time Award 3                     : '
+   PTAW4     PIC (X(4))  TEXT 'Part Time Award 4                     : '
+   PTAW5     PIC (X(4))  TEXT 'Part Time Award 5                     : '
+   PTAW6     PIC (X(4))  TEXT 'Part Time Award 6                     : '
+   PTAW7     PIC (X(4))  TEXT 'Part Time Award 7                     : '
+   PTAW8     PIC (X(4))  TEXT 'Part Time Award 8                     : '
+   PTAW9     PIC (X(4))  TEXT 'Part Time Award 9                     : '
+   PTAW10    PIC (X(4))  TEXT 'Part Time Award 10                    : '
+%*
+%VARIABLES
+%*
+%* Part Time Award validation MSF801_c0
+   PTA1    = %PTAW1%
+   PTA2    = %PTAW2%
+   PTA3    = %PTAW3%
+   PTA4    = %PTAW4%
+   PTA5    = %PTAW5%
+   PTA6    = %PTAW6%
+   PTA7    = %PTAW7%
+   PTA8    = %PTAW8%
+   PTA9    = %PTAW9%
+   PTA10   = %PTAW10%
+   VAL1 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA1) -
+   SELECTIF (PTA1 <> SPACES)
+   VAL2 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA2) -
+   SELECTIF (PTA2 <> SPACES)
+   VAL3 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA3) -
+   SELECTIF (PTA3 <> SPACES)
+   VAL4 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA4) -
+   SELECTIF (PTA4 <> SPACES)
+   VAL5 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA5) -
+   SELECTIF (PTA5 <> SPACES)
+   VAL6 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA6) -
+   SELECTIF (PTA6 <> SPACES)
+   VAL7 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA7) -
+   SELECTIF (PTA7 <> SPACES)
+   VAL8 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA8) -
+   SELECTIF (PTA8 <> SPACES)
+   VAL9 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA9) -
+   SELECTIF (PTA9 <> SPACES)
+   VAL10 = CNTL-KEY-REST OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'C0', -
+          CNTL-KEY-REST = PTA10) -
+   SELECTIF (PTA10 <> SPACES)
+   VAL   = CHOOSE('N' IF(VAL1 = SPACES AND PTA1 <> SPACES),-
+                  'N' IF(VAL2 = SPACES AND PTA2 <> SPACES),-
+          'N' IF(VAL3 = SPACES AND PTA3 <> SPACES),-
+          'N' IF(VAL4 = SPACES AND PTA4 <> SPACES),-
+          'N' IF(VAL5 = SPACES AND PTA5 <> SPACES),-
+          'N' IF(VAL6 = SPACES AND PTA6 <> SPACES),-
+          'N' IF(VAL7 = SPACES AND PTA7 <> SPACES),-
+          'N' IF(VAL8 = SPACES AND PTA8 <> SPACES),-
+          'N' IF(VAL9 = SPACES AND PTA9 <> SPACES),-
+          'N' IF(VAL10 = SPACES AND PTA10 <> SPACES), 'Y')
+%* Parameters
+%*
+   PLOC    = %PAYLOC%
+   PPSTR   = %PPSTRDT%
+   DPPSTR  = PPSTR FORMAT (DATE)
+%* MSF820
+   PAY-LOC = PAY-LOCATION
+   EMP     = EMPLOYEE-ID
+   PG      = PAY-GROUP
+%*
+%* MSF010 - PAYL
+%*
+   PLDESC  = TABLE-DESC OF MSF010 -
+   WHERE    (TABLE-TYPE = 'PAYL', -
+             TABLE-CODE = PAY-LOC)
+
+%*
+%* Need some calculations from MSSDAT to obtain a Date Range
+%* 7 days after Period Start Date
+%*
+   PPEND   = DATE2 OF MSSDAT -
+   WHERE    (OPTION = '1', -
+             DATE1  = PPSTR,-
+             DAYS   = 7) FORMAT (DATE)
+           
+%* MSF880
+   ANVDT   = ANV-DATE FROM MSF880 -
+   WHERE    (EMPLOYEE-ID = EMP, -
+             LEAVE-TYPE >= SPACES) -
+   REJECTIF (LEAVE-TYPE <> 'A',-
+             LEAVE-TYPE <> 'S')-
+   SELECTIF (ANV-DATE   >= PPSTR, -
+             ANV-DATE   <= PPEND)
+
+   EMP880  = EMPLOYEE-ID VIA (ANVDT)
+   LTYPE   = LEAVE-TYPE VIA (ANVDT)
+   ACCR    = ACCRUAL-CODE VIA (ANVDT)
+   CNTL    = CATENATE (LTYPE,ACCR)
+
+%* MSF810
+   EMPGET  = HRGET (EMPLOYEE-ID FROM('MSF810,MSSEMP') KEY(EMPLOYEE-ID = EMP880))
+   EMPNAME = FORMATTED-NAME VIA (EMPGET)
+
+%* MSF801 search accrual code entitlement period
+   ENT-MTHS = ENT-MONTHS-R-9 OF MSF801 -
+   WHERE     (CNTL-REC-TYPE = 'R ', -
+              CNTL-KEY-REST = CNTL)
+   MTHS    =  CATENATE ('-',ENT-MTHS)
+   YRMN    =  SUBSTR (ANVDT, 3, 4)
+   DD      =  SUBSTR (ANVDT, 7, 2)
+
+%* Calculate the Anniversary Period
+%* use MSSDAT option I to minus anniversary date with
+%* accrual code entitlement period
+   ANVYR   = PERIOD-CC-YRMN OF MSSDAT -
+   WHERE    (OPTION = 'I', -
+             DAYS = MTHS, -
+             PERIOD-YRMN = YRMN)
+   ANVTEMP = CATENATE (ANVYR,DD)
+   ANVST   = DATE2 OF MSSDAT -
+   WHERE    (OPTION = '1', -
+             DATE1 = ANVTEMP,-
+             DAYS = 1)
+
+%* MSF828 get current award code
+   AWCA    = AWARD-CODE OF MSF828 -
+   WHERE    (EMPLOYEE-ID = EMP880, -
+             END-DATE = '00000000')
+   AW      = AWCA
+   INVSD   = INV-STR-DATE VIA (AWCA)
+   STRDT   = CALC(99999999 - INVSD) I-PIC (9(8))
+   ENDDT   = END-DATE VIA   (AWCA)
+   PENDDT  = DATE2 OF MSSDAT -
+   WHERE    (OPTION = '1', -
+             DATE1 = STRDT,-
+             DAYS = -1) FORMAT (DATE)
+
+   STRDTA  = CHOOSE(ANVST IF(STRDT < ANVST AND AWCA <> SPACES AND A03 = 'Y'), -
+                    STRDT IF(STRDT >= ANVST AND STRDT <= ANVDT AND AWCA <> SPACES AND A03 = 'Y'), -
+                    '00000000') FORMAT (DATE)
+   ENDDTA  = CHOOSE(ANVDT IF(ENDDT = '00000000' AND AWCA <> SPACES AND A03 = 'Y'), -
+                    ANVDT IF(ENDDT < ANVDT AND AWCA <> SPACES AND A03 = 'Y'), -
+                    ENDDT IF(ENDDT >= ANVDT AND AWCA <> SPACES AND A03 = 'Y'), -
+                    '00000000') FORMAT (DATE)
+
+%* MSF835 search employee trans history
+   UNIT    = TRN-UNITS FROM MSF835A -
+   WHERE    (EMPLOYEE-ID-2  = EMP, -
+             TRN-DT-MSF891 <> '00000000', -
+             SEQ-NO-MSF891 >= SPACES) -
+   SELECTIF (TRN-DT-MSF891 >= STRDTA, -
+             TRN-DT-MSF891 <= ENDDTA, -
+             TRAN-IND       = '1')
+
+   TRC = TRAN-CODE VIA (UNIT)
+   CKR = CATENATE('***',TRC)
+
+%* MSF801 search accrual indicator
+   PERC = PERC-ACCR-A OF MSF801 -
+   WHERE (CNTL-REC-TYPE = 'A ', -
+          CNTL-KEY-REST = CKR)
+   UNITS = CHOOSE (UNIT IF(PERC = 'Y' AND A01 = 'Y' AND A02 = 'Y' AND A04 = 'Y'), -
+                   0)
+
+%* Misc. calculated fields for printing, totals etc.
+%*
+   L = LTYPE
+   A01 = CHOOSE ('Y' IF(ANVDT >= PPSTR AND ANVDT <= PPEND),'N')
+   A02 = CHOOSE ('Y' IF(ENT-MTHS > 0),'N')
+   A03 = CHOOSE ('Y' IF(%PTAW1% <> SPACES AND AWCA = %PTAW1%), -
+                 'Y' IF(%PTAW2% <> SPACES AND AWCA = %PTAW2%), -
+                 'Y' IF(%PTAW3% <> SPACES AND AWCA = %PTAW3%), -
+                 'Y' IF(%PTAW4% <> SPACES AND AWCA = %PTAW4%), -
+                 'Y' IF(%PTAW5% <> SPACES AND AWCA = %PTAW5%), -
+                 'Y' IF(%PTAW6% <> SPACES AND AWCA = %PTAW6%), -
+                 'Y' IF(%PTAW7% <> SPACES AND AWCA = %PTAW7%), -
+                 'Y' IF(%PTAW8% <> SPACES AND AWCA = %PTAW8%), -
+                 'Y' IF(%PTAW9% <> SPACES AND AWCA = %PTAW9%), -
+                 'Y' IF(%PTAW10% <> SPACES AND AWCA = %PTAW10%), -
+                 'N')
+   A04 = CHOOSE ('Y' IF(A03 = 'Y'),'N')
+   U = TOTAL (UNITS) D-PIC (Z(7)9.99)
+%*
+%*End of Program

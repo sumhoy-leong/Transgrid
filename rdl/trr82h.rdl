@@ -1,0 +1,1788 @@
+%*** TRR82H.RDL
+%***
+%*** Revision History ***
+%*** 04-Jun-13    AIT IG             Fixed column heading alignment.
+%*** 06-Mar-13    AIT Lubanovic      Migrated TRR82H into Ellipse 8 environment.
+%*** ..............................  Modified the ASSOC-REC starting position
+%*** ..............................  from 4 to 5 for table 'EMTY'
+%*** 06-Apr-11    G. Presser         3531146           (Version 002)
+%*** ..............................  Add the 'EMTY' enhancement forgotten in
+%*** ..............................  the previous change.
+%*** 20-Nov-07    Janak Barar        SC1660597 needs changes in the prog 
+%*** ..............................  for all the three reports A, B and C.
+%*** ..............................  1. Remove all data under Subtotals.
+%*** ..............................  2. Add subtotals under permanent and
+%*** ..............................  temporary.                          
+%*** ..............................  3. Space a line after new subtotals.
+%*** 15-Oct-02    E. Fredeluces      WCHG006490 
+%*** ..............................  To include list of 'People with a 
+%*** ..............................  disability requiring no adjustment
+%*** ..............................  at work' which is PU02 table code 6. 
+%*** 26-Nov-01    R. Yeung           WCHG000252
+%*** ..............................  Applied the changes same as trr82c (W01071109)
+%*** ..............................  Extract the correct data on report A for fields "People with disability"
+%*** ..............................  and  "People with a disability requiring adjustment at work".
+%*** 06-Jun-97    E. Fredeluces      Initial Coding
+%***
+%PROGRAM-ID
+       TRR82H
+%AUTHOR
+       E. Fredeluces
+%NARRATIVE
+      **  This program generates three EEO Reports by Employment Basis:
+      **  1.   Staff Numbers by Employment Basis
+      **  2.   Percent of Total Staff by Employment Basis
+      **  3.   Percent of Subgroup by Employment Basis
+%VERSION   
+       003 
+%FILES
+       MFILE = MSF820
+       LFILE = MSF010
+       LFILE = MSF760
+       LFILE = MSF803
+       LFILE = MSF828
+       LFILE = MSF830
+       RFILE = TRR82HA
+       RFILE = TRR82HB
+       RFILE = TRR82HC
+%SELECTION
+        WHERE (EMPLOYEE-ID >= SPACES)
+%REPORT
+    A
+%REPORT-TITLE  
+'Staff Numbers By Employment Basis'                                                                                            
+%PAGE HEADING  
+%*       1         2         3         4         5         6         7         8         9        10        11        12        13
+%*3456789012345678201234567830123456784012345678501234567860123456787012345678801234567890123456710012345671101234567120123456789012
+                                                    'Report Date : '{RDATE  }                                                       
+                                                                                                                                   
+'                                                                      People       People'                                
+'                                                                       from        whose                 People       People'
+'                              Staff                      Aboriginal   Racial,     language               with         with'
+'                            responding                    & Torres    Ethnic,      first                 Disability   Diasb'
+'    LEVEL  EMTY   TOTAL       to EEO                       Strait    Ethno-Rel   Spoken as               Requirng     Reqrng'
+'           TABLE  STAFF      data form                    Islander   Minority    a child was  People     Adjustmt     No Adj'
+'                 (Number)    (Respdts)    Men    Women     People     Groups     not English  w/ Disab   at Work      Work'
+%REPORT-SUMMARY                                                              
+
+'Permanent:'                                                                                                                        
+                                                                                                                                    
+'  Full-Time  P1' {TE1  }     {TERL1}  {TEM1 }  {TEF1 }    {TP6E1}    {TP5E1}      {TP4E1}     {TP2E1}    {TP3E1}     {TP7E1}
+                                                                                                                                    
+'  Part-Time  P2' {TE2  }     {TERL2}  {TEM2 }  {TEF2 }    {TP6E2}    {TP5E2}      {TP4E2}     {TP2E2}    {TP3E2}     {TP7E2}
+{underline                                                                                                                         }
+'SUBTOTALS      ' {TPA1 }     {TPA2 }  {TPA3 }  {TPA4 }    {TPA5 }    {TPA6 }      {TPA7 }     {TPA8 }    {TPA9 }     {TPA10}
+{underline                                                                                                                         }
+
+'Temporary:'                                                                                                                        
+                                                                                                                                    
+'  Full-Time  T1' {TE3  }     {TERL3}  {TEM3 }  {TEF3 }    {TP6E3}    {TP5E3}      {TP4E3}     {TP2E3}    {TP3E3}     {TP7E3}
+                                                                                                                                    
+'  Part-Time  T2' {TE4  }     {TERL4}  {TEM4 }  {TEF4 }    {TP6E4}    {TP5E4}      {TP4E4}     {TP2E4}    {TP3E4}     {TP7E4}
+{underline                                                                                                                         }
+'SUBTOTALS      ' {TTA1 }     {TTA2 }  {TTA3 }  {TTA4 }    {TTA5 }    {TTA6 }      {TTA7 }     {TTA8 }    {TTA9 }     {TTA10}
+{underline                                                                                                                         }
+
+'Sr Exec Svc  S1' {TE5  }     {TERL5}  {TEM5 }  {TEF5 }    {TP6E5}    {TP5E5}      {TP4E5}     {TP2E5}    {TP3E5}     {TP7E5}
+
+'Casual       C1' {TE6  }     {TERL6}  {TEM6 }  {TEF6 }    {TP6E6}    {TP5E6}      {TP4E6}     {TP2E6}    {TP3E6}     {TP7E6}
+                                                                                                                           
+'Other        O1' {TE7  }     {TERL7}  {TEM7 }  {TEF7 }    {TP6E7}    {TP5E7}      {TP4E7}     {TP2E7}    {TP3E7}     {TP7E7}
+                                                                                                                                  
+{underline                                                                                                                         }
+'   TOTAL'        {ETOT }     {TEAA }  {TEMA }  {TEFA }    {TEP6A}    {TEP5A}      {TEP4A}     {TEP2A}    {TEP3A}     {TEP7A}
+{underline                                                                                                                         }
+
+%REPORT                              
+    B      
+%REPORT-TITLE                        
+'Percent of Total Staff by Employment Basis'    
+%PAGE HEADING                        
+%*345678901234567820123456783012345678401234567850123456786012345678701234567880123456789012345671001234567110123456712012345678901
+                                                    'Report Date : '{RDATE  }                                                      
+                                                                                                                                  
+                        {underline                                                                                                 }
+'                       |       Subgroup as Percent of Total Staff at each Level        |Subgrp % of Respondents at each Level'
+{underline                                                                                                                         }
+'                       |                                                           Dis-|                                      Dis-' 
+'                       |                                                    Dis    abi-|                               Dis-   abi-'
+'                       | Staff                      Racial           Peo-   abi-   lity|        Racial          Peo-   abi-   lity'
+'                       |respdg                      Ethnic  First    ple    lity    No |        Ethnic   First  ple    lity     No'
+'                       |to EEO                 Abo  Ethno-   lang    with   Adj-   Adj | Aborig  Ethno   lang   with    Adj    Adj' 
+'                TOTAL  | data                    &     Rel    not    Dis-   ust-   ust-|   &       Rel   not    Dis-    ust    ust' 
+'  LEVEL   EMTY  STAFF  | form                 Isla-   Isld   Eng-    abi-   ment   ment|  Isla    Isld   Eng-   abi-    mnt    mnt'
+'         TABLE (Number)|(Resp)    Men  Women  Inder   Grps   lish    lity   Work   Work|  nder    Grps   lish   lity    Wrk    Wrk' 
+%REPORT-SUMMARY
+'Permanent:'
+
+'Full-Time  P1' {TE1  } {PER1 } {PEM1} {PEF1} {P6E1} {P5E1} {P4E1} {P2E1 } {P3E1} {P7E1} {R6E1} {R5E1} {R4E1 } {R2E1} {R3E1} {R7E1 }
+
+'Part-Time  P2' {TE2  } {PER2 } {PEM2} {PEF2} {P6E2} {P5E2} {P4E2} {P2E2 } {P3E3} {P7E2} {R6E2} {R5E2} {R4E2 } {R2E2} {R3E2} {R7E2 }
+{underline                                                                                                                         }
+'SUBTOTALS   '  {TPB1 } {TPB2 } {TPB3} {TPB4} {TPB5} {TPB6} {TPB7} {TPB8 } {TPB9} {TPBA} {TPBB} {TPBC} {TPBD } {TPBE} {TPBF} {TPBG }
+{underline                                                                                                                         }
+
+'Temporary:'
+
+'Full-Time  T1' {TE3  } {PER3 } {PEM3} {PEF3} {P6E3} {P5E3} {P4E3} {P2E3 } {P3E3} {P7E3} {R6E3} {R5E3} {R4E3 } {R2E3} {R3E3} {R7E3 }
+
+'Part-Time  T2' {TE4  } {PER4 } {PEM4} {PEF4} {P6E4} {P5E4} {P4E4} {P2E4 } {P3E4} {P7E4} {R6E4} {R5E4} {R4E4 } {R2E4} {R3E4} {R7E4 }
+{underline                                                                                                                         }
+'SUBTOTALS   '  {TTB1 } {TTB2 } {TTB3} {TTB4} {TTB5} {TTB6} {TTB7} {TTB8 } {TTB9} {TTBA} {TTBB} {TTBC} {TTBD } {TTBE} {TTBF} {TTBG }
+{underline                                                                                                                         }
+
+'SrExec Svc S1' {TE5  } {PER5 } {PEM5} {PEF5} {P6E5} {P5E5} {P4E5} {P2E5 } {P3E5} {P7E5} {R6E5} {R5E5} {R4E5 } {R2E5} {R3E5} {R7E5 }
+
+'Casual     C1' {TE6  } {PER6 } {PEM6} {PEF6} {P6E6} {P5E6} {P4E6} {P2E6 } {P3E6} {P7E6} {R6E6} {R5E6} {R4E6 } {R2E6} {R3E6} {R7E6 }
+                                                                                                             
+'Other      O1' {TE7  } {PER7 } {PEM7} {PEF7} {P6E7} {P5E7} {P4E7} {P2E7 } {P3E7} {P7E7} {R6E7} {R5E7} {R4E7 } {R2E7} {R3E7} {R7E7 }
+                                                                                                                          
+{underline                                                                                                                         }
+'  TOTAL     '  {ETOT } {PTB2 } {PTB3} {PTB4} {PTB5} {PTB6} {PTB7} {PTB8 } {PTB9} {PTBA} {PTBB} {PTBC} {PTBD } {PTBE} {PTBF} {PTBG }
+{underline                                                                                                                         }
+
+%REPORT
+    C
+%REPORT-TITLE
+'Percent of Subgroup By Employment Basis'                                 
+%PAGE HEADING                                                                
+%*345678901234567820123456783012345678401234567850123456786012345678701234567880123456789012345671001234567110123456712012345678901
+                                                    'Report Date : '{RDATE  } 
+                                                                                                  
+'                                                                    People      People'
+'                                                                     from       whose                   People         People'
+'                            Staff                      Aboriginal   Racial,    language                 with a         with'
+'                          responding                    & Torres    Ethnic,     first                  Disability      Diasb'
+'   LEVEL  EMTY   TOTAL     to EEO                        Strait    Ethno-Rel   Spoken as     People    Requiring       Reqrng' 
+'          TABLE  STAFF    data form                     Islander   Minority   a child was     with     Adjustment      No Adj'
+'                  (%)    (Respndnts)   Men     Women     People     Groups    not English   Disablty    at Work        Work' 
+%REPORT-SUMMARY
+'Permanent:'
+    
+' Full-Time P1' {DE1  }P    {RER1 }P  {CEM1 }P {CEF1 }P  {S6E1 }P   {S5E1 }P    {S4E1 }P     {S2E1 }P   {S3E1 }P      {S7E1 }P   
+
+' Part-Time P2' {DE2  }P    {RER2 }P  {CEM2 }P {CEF2 }P  {S6E2 }P   {S5E2 }P    {S4E2 }P     {S3E2 }P   {S3E2 }P      {S7E2 }P
+{underline                                                                                                                         }
+'SUBTOTALS    ' {TPC1 }P    {TPC2 }P  {TPC3 }P {TPC4 }P  {TPC5 }P   {TPC6 }P    {TPC7 }P     {TPC8 }P   {TPC9 }P      {TPCA }P
+{underline                                                                                                                         }
+
+
+'Temporary:'
+
+' Full-Time T1' {DE3  }P    {RER3 }P  {CEM3 }P {CEF3 }P  {S6E3 }P   {S5E3 }P    {S4E3 }P     {S2E3 }P   {S3E3 }P      {S7E3 }P 
+ 
+' Part-Time T2' {DE4  }P    {RER4 }P  {CEM4 }P {CEF4 }P  {S6E4 }P   {S5E4 }P    {S4E4 }P     {S2E4 }P   {S3E4 }P      {S7E4 }P
+{underline                                                                                                                         }
+'SUBTOTALS    ' {TTC1 }P    {TTC2 }P  {TTC3 }P {TTC4 }P  {TTC5 }P   {TTC6 }P    {TTC7 }P     {TTC8 }P   {TTC9 }P      {TTCA }P
+{underline                                                                                                                         }
+
+
+'SrExec Svc S1' {DE5  }P    {RER5 }P  {CEM5 }P {CEF5 }P  {S6E5 }P   {S5E5 }P    {S4E5 }P     {S2E5 }P   {S3E5 }P      {S7E5 }P 
+
+'Casual     C1' {DE6  }P    {RER6 }P  {CEM6 }P {CEF6 }P  {S6E6 }P   {S5E6 }P    {S4E6 }P     {S2E6 }P   {S3E6 }P      {S7E6 }P
+
+'Other      O1' {DE7  }P    {RER7 }P  {CEM7 }P {CEF7 }P  {S6E7 }P   {S5E7 }P    {S4E7 }P     {S2E7 }P   {S3E7 }P      {S7E7 }P 
+
+{underline                                                                                                                         }
+'   TOTAL     ' {DTC1 }P    {DTC2 }P  {DTC3 }P {DTC4 }P  {DTC5 }P   {DTC6 }P    {DTC7 }P     {DTC8 }P   {DTC9 }P      {DTCA }P  
+{underline                                                                                                                         }
+%REQUEST-PARAMETERS
+     REP-DATE     PIC (X(8))     Text  Report Date :
+%VARIABLES
+ P      = '%' CONSTANT  
+ RDATE1  = %REP-DATE% CONSTANT
+ RDATE  = RDATE1 FORMAT (DATE) 
+ EMPID  = EMPLOYEE-ID
+ STAT   = EMP-STATUS OF MSF760  -
+                WHERE    (EMPLOYEE-ID = EMPID)
+ CATEG  = STAFF-CATEG     VIA (STAT)
+ S      = GENDER          VIA (STAT)
+ ETYP   = EMP-TYPE        VIA (STAT)
+ HDATE  = HIRE-DATE       VIA (STAT)
+ TDATE  = TERM-DATE       VIA (STAT)
+ PU     = PERS-USER-FLD   VIA (STAT)
+ PU02   = single (PU(2))
+ PU03   = single (PU(3))
+ PU04   = single (PU(4)) 
+ PU05   = single (PU(5))
+ PU06   = single (PU(6)) 
+%*                                            
+%*  Criteria for Selection:                   
+%*     1.  Not a Worker's Comp                
+%*     2.  Must be hired before the report date
+%*     3.  Must be active during the report date                                     
+ PRT    = CHOOSE ('N' IF (TDATE <= %REP-DATE%,  -
+                          TDATE <> '00000000'), -
+                  'N' IF (CATEG  = 'ZO'),       -
+                  'N' IF (CATEG  = 'ZA'),       -
+                  'N' IF (CATEG  = 'GC'),       -
+                  'N' IF (ETYP   = 'WCP'),      - 
+                  'N' IF (ETYP   = 'IWE'),      - 
+                  'N' IF (HDATE  > %REP-DATE%), -  
+                  'Y')                       
+%*
+%*****************************************************************************
+%*               Staff Numbers By Employment Basis                           *
+%*****************************************************************************
+%*
+%*   Determine Employment Level                         
+%*      1 = Permanent Full-Time
+%*      2 = Permanent Part-Time
+%*      3 = Temporary Full-Time
+%*      4 = Temporary Part-Time
+%*      5 = SES
+%*      6 = Casual
+%*      7 = Other
+%* 
+ ASSRC  = ASSOC-REC OF MSF010 -
+              WHERE (TABLE-TYPE = 'EMTY', -
+                     TABLE-CODE = ETYP)
+ ASSREC = ASSOC-REC  VIA (ASSRC)
+ AREC   = substr(ASSREC,5,2)
+
+ EVL    = CHOOSE ('1' IF (AREC = 'P1'), -
+                  '2' IF (AREC = 'P2'), -
+                  '3' IF (AREC = 'T1'), -
+                  '4' IF (AREC = 'T2'), -
+                  '5' IF (AREC = 'S1'), -
+                  '6' IF (AREC = 'C1'), -
+                  '7' IF (AREC = 'O1'), -
+                  ' ')                                                  
+
+%*                                          
+%*   Employment Level Counts                     
+%*                                          
+ E1     = CHOOSE ( 1  IF (EVL = '1', -      
+                          PRT = 'Y'), 0)    
+ E2     = CHOOSE ( 1  IF (EVL = '2', -      
+                          PRT = 'Y'), 0)    
+ E3     = CHOOSE ( 1  IF (EVL = '3', -      
+                          PRT = 'Y'), 0)    
+ E4     = CHOOSE ( 1  IF (EVL = '4', -      
+                          PRT = 'Y'), 0)    
+ E5     = CHOOSE ( 1  IF (EVL = '5', -      
+                          PRT = 'Y'), 0)    
+ E6     = CHOOSE ( 1  IF (EVL = '6', -      
+                          PRT = 'Y'), 0)    
+ E7     = CHOOSE ( 1  IF (EVL = '7', -
+                          PRT = 'Y'), 0)      
+%*   Employment Level Totals and Grand Total   
+ TEI1  = calc  (E1 * 1) I-PIC (9(5))
+ TEI2  = calc  (E2 * 1) I-PIC (9(5))
+ TEI3  = calc  (E3 * 1) I-PIC (9(5))
+ TEI4  = calc  (E4 * 1) I-PIC (9(5))
+ TEI5  = calc  (E5 * 1) I-PIC (9(5))
+ TEI6  = calc  (E6 * 1) I-PIC (9(5))
+ TEI7  = calc  (E7 * 1) I-PIC (9(5))
+
+ TE1   = total (TEI1)  D-PIC (ZZ,ZZ9)     
+ TE2   = total (TEI2)  D-PIC (ZZ,ZZ9)     
+ TE3   = total (TEI3)  D-PIC (ZZ,ZZ9)     
+ TE4   = total (TEI4)  D-PIC (ZZ,ZZ9)     
+ TE5   = total (TEI5)  D-PIC (ZZ,ZZ9)     
+ TE6   = total (TEI6)  D-PIC (ZZ,ZZ9)     
+ TE7   = total (TEI7)  D-PIC (ZZ,ZZ9)     
+
+%* ECNT   = CHOOSE (1   IF (PRT = 'Y'), 0)  
+%* ETOT   = total (ECNT) D-PIC (ZZ,ZZ9)   
+
+ TPA1  = calc (TE1+TE2) D-PIC (ZZ,ZZ9)
+ TTA1  = calc (TE3+TE4) D-PIC (ZZ,ZZ9)
+ ETOT   = calc (TE1+TE2+TE3+TE4+TE5+TE6+TE7) D-PIC (ZZ,ZZ9)
+ ITOT   = calc (TE1 + TE2 + TE3 + TE4 + TE5 + TE6 + TE7) I-PIC (9(5))  
+
+ TPB1  = calc (TE1+TE2) D-PIC (ZZ,ZZ9)
+ TTB1  = calc (TE3+TE4) D-PIC (ZZ,ZZ9)
+
+%*
+%* TE11   = calc ((TE1 / ETOT) * 100)  I-PIC (9(3)V999)
+ TE11   = calc ((TE1 / ITOT) * 100)  I-PIC (9(3)V999)
+%* TE22   = calc ((TE2 / ETOT) * 100)  I-PIC (9(3)V999)
+ TE22   = calc ((TE2 / ITOT) * 100)  I-PIC (9(3)V999)
+%* TE33   = calc ((TE3 / ETOT) * 100)  I-PIC (9(3)V999)
+ TE33   = calc ((TE3 / ITOT) * 100)  I-PIC (9(3)V999)
+%* TE44   = calc ((TE4 / ETOT) * 100)  I-PIC (9(3)V999)
+ TE44   = calc ((TE4 / ITOT) * 100)  I-PIC (9(3)V999)
+%* TE55   = calc ((TE5 / ETOT) * 100)  I-PIC (9(3)V999)
+ TE55   = calc ((TE5 / ITOT) * 100)  I-PIC (9(3)V999)
+%* TE66   = calc ((TE6 / ETOT) * 100)  I-PIC (9(3)V999)
+ TE66   = calc ((TE6 / ITOT) * 100)  I-PIC (9(3)V999)
+%* TE77   = calc ((TE7 / ETOT) * 100)  I-PIC (9(3)V999)
+ TE77   = calc ((TE7 / ITOT) * 100)  I-PIC (9(3)V999)
+
+%* TTOT   = calc ((ETOT/ ETOT) * 100)  I-PIC (9(3)V999)
+%*
+ DE1    = TE11  D-PIC (ZZ9.999)
+ DE2    = TE22  D-PIC (ZZ9.999)
+ DE3    = TE33  D-PIC (ZZ9.999)
+ DE4    = TE44  D-PIC (ZZ9.999)
+ DE5    = TE55  D-PIC (ZZ9.999)
+ DE6    = TE66  D-PIC (ZZ9.999)
+ DE7    = TE77  D-PIC (ZZ9.999)
+%* DTOT   = TTOT  D-PIC (ZZ9.999)
+
+ TPC1  = calc (TE11 + TE22) D-PIC (ZZ9.999)
+ TTC1  = calc (TE33 + TE44) D-PIC (ZZ9.999)
+ DTC1  = calc (TE11 + TE22 + TE33 + TE44 + TE55 + TE66 + TE77) D-PIC (ZZ9.999)
+
+%* 
+%*   For Sub-Totals                           
+%*
+%*        P = Permanent                       
+%*        T = Temporary                       
+%*        F = Full-Time                       
+%*        R = Part-Time                       
+ PTVL   = CHOOSE ('P' IF (EVL >= '1',   -      
+                          EVL <= '2'),  -      
+                  'T' IF (EVL >= '3',   -      
+                          EVL <= '4'), ' ')
+ FRVL   = CHOOSE ('F' IF (EVL  = '1'),  -         
+                  'F' IF (EVL  = '3'),  -         
+                  'R' IF (EVL  = '2'),  -         
+                  'R' IF (EVL  = '4'), ' ')
+ P1     = CHOOSE ( 1  IF (PTVL = 'P', PRT = 'Y'), 0)        
+ T      = CHOOSE ( 1  IF (PTVL = 'T', PRT = 'Y'), 0)        
+ F      = CHOOSE ( 1  IF (FRVL = 'F', PRT = 'Y'), 0)        
+ R      = CHOOSE ( 1  IF (FRVL = 'R', PRT = 'Y'), 0)        
+ 
+ TPI    = calc  (P1 * 1) I-PIC (9(5))                                
+ TTI    = calc  (T  * 1) I-PIC (9(5))                                
+ TFI    = calc  (F  * 1) I-PIC (9(5))                                
+ TRI    = calc  (R  * 1) I-PIC (9(5))                                
+
+ TP     = total (P1) D-PIC (ZZ,ZZ9)                              
+ TT     = total (T)  D-PIC (ZZ,ZZ9)                            
+ TF     = total (F)  D-PIC (ZZ,ZZ9)                            
+ TR     = total (R)  D-PIC (ZZ,ZZ9)                            
+%*                                               
+%*   Sex Counts                                  
+%*                                               
+ EM1    =  CHOOSE ( 1  IF (EVL   = '1', -        
+                           S     = 'M', -        
+                           PRT   = 'Y'), 0)      
+ EF1    =  CHOOSE ( 1  IF (EVL   = '1', -        
+                           S     = 'F', -        
+                           PRT   = 'Y'), 0)      
+ EM2    =  CHOOSE ( 1  IF (EVL   = '2', -        
+                           S     = 'M', -        
+                           PRT   = 'Y'), 0)      
+ EF2    =  CHOOSE ( 1  IF (EVL   = '2', -        
+                           S     = 'F', -        
+                           PRT   = 'Y'), 0)      
+ EM3    =  CHOOSE ( 1  IF (EVL   = '3', -        
+                           S     = 'M', -        
+                           PRT   = 'Y'), 0)      
+ EF3    =  CHOOSE ( 1  IF (EVL   = '3', -        
+                           S     = 'F', -        
+                           PRT   = 'Y'), 0)     
+ EM4    =  CHOOSE ( 1  IF (EVL   = '4', -            
+                           S     = 'M', -            
+                           PRT   = 'Y'), 0)          
+ EF4    =  CHOOSE ( 1  IF (EVL   = '4', -            
+                           S     = 'F', -            
+                           PRT   = 'Y'), 0)          
+ EM5    =  CHOOSE ( 1  IF (EVL   = '5', -            
+                           S     = 'M', -            
+                           PRT   = 'Y'), 0)          
+ EF5    =  CHOOSE ( 1  IF (EVL   = '5', -            
+                           S     = 'F', -            
+                           PRT   = 'Y'), 0)          
+ EM6    =  CHOOSE ( 1  IF (EVL   = '6', -            
+                           S     = 'M', -            
+                           PRT   = 'Y'), 0)          
+ EF6    =  CHOOSE ( 1  IF (EVL   = '6', -            
+                           S     = 'F', -            
+                           PRT   = 'Y'), 0)          
+ EM7    =  CHOOSE ( 1  IF (EVL   = '7', -            
+                           S     = 'M', -            
+                           PRT   = 'Y'), 0)         
+ EF7    =  CHOOSE ( 1  IF (EVL   = '7', -  
+                           S     = 'F', -    
+                           PRT   = 'Y'), 0) 
+%*   Sex Totals        
+ TIM1   = calc  (EM1 * 1)  I-PIC (9(5))      
+ TIF1   = calc  (EF1 * 1)  I-PIC (9(5))      
+ TIM2   = calc  (EM2 * 1)  I-PIC (9(5))      
+ TIF2   = calc  (EF2 * 1)  I-PIC (9(5))      
+ TIM3   = calc  (EM3 * 1)  I-PIC (9(5))      
+ TIF3   = calc  (EF3 * 1)  I-PIC (9(5))      
+ TIM4   = calc  (EM4 * 1)  I-PIC (9(5))      
+ TIF4   = calc  (EF4 * 1)  I-PIC (9(5))      
+ TIM5   = calc  (EM5 * 1)  I-PIC (9(5))      
+ TIF5   = calc  (EF5 * 1)  I-PIC (9(5))      
+ TIM6   = calc  (EM6 * 1)  I-PIC (9(5))      
+ TIF6   = calc  (EF6 * 1)  I-PIC (9(5))      
+ TIM7   = calc  (EM7 * 1)  I-PIC (9(5))      
+ TIF7   = calc  (EF7 * 1)  I-PIC (9(5))      
+
+ TEM1   = total (EM1)  D-PIC (ZZ,ZZ9)    
+ TEF1   = total (EF1)  D-PIC (ZZ,ZZ9)  
+ TEM2   = total (EM2)  D-PIC (ZZ,ZZ9)  
+ TEF2   = total (EF2)  D-PIC (ZZ,ZZ9)  
+ TEM3   = total (EM3)  D-PIC (ZZ,ZZ9)  
+ TEF3   = total (EF3)  D-PIC (ZZ,ZZ9)   
+ TEM4   = total (EM4)  D-PIC (ZZ,ZZ9)  
+ TEF4   = total (EF4)  D-PIC (ZZ,ZZ9)  
+ TEM5   = total (EM5)  D-PIC (ZZ,ZZ9)  
+ TEF5   = total (EF5)  D-PIC (ZZ,ZZ9)  
+ TEM6   = total (EM6)  D-PIC (ZZ,ZZ9)  
+ TEF6   = total (EF6)  D-PIC (ZZ,ZZ9)  
+ TEM7   = total (EM7)  D-PIC (ZZ,ZZ9)  
+ TEF7   = total (EF7)  D-PIC (ZZ,ZZ9)  
+    
+ TPA3   = calc (TEM1+TEM2) D-PIC (ZZ,ZZ9)
+ TPA4   = calc (TEF1+TEF2) D-PIC (ZZ,ZZ9)
+ TTA3   = calc (TEM3+TEM4) D-PIC (ZZ,ZZ9)
+ TTA4   = calc (TEF3+TEF4) D-PIC (ZZ,ZZ9)
+
+%*   Compute Total Men & Women / Percentages / Display Percentages            
+ TEM   = calc (TEM1+TEM2+TEM3+TEM4+TEM5+TEM6+TEM7) D-PIC (ZZ,ZZ9) 
+ TEMA  = calc (TEM1+TEM2+TEM3+TEM4+TEM5+TEM6+TEM7) D-PIC (ZZ,ZZ9) 
+ TEF   = calc (TEF1+TEF2+TEF3+TEF4+TEF5+TEF6+TEF7) D-PIC (ZZ,ZZ9) 
+ TEFA  = calc (TEF1+TEF2+TEF3+TEF4+TEF5+TEF6+TEF7) D-PIC (ZZ,ZZ9) 
+
+%* TETM  = calc ((TEM / ITOT) * 100) I-PIC (9(3))
+%* TETF  = calc ((TEF / ITOT) * 100) I-PIC (9(3))
+%* PETM  = TETM  D-PIC (ZZ9)
+%* PETF  = TETF  D-PIC (ZZ9)
+%* PETF  = TETF  D-PIC (ZZ9)
+
+%*   Compute Sex Percentages for Report B                                                  
+ ESM1   = calc ((TEM1 / TE1) * 100)  I-PIC (9(3))
+ ESF1   = calc ((TEF1 / TE1) * 100)  I-PIC (9(3))
+ ESM2   = calc ((TEM2 / TE2) * 100)  I-PIC (9(3))
+ ESF2   = calc ((TEF2 / TE2) * 100)  I-PIC (9(3))
+ ESM3   = calc ((TEM3 / TE3) * 100)  I-PIC (9(3))
+ ESF3   = calc ((TEF3 / TE3) * 100)  I-PIC (9(3))
+ ESM4   = calc ((TEM4 / TE4) * 100)  I-PIC (9(3))
+ ESF4   = calc ((TEF4 / TE4) * 100)  I-PIC (9(3))
+ ESM5   = calc ((TEM5 / TE5) * 100)  I-PIC (9(3))
+ ESF5   = calc ((TEF5 / TE5) * 100)  I-PIC (9(3))
+ ESM6   = calc ((TEM6 / TE6) * 100)  I-PIC (9(3))
+ ESF6   = calc ((TEF6 / TE6) * 100)  I-PIC (9(3))
+ ESM7   = calc ((TEM7 / TE7) * 100)  I-PIC (9(3))
+ ESF7   = calc ((TEF7 / TE7) * 100)  I-PIC (9(3))   
+
+%*  Display Sex Percentages for Report B   
+ PEM1   = ESM1  D-PIC (ZZ9)      
+ PEF1   = ESF1  D-PIC (ZZ9)      
+ PEM2   = ESM2  D-PIC (ZZ9)      
+ PEF2   = ESF2  D-PIC (ZZ9)      
+ PEM3   = ESM3  D-PIC (ZZ9)      
+ PEF3   = ESF3  D-PIC (ZZ9)      
+ PEM4   = ESM4  D-PIC (ZZ9)      
+ PEF4   = ESF4  D-PIC (ZZ9)      
+ PEM5   = ESM5  D-PIC (ZZ9)      
+ PEF5   = ESF5  D-PIC (ZZ9)      
+ PEM6   = ESM6  D-PIC (ZZ9)      
+ PEF6   = ESF6  D-PIC (ZZ9)      
+ PEM7   = ESM7  D-PIC (ZZ9)      
+ PEF7   = ESF7  D-PIC (ZZ9)     
+
+ TPB3 = CALC (PEM1 + PEM2) D-PIC (ZZ9)
+ TPB4 = CALC (PEF1 + PEF2) D-PIC (ZZ9)
+ TTB3 = CALC (PEM3 + PEM4) D-PIC (ZZ9)
+ TTB4 = CALC (PEF3 + PEF4) D-PIC (ZZ9)
+ PTB3 = CALC (TPB3+TTB3+PEM5+PEM6+PEM7) D-PIC (ZZ9)
+ PTB4 = CALC (TPB4+TTB4+PEF5+PEF6+PEF7) D-PIC (ZZ9)
+
+%*   Compute Sex Percentages for Report C                                                  
+ CSM1   = CALC ((TEM1 / TEM) * 100)  I-PIC (9(3)V99)
+ CSF1   = CALC ((TEF1 / TEF) * 100)  I-PIC (9(3)V99)
+ CSM2   = CALC ((TEM2 / TEM) * 100)  I-PIC (9(3)V99)
+ CSF2   = CALC ((TEF2 / TEF) * 100)  I-PIC (9(3)V99)
+ CSM3   = CALC ((TEM3 / TEM) * 100)  I-PIC (9(3)V99)
+ CSF3   = CALC ((TEF3 / TEF) * 100)  I-PIC (9(3)V99)
+ CSM4   = CALC ((TEM4 / TEM) * 100)  I-PIC (9(3)V99)
+ CSF4   = CALC ((TEF4 / TEF) * 100)  I-PIC (9(3)V99)
+ CSM5   = CALC ((TEM5 / TEM) * 100)  I-PIC (9(3)V99)
+ CSF5   = CALC ((TEF5 / TEF) * 100)  I-PIC (9(3)V99)
+ CSM6   = CALC ((TEM6 / TEM) * 100)  I-PIC (9(3)V99)
+ CSF6   = CALC ((TEF6 / TEF) * 100)  I-PIC (9(3)V99)
+ CSM7   = CALC ((TEM7 / TEM) * 100)  I-PIC (9(3)V99)
+ CSF7   = CALC ((TEF7 / TEF) * 100)  I-PIC (9(3)V99)
+
+ CSM    = CALC ((TEM  / TEM) * 100)  I-PIC (9(3)V99)
+ CSF    = CALC ((TEF  / TEF) * 100)  I-PIC (9(3)V99)   
+%*  Display Sex Percentages for Report C   
+ CEM1   = CSM1  D-PIC (ZZ9.999)      
+ CEF1   = CSF1  D-PIC (ZZ9.999)      
+ CEM2   = CSM2  D-PIC (ZZ9.999)      
+ CEF2   = CSF2  D-PIC (ZZ9.999)      
+ CEM3   = CSM3  D-PIC (ZZ9.999)      
+ CEF3   = CSF3  D-PIC (ZZ9.999)      
+ CEM4   = CSM4  D-PIC (ZZ9.999)      
+ CEF4   = CSF4  D-PIC (ZZ9.999)      
+ CEM5   = CSM5  D-PIC (ZZ9.999)      
+ CEF5   = CSF5  D-PIC (ZZ9.999)      
+ CEM6   = CSM6  D-PIC (ZZ9.999)      
+ CEF6   = CSF6  D-PIC (ZZ9.999)      
+ CEM7   = CSM7  D-PIC (ZZ9.999)      
+ CEF7   = CSF7  D-PIC (ZZ9.999) 
+ CEM    = CSM   D-PIC (ZZ9.999)
+ CEF    = CSF   D-PIC (ZZ9.999)    
+
+ TPC3 = CALC (CSM1 + CSM2) D-PIC (ZZ9.999)
+ TTC3 = CALC (CSM3 + CSM4) D-PIC (ZZ9.999)
+ DTC3 = CALC (CSM1 + CSM2 + CSM3 + CSM4 + CSM5 + CSM6 + CSM7) D-PIC (ZZ9.999)
+ TPC4 = CALC (CSF1 + CSF2) D-PIC (ZZ9.999)
+ TTC4 = CALC (CSF3 + CSF4) D-PIC (ZZ9.999)
+ DTC4 = CALC (CSF1 + CSF2 + CSF3 + CSF4 + CSF5 + CSF6 + CSF7) D-PIC (ZZ9.999)
+%*                                                
+%*   Sex Sub-totals                               
+%*                                                
+ PM     =  CHOOSE ( 1  IF (PTVL  = 'P', -         
+                           S     = 'M', -         
+                           PRT   = 'Y'), 0)       
+ PF     =  CHOOSE ( 1  IF (PTVL  = 'P', -         
+                           S     = 'F', -         
+                           PRT   = 'Y'), 0)       
+ TM     =  CHOOSE ( 1  IF (PTVL  = 'T', -         
+                           S     = 'M', -         
+                           PRT   = 'Y'), 0)       
+ TF1    =  CHOOSE ( 1  IF (PTVL  = 'T', -         
+                           S     = 'F', -         
+                           PRT   = 'Y'), 0)       
+ FM     =  CHOOSE ( 1  IF (FRVL  = 'F', -         
+                           S     = 'M', -         
+                           PRT   = 'Y'), 0)       
+ FF     =  CHOOSE ( 1  IF (FRVL  = 'F', -         
+                           S     = 'F', -         
+                           PRT   = 'Y'), 0)      
+ RM     =  CHOOSE ( 1  IF (FRVL  = 'R', -         
+                           S     = 'M', -         
+                           PRT   = 'Y'), 0)       
+ RF     =  CHOOSE ( 1  IF (FRVL  = 'R', -         
+                           S     = 'F', -         
+                           PRT   = 'Y'), 0)       
+ TPMI   = CALC  (PM * 1)  I-PIC (9(5))                                
+ TPFI   = CALC  (PF * 1)  I-PIC (9(5))                                
+ TTMI   = CALC  (TM * 1)  I-PIC (9(5))                                
+ TTFI   = CALC  (TF1 * 1)  I-PIC (9(5))                                
+ TFMI   = CALC  (FM  * 1)  I-PIC (9(5))                                
+ TFFI   = CALC  (FF  * 1)  I-PIC (9(5))                                
+ TRMI   = CALC  (RM  * 1)  I-PIC (9(5))                                
+ TRFI   = CALC  (RF  * 1)  I-PIC (9(5))                                
+
+ TPM    = total (PM)  D-PIC (ZZ,ZZ9)                              
+ TPF    = total (PF)  D-PIC (ZZ,ZZ9)                            
+ TTM    = total (TM)  D-PIC (ZZ,ZZ9)                            
+ TTF    = total (TF1)  D-PIC (ZZ,ZZ9)                            
+ TFM    = total (FM)  D-PIC (ZZ,ZZ9)                            
+ TFF    = total (FF)  D-PIC (ZZ,ZZ9)                            
+ TRM    = total (RM)  D-PIC (ZZ,ZZ9)                            
+ TRF    = total (RF)  D-PIC (ZZ,ZZ9)                          
+%*                                                       
+%*   This field will also be used to determine the number of 
+%*   staff responding to the EEO data form
+%*         
+ RESP  = CHOOSE ('N' IF (PU02  = ' ',  -
+                         PU03  = ' ',  -
+                         PU04  = ' ',  -
+                         PU05  = ' ',  -
+                         PU06  = ' '), -
+                 'Y')
+%*                                              
+ ERL1  = CHOOSE ( 1  IF (EVL   = '1', -
+                         RESP  = 'Y', -
+                         PRT   = 'Y'), 0)                
+ ERL2  = CHOOSE ( 1  IF (EVL   = '2', -                  
+                         RESP  = 'Y', -                  
+                         PRT   = 'Y'), 0)                
+ ERL3  = CHOOSE ( 1  IF (EVL   = '3', -                  
+                         RESP  = 'Y', -                  
+                         PRT   = 'Y'), 0)                
+ ERL4  = CHOOSE ( 1  IF (EVL   = '4', -                  
+                         RESP  = 'Y', -                  
+                         PRT   = 'Y'), 0)                
+ ERL5  = CHOOSE ( 1  IF (EVL   = '5', -                  
+                         RESP  = 'Y', -                  
+                         PRT   = 'Y'), 0)               
+ ERL6  = CHOOSE ( 1  IF (EVL   = '6', -       
+                         RESP  = 'Y', -       
+                         PRT   = 'Y'), 0)     
+ ERL7  = CHOOSE ( 1  IF (EVL   = '7', -       
+                         RESP  > 'Y', -       
+                         PRT   = 'Y'), 0)    
+%*  Total Number of Staff Responding to EEO data form for each level       
+ TIRL1 = CALC   (ERL1 * 1) I-PIC (9(5))   
+ TIRL2 = CALC   (ERL2 * 1) I-PIC (9(5))   
+ TIRL3 = CALC   (ERL3 * 1) I-PIC (9(5))   
+ TIRL4 = CALC   (ERL4 * 1) I-PIC (9(5))   
+ TIRL5 = CALC   (ERL5 * 1) I-PIC (9(5))   
+ TIRL6 = CALC   (ERL6 * 1) I-PIC (9(5))   
+ TIRL7 = CALC   (ERL7 * 1) I-PIC (9(5))   
+
+ TERL1 = total  (ERL1) D-PIC (ZZ,ZZ9)
+ TERL2 = total  (ERL2) D-PIC (ZZ,ZZ9)
+ TERL3 = total  (ERL3) D-PIC (ZZ,ZZ9)
+ TERL4 = total  (ERL4) D-PIC (ZZ,ZZ9)
+ TERL5 = total  (ERL5) D-PIC (ZZ,ZZ9)
+ TERL6 = total  (ERL6) D-PIC (ZZ,ZZ9)
+ TERL7 = total  (ERL7) D-PIC (ZZ,ZZ9)
+
+ TPA2  = CALC (TERL1+TERL2) D-PIC (ZZ,ZZ9)
+ TTA2  = CALC (TERL3+TERL4) D-PIC (ZZ,ZZ9)
+
+%* Percentage of Staff Responding to EEO data for Report B
+ ER1   = CALC ((TERL1 / TE1) * 100)  I-PIC (9(3))                          
+ ER2   = CALC ((TERL2 / TE2) * 100)  I-PIC (9(3))                          
+ ER3   = CALC ((TERL3 / TE3) * 100)  I-PIC (9(3))                          
+ ER4   = CALC ((TERL4 / TE4) * 100)  I-PIC (9(3))                          
+ ER5   = CALC ((TERL5 / TE5) * 100)  I-PIC (9(3))                          
+ ER6   = CALC ((TERL6 / TE6) * 100)  I-PIC (9(3))                          
+ ER7   = CALC ((TERL7 / TE7) * 100)  I-PIC (9(3))                          
+
+%*   Display Staff Responding to EEO Data Form for Report B                            
+ PER1  = ER1  D-PIC (ZZ9)                                                  
+ PER2  = ER2  D-PIC (ZZ9)
+ PER3  = ER3  D-PIC (ZZ9)  
+ PER4  = ER4  D-PIC (ZZ9) 
+ PER5  = ER5  D-PIC (ZZ9)  
+ PER6  = ER6  D-PIC (ZZ9) 
+ PER7  = ER7  D-PIC (ZZ9)  
+
+ TPB2  = CALC (PER1 + PER2) D-PIC (ZZ9)
+ TTB2  = CALC (PER3 + PER4) D-PIC (ZZ9)
+
+%* TER   = CALC (TERL1 + TERL2 + TERL3 + TERL4 + TERL5 + TERL6 + TERL7) D-PIC (ZZ,ZZ9)     
+TER  = CALC (TERL1+TERL2+TERL3+TERL4+TERL5+TERL6+TERL7) I-PIC (9(5))       
+TEAA = CALC (TERL1+TERL2+TERL3+TERL4+TERL5+TERL6+TERL7) D-PIC (ZZ,ZZ9)     
+
+%* ER    = CALC ((TER / ETOT) * 100)    I-PIC (9(3))
+ ER    = CALC ((TER  / ITOT) * 100)    I-PIC (9(3))
+%* PTER  = ER  D-PIC (ZZ9)
+ PTB2  = CALC (PER1 + PER2 + PER3 + PER4 + PER5 + PER6 + PER7) D-PIC (ZZ9)
+%* Percentage of Staff Responding to EEO data for Report C
+ ER11  = CALC ((TERL1 / TER) * 100)  I-PIC (9(3)V99)                          
+ ER22  = CALC ((TERL2 / TER) * 100)  I-PIC (9(3)V99)                          
+ ER33  = CALC ((TERL3 / TER) * 100)  I-PIC (9(3)V99)                          
+ ER44  = CALC ((TERL4 / TER) * 100)  I-PIC (9(3)V99)                          
+ ER55  = CALC ((TERL5 / TER) * 100)  I-PIC (9(3)V99)                          
+ ER66  = CALC ((TERL6 / TER) * 100)  I-PIC (9(3)V99)                          
+ ER77  = CALC ((TERL7 / TER) * 100)  I-PIC (9(3)V99)
+
+ ERTOT = CALC ((TER / TER) * 100)  I-PIC (9(3)V99)    
+
+%*   Display Staff Responding to EEO Data Form for Report C
+ RER1  = ER11  D-PIC (ZZ9.999)                                                  
+ RER2  = ER22  D-PIC (ZZ9.999)
+ RER3  = ER33  D-PIC (ZZ9.999)  
+ RER4  = ER44  D-PIC (ZZ9.999) 
+ RER5  = ER55  D-PIC (ZZ9.999)  
+ RER6  = ER66  D-PIC (ZZ9.999) 
+ RER7  = ER77  D-PIC (ZZ9.999)
+
+ RTER  = ERTOT D-PIC (ZZ9.999)  
+
+ TPC2  = CALC (ER11 + ER22) D-PIC (ZZ9.999)
+ TTC2  = CALC (ER33 + ER44) D-PIC (ZZ9.999)
+ DTC2  = CALC (ER11+ER22+ER33+ER44+ER55+ER66+ER77) D-PIC (ZZ9.999)
+%*
+%*   Respondents Sub-totals 
+%*
+ RPR   =  CHOOSE ( 1  IF (PTVL  = 'P', -    
+                          PU06  > ' ', -
+                          PRT   = 'Y'), 0) 
+ RTR   =  CHOOSE ( 1  IF (PTVL  = 'T', -    
+                          PU06  > ' ', -    
+                          PRT   = 'Y'), 0)
+ RFR   =  CHOOSE ( 1  IF (FRVL  = 'F', -    
+                          PU06  > ' ', -    
+                          PRT   = 'Y'), 0)  
+ RRR   =  CHOOSE ( 1  IF (FRVL  = 'R', -    
+                          PU06  > ' ', -    
+                          PRT   = 'Y'), 0)
+ TPRI  =  CALC  (RPR * 1)  D-PIC (9(5))    
+ TTRI  =  CALC  (RTR * 1)  D-PIC (9(5))    
+ TFRI  =  CALC  (RFR * 1)  D-PIC (9(5))    
+ TRRI  =  CALC  (RRR * 1)  D-PIC (9(5))    
+
+ TPR   =  total (RPR)  D-PIC (ZZ,ZZ9) 
+ TTR   =  total (RTR)  D-PIC (ZZ,ZZ9)
+ TFR   =  total (RFR)  D-PIC (ZZ,ZZ9)
+ TRR   =  total (RRR)  D-PIC (ZZ,ZZ9)
+%*                                                      
+%*   Disability Count                                   
+%*                                                      
+ P2EL1 = CHOOSE ( 1  IF (EVL  = '1', -                  
+                        (PU02 = '1' OR  -
+                         PU02 = '3'),   -                   
+                         PRT  = 'Y'), 0)                
+ P2EL2 = CHOOSE ( 1  IF (EVL  = '2', -                  
+                        (PU02 = '1' OR  -
+                         PU02 = '3'),   -
+                         PRT  = 'Y'), 0)                
+ P2EL3 = CHOOSE ( 1  IF (EVL  = '3', -                  
+                        (PU02 = '1' OR  -
+                         PU02 = '3'),   -
+                         PRT  = 'Y'), 0)                
+ P2EL4 = CHOOSE ( 1  IF (EVL  = '4', -   
+                        (PU02 = '1' OR  -
+                         PU02 = '3'),   -               
+                         PRT  = 'Y'), 0)                
+ P2EL5 = CHOOSE ( 1  IF (EVL  = '5', -   
+                        (PU02 = '1' OR  -
+                         PU02 = '3'),   -               
+                         PRT  = 'Y'), 0)                
+ P2EL6 = CHOOSE ( 1  IF (EVL  = '6', -   
+                        (PU02 = '1' OR  -
+                         PU02 = '3'),   -               
+                         PRT  = 'Y'), 0)               
+ P2EL7 = CHOOSE ( 1  IF (EVL  = '7', -   
+                        (PU02 = '1' OR  -
+                         PU02 = '3'),   -        
+                         PRT  = 'Y'), 0)         
+%*   Disability Totals                                    
+ TI2E1 = CALC  (P2EL1)  I-PIC (9(5))                                      
+ TI2E2 = CALC  (P2EL2)  I-PIC (9(5))                                      
+ TI2E3 = CALC  (P2EL3)  I-PIC (9(5))                                      
+ TI2E4 = CALC  (P2EL4)  I-PIC (9(5))                                      
+ TI2E5 = CALC  (P2EL5)  I-PIC (9(5))                                      
+ TI2E6 = CALC  (P2EL6)  I-PIC (9(5))                                      
+ TI2E7 = CALC  (P2EL7)  I-PIC (9(5))                                      
+
+ TP2E1 = total (P2EL1)  D-PIC (ZZ,ZZ9)                                    
+ TP2E2 = total (P2EL2)  D-PIC (ZZ,ZZ9)                                   
+ TP2E3 = total (P2EL3)  D-PIC (ZZ,ZZ9)                                   
+ TP2E4 = total (P2EL4)  D-PIC (ZZ,ZZ9)                                   
+ TP2E5 = total (P2EL5)  D-PIC (ZZ,ZZ9)                                   
+ TP2E6 = total (P2EL6)  D-PIC (ZZ,ZZ9)                                   
+ TP2E7 = total (P2EL7)  D-PIC (ZZ,ZZ9)                                   
+
+ TPA8  = CALC (TP2E1+TP2E2) D-PIC (ZZ,ZZ9)
+ TTA8  = CALC (TP2E3+TP2E4) D-PIC (ZZ,ZZ9)
+
+%*   Compute Disability Percentage                        
+ PP2E1 = CALC ((TP2E1 / TE1) * 100)  I-PIC (9(3))       
+ PP2E2 = CALC ((TP2E2 / TE2) * 100)  I-PIC (9(3))       
+ PP2E3 = CALC ((TP2E3 / TE3) * 100)  I-PIC (9(3))       
+ PP2E4 = CALC ((TP2E4 / TE4) * 100)  I-PIC (9(3))       
+ PP2E5 = CALC ((TP2E5 / TE5) * 100)  I-PIC (9(3))       
+ PP2E6 = CALC ((TP2E6 / TE6) * 100)  I-PIC (9(3))       
+ PP2E7 = CALC ((TP2E7 / TE7) * 100)  I-PIC (9(3))       
+
+%*   Display Disability Percentages                       
+ P2E1  = PP2E1  D-PIC (ZZ9)
+ P2E2  = PP2E2  D-PIC (ZZ9)       
+ P2E3  = PP2E3  D-PIC (ZZ9)      
+ P2E4  = PP2E4  D-PIC (ZZ9)     
+ P2E5  = PP2E5  D-PIC (ZZ9)      
+ P2E6  = PP2E6  D-PIC (ZZ9)     
+ P2E7  = PP2E7  D-PIC (ZZ9)      
+
+ TPB8 = CALC (P2E1 + P2E2) D-PIC (ZZ9)
+ TTB8 = CALC (P2E3 + P2E4) D-PIC (ZZ9)
+ PTB8 = CALC (P2E1 + P2E2 + P2E3 + P2E4 + P2E5 + P2E6 + P2E7) D-PIC (ZZ9)
+
+%*   Compute Total Disability Percentages                                                       
+%* TEP2  = CALC (TP2E1 + TP2E2 + TP2E3 + TP2E4 + TP2E5 + TP2E6 + TP2E7) D-PIC (ZZ,ZZ9)   
+ TEP2  = CALC (TP2E1+TP2E2+TP2E3+TP2E4+TP2E5+TP2E6+TP2E7) I-PIC (9(5))     
+ TEP2A = CALC (TP2E1+TP2E2+TP2E3+TP2E4+TP2E5+TP2E6+TP2E7) D-PIC (ZZ,ZZ9)   
+
+%* EP2   = CALC ((TEP2 / ETOT) * 100) I-PIC (9(3))
+ EP2   = CALC ((TEP2 / ITOT) * 100) I-PIC (9(3))
+ PEP2  = EP2  D-PIC (ZZ9)                                                                                                     
+%*
+%*   Disability Sub-totals
+%*
+ P2P   = CHOOSE ( 1  IF (PTVL = 'P', -      
+                         PU02 = '1', -      
+                         PRT  = 'Y'), 0)
+ P2T   = CHOOSE ( 1  IF (PTVL = 'T', -     
+                         PU02 = '1', -     
+                         PRT  = 'Y'), 0)  
+ P2F   = CHOOSE ( 1  IF (FRVL = 'F', -     
+                         PU02 = '1', -     
+                         PRT  = 'Y'), 0)  
+ P2R   = CHOOSE ( 1  IF (FRVL = 'R', -     
+                         PU02 = '1', -     
+                         PRT  = 'Y'), 0)     
+ TP2P  = total (P2P)  D-PIC (ZZ,ZZ9)                   
+ TP2T  = total (P2T)  D-PIC (ZZ,ZZ9)                 
+ TP2F  = total (P2F)  D-PIC (ZZ,ZZ9)                 
+ TP2R  = total (P2R)  D-PIC (ZZ,ZZ9)                 
+%*                                                 
+%*   Disability Requiring Adjustment Count         
+%*                                                 
+ P3EL1 = CHOOSE ( 1  IF (EVL  = '1', -             
+                         PU03 = '5', -             
+                         PRT  = 'Y'), 0)           
+ P3EL2 = CHOOSE ( 1  IF (EVL  = '2', -
+                         PU03 = '5', -             
+                         PRT  = 'Y'), 0)           
+ P3EL3 = CHOOSE ( 1  IF (EVL  = '3', -
+                         PU03 = '5', -             
+                         PRT  = 'Y'), 0)           
+ P3EL4 = CHOOSE ( 1  IF (EVL  = '4', -
+                         PU03 = '5', -             
+                         PRT  = 'Y'), 0)           
+ P3EL5 = CHOOSE ( 1  IF (EVL  = '5', -
+                         PU03 = '5', -             
+                         PRT  = 'Y'), 0)    
+ P3EL6 = CHOOSE ( 1  IF (EVL  = '6', -  
+                         PU03 = '5', -          
+                         PRT  = 'Y'), 0)          
+ P3EL7 = CHOOSE ( 1  IF (EVL  = '7', -
+                         PU03 = '5', -            
+                         PRT  = 'Y'), 0)
+%*   Disability Requiring Adjustments Totals                     
+ TI3E1 = CALC  (P3EL1* 1)  I-PIC (9(5))   
+ TI3E2 = CALC  (P3EL2* 1)  I-PIC (9(5))   
+ TI3E3 = CALC  (P3EL3* 1)  I-PIC (9(5))   
+ TI3E4 = CALC  (P3EL4* 1)  I-PIC (9(5))   
+ TI3E5 = CALC  (P3EL5* 1)  I-PIC (9(5))   
+ TI3E6 = CALC  (P3EL6* 1)  I-PIC (9(5))   
+ TI3E7 = CALC  (P3EL7* 1)  I-PIC (9(5))   
+
+ TP3E1 = total (P3EL1)  D-PIC (ZZ,ZZ9)
+ TP3E2 = total (P3EL2)  D-PIC (ZZ,ZZ9)                                          
+ TP3E3 = total (P3EL3)  D-PIC (ZZ,ZZ9)                                          
+ TP3E4 = total (P3EL4)  D-PIC (ZZ,ZZ9)                                          
+ TP3E5 = total (P3EL5)  D-PIC (ZZ,ZZ9)                                          
+ TP3E6 = total (P3EL6)  D-PIC (ZZ,ZZ9)                                          
+ TP3E7 = total (P3EL7)  D-PIC (ZZ,ZZ9)                                          
+
+ TPA9 = CALC (TP3E1+TP3E2) D-PIC (ZZ,ZZ9)
+ TTA9 = CALC (TP3E3+TP3E4) D-PIC (ZZ,ZZ9)
+
+%*   Compute Disability Requiring Adjustments Percentage         
+ PP3E1 = CALC ((TP3E1 / TE1) * 100)  I-PIC (9(3))              
+ PP3E2 = CALC ((TP3E2 / TE2) * 100)  I-PIC (9(3))              
+ PP3E3 = CALC ((TP3E3 / TE3) * 100)  I-PIC (9(3))              
+ PP3E4 = CALC ((TP3E4 / TE4) * 100)  I-PIC (9(3))              
+ PP3E5 = CALC ((TP3E5 / TE5) * 100)  I-PIC (9(3))              
+ PP3E6 = CALC ((TP3E6 / TE6) * 100)  I-PIC (9(3))              
+ PP3E7 = CALC ((TP3E7 / TE7) * 100)  I-PIC (9(3))              
+
+%*   Display Disability Requiring Adjustments Percentages        
+ P3E1  = PP3E1  D-PIC (ZZ9)                                      
+ P3E2  = PP3E2  D-PIC (ZZ9)
+ P3E3  = PP3E3  D-PIC (ZZ9)   
+ P3E4  = PP3E4  D-PIC (ZZ9)  
+ P3E5  = PP3E5  D-PIC (ZZ9)   
+ P3E6  = PP3E6  D-PIC (ZZ9)  
+ P3E7  = PP3E7  D-PIC (ZZ9)   
+
+ TPB9 = CALC(P3E1 + P3E2) D-PIC (ZZ9)
+ TTB9 = CALC(P3E3 + P3E4) D-PIC (ZZ9)
+ PTB9 = CALC(TPB9 + TTB9 + P3E5 + P3E6 + P3E7) D-PIC (ZZ9)
+
+%*   Compute Total Disability Requiring Adjustments Percentages                                
+%* TEP3  = CALC (TP3E1 + TP3E2 + TP3E3 + TP3E4 + TP3E5 + TP3E6 + TP3E7) D-PIC (ZZ,ZZ9)  
+ TEP3  = CALC (TP3E1+TP3E2+TP3E3+TP3E4+TP3E5+TP3E6+TP3E7) I-PIC (9(5))    
+ TEP3A = CALC (TP3E1+TP3E2+TP3E3+TP3E4+TP3E5+TP3E6+TP3E7) D-PIC (ZZ,ZZ9)  
+%* EP3   = CALC ((TEP3 / ETOT) * 100) I-PIC (9(3))  
+ EP3   = CALC ((TEP3 / ITOT) * 100) I-PIC (9(3))  
+ PEP3  = EP3  D-PIC (ZZ9) 
+%*
+%*   Disability Requiring Adjustments Sub-totals
+%*
+ P3P   = CHOOSE ( 1  IF (PTVL = 'P', -
+                         PU03 = '5', -
+                         PRT  = 'Y'), 0)
+ P3T   = CHOOSE ( 1  IF (PTVL = 'T', -
+                         PU03 = '5', -
+                         PRT  = 'Y'), 0)
+ P3F   = CHOOSE ( 1  IF (FRVL = 'F', -
+                         PU03 = '5', -
+                         PRT  = 'Y'), 0)
+ P3R   = CHOOSE ( 1  IF (FRVL = 'R', -
+                         PU03 = '5', -
+                         PRT  = 'Y'), 0)
+ TI3P  = CALC  (P3P * 1) I-PIC (9(5))  
+ TI3T  = CALC  (P3T * 1) I-PIC (9(5))  
+ TI3F  = CALC  (P3F * 1) I-PIC (9(5))  
+ TI3R  = CALC  (P3R * 1) I-PIC (9(5))  
+
+ TP3P  = total (P3P) D-PIC (ZZ,ZZ9)
+ TP3T  = total (P3T) D-PIC (ZZ,ZZ9)
+ TP3F  = total (P3F) D-PIC (ZZ,ZZ9)
+ TP3R  = total (P3R) D-PIC (ZZ,ZZ9)
+%*
+%* Disability Requiring No Adjustment Count
+%*
+ P7EL1 = CHOOSE ( 1  IF (EVL  = '1', -
+                         PU03 = '6', -
+                         PRT  = 'Y'), 0)
+ P7EL2 = CHOOSE ( 1  IF (EVL  = '2', -
+                         PU03 = '6', -
+                         PRT  = 'Y'), 0)
+ P7EL3 = CHOOSE ( 1  IF (EVL  = '3', -
+                         PU03 = '6', -
+                         PRT  = 'Y'), 0)
+ P7EL4 = CHOOSE ( 1  IF (EVL  = '4', -
+                         PU03 = '6', -
+                         PRT  = 'Y'), 0)
+ P7EL5 = CHOOSE ( 1  IF (EVL  = '5', -
+                         PU03 = '6', -
+                         PRT  = 'Y'), 0)
+ P7EL6 = CHOOSE ( 1  IF (EVL  = '6', -
+                         PU03 = '6', -
+                         PRT  = 'Y'), 0)
+ P7EL7 = CHOOSE ( 1  IF (EVL  = '7', -
+                         PU03 = '6', -
+                         PRT  = 'Y'), 0)
+%*   Disability Requiring No Adjustments Totals
+ TI7E1 = CALC  (P7EL1 * 1)  I-PIC (9(5))  
+ TI7E2 = CALC  (P7EL2 * 1)  I-PIC (9(5))  
+ TI7E3 = CALC  (P7EL3 * 1)  I-PIC (9(5))  
+ TI7E4 = CALC  (P7EL4 * 1)  I-PIC (9(5))  
+ TI7E5 = CALC  (P7EL5 * 1)  I-PIC (9(5))  
+ TI7E6 = CALC  (P7EL6 * 1)  I-PIC (9(5))  
+ TI7E7 = CALC  (P7EL7 * 1)  I-PIC (9(5))  
+      
+ TP7E1 = total (P7EL1)  D-PIC (ZZ,ZZ9)
+ TP7E2 = total (P7EL2)  D-PIC (ZZ,ZZ9)
+ TP7E3 = total (P7EL3)  D-PIC (ZZ,ZZ9)
+ TP7E4 = total (P7EL4)  D-PIC (ZZ,ZZ9)
+ TP7E5 = total (P7EL5)  D-PIC (ZZ,ZZ9)
+ TP7E6 = total (P7EL6)  D-PIC (ZZ,ZZ9)
+ TP7E7 = total (P7EL7)  D-PIC (ZZ,ZZ9)
+
+ TPA10 = CALC (TP7E1+TP7E2) D-PIC (ZZ,ZZ9)
+ TTA10 = CALC (TP7E3+TP7E4) D-PIC (ZZ,ZZ9)
+
+%*   Compute Disability Requiring No Adjustments Percentage
+ PP7E1 = CALC ((TP7E1 / TE1) * 100)  I-PIC (9(3))
+ PP7E2 = CALC ((TP7E2 / TE2) * 100)  I-PIC (9(3))
+ PP7E3 = CALC ((TP7E3 / TE3) * 100)  I-PIC (9(3))
+ PP7E4 = CALC ((TP7E4 / TE4) * 100)  I-PIC (9(3))
+ PP7E5 = CALC ((TP7E5 / TE5) * 100)  I-PIC (9(3))
+ PP7E6 = CALC ((TP7E6 / TE6) * 100)  I-PIC (9(3))
+ PP7E7 = CALC ((TP7E7 / TE7) * 100)  I-PIC (9(3))
+
+%*   Display Disability Requiring No  Adjustments Percentages
+ P7E1  = PP7E1  D-PIC (ZZ9)
+ P7E2  = PP7E2  D-PIC (ZZ9)
+ P7E3  = PP7E3  D-PIC (ZZ9)
+ P7E4  = PP7E4  D-PIC (ZZ9)
+ P7E5  = PP7E5  D-PIC (ZZ9)
+ P7E6  = PP7E6  D-PIC (ZZ9)
+ P7E7  = PP7E7  D-PIC (ZZ9)
+
+ TPBA  = CALC (P7E1 + P7E2) D-PIC (ZZ9)
+ TTBA  = CALC (P7E3 + P7E4) D-PIC (ZZ9)
+ PTBA  = CALC (TPBA  + TTBA  + P7E5 + P7E6 + P7E7) D-PIC (ZZ9)
+
+%*   Compute Total Disability Requiring No Adjustments Percentages
+
+%* TEP7  = CALC (TP7E1 + TP7E2 + TP7E3 + TP7E4 + TP7E5 + TP7E6 + TP7E7) D-PIC (ZZ,ZZ9)
+ TEP7  = CALC (TP7E1+TP7E2+TP7E3+TP7E4+TP7E5+TP7E6+TP7E7) I-PIC (9(5))   
+ TEP7A = CALC (TP7E1+TP7E2+TP7E3+TP7E4+TP7E5+TP7E6+TP7E7) D-PIC (ZZ,ZZ9)
+%* EP7   = CALC ((TEP7 / ETOT) * 100) I-PIC (9(3))
+ EP7   = CALC ((TEP7 / ITOT) * 100) I-PIC (9(3))
+ PEP7  = EP7  D-PIC (ZZ9)
+%*
+%*   Disability Requiring No Adjustments Sub-totals
+%*
+ P7P   = CHOOSE ( 1  IF (PTVL = 'P', -      
+                         PU03 = '6', -      
+                         PRT  = 'Y'), 0)
+ P7T   = CHOOSE ( 1  IF (PTVL = 'T', -      
+                         PU03 = '6', -      
+                         PRT  = 'Y'), 0)   
+ P7F   = CHOOSE ( 1  IF (FRVL = 'F', -      
+                         PU03 = '6', -      
+                         PRT  = 'Y'), 0)   
+ P7R   = CHOOSE ( 1  IF (FRVL = 'R', -      
+                         PU03 = '6', -      
+                         PRT  = 'Y'), 0)      
+ TI7P  = CALC  (P7P * 1) I-PIC (9(5))                     
+ TI7T  = CALC  (P7T * 1) I-PIC (9(5))                     
+ TI7F  = CALC  (P7F * 1) I-PIC (9(5))                     
+ TI7R  = CALC  (P7R * 1) I-PIC (9(5))                     
+
+ TP7P  = total (P7P) D-PIC (ZZ,ZZ9)                   
+ TP7T  = total (P7T) D-PIC (ZZ,ZZ9)                  
+ TP7F  = total (P7F) D-PIC (ZZ,ZZ9)                  
+ TP7R  = total (P7R) D-PIC (ZZ,ZZ9)                  
+%*                                                     
+%*   Language First Spoken as a Child was not English  
+%*                                                     
+ P4EL1 = CHOOSE ( 1  IF (EVL   = '1', -                
+                         PU04  > '1', -                
+                         PRT   = 'Y'), 0)              
+ P4EL2 = CHOOSE ( 1  IF (EVL   = '2', -                
+                         PU04  >  '1', -               
+                         PRT   = 'Y'), 0)              
+ P4EL3 = CHOOSE ( 1  IF (EVL   = '3', -                
+                         PU04  > '1', -                
+                         PRT   = 'Y'), 0)              
+ P4EL4 = CHOOSE ( 1  IF (EVL   = '4', -                
+                         PU04  > '1', -                
+                         PRT   = 'Y'), 0)              
+ P4EL5 = CHOOSE ( 1  IF (EVL   = '5', -                
+                         PU04  > '1', -                
+                         PRT   = 'Y'), 0)              
+ P4EL6 = CHOOSE ( 1  IF (EVL   = '6', -                
+                         PU04  > '1', -
+                         PRT   = 'Y'), 0) 
+ P4EL7 = CHOOSE ( 1  IF (EVL   = '7', -   
+                         PU04  > '1', -   
+                         PRT   = 'Y'), 0)               
+%*   Language First Spoken as a child was not English Totals   
+ TI4E1 = CALC  (P4EL1 * 1)  I-PIC (9(5))                           
+ TI4E2 = CALC  (P4EL2 * 1)  I-PIC (9(5))                           
+ TI4E3 = CALC  (P4EL3 * 1)  I-PIC (9(5))                           
+ TI4E4 = CALC  (P4EL4 * 1)  I-PIC (9(5))                           
+ TI4E5 = CALC  (P4EL5 * 1)  I-PIC (9(5))                           
+ TI4E6 = CALC  (P4EL6 * 1)  I-PIC (9(5))                           
+ TI4E7 = CALC  (P4EL7 * 1)  I-PIC (9(5))                           
+
+ TP4E1 = total (P4EL1)  D-PIC (ZZ,ZZ9)                         
+ TP4E2 = total (P4EL2)  D-PIC (ZZ,ZZ9)                       
+ TP4E3 = total (P4EL3)  D-PIC (ZZ,ZZ9)                       
+ TP4E4 = total (P4EL4)  D-PIC (ZZ,ZZ9)                       
+ TP4E5 = total (P4EL5)  D-PIC (ZZ,ZZ9)                       
+ TP4E6 = total (P4EL6)  D-PIC (ZZ,ZZ9)                       
+ TP4E7 = total (P4EL7)  D-PIC (ZZ,ZZ9)                       
+
+ TPA7 = CALC (TP4E1+TP4E2) D-PIC (ZZ,ZZ9) 
+ TTA7 = CALC (TP4E3+TP4E4) D-PIC (ZZ,ZZ9) 
+
+%*   Language First Spoken as a child was not English Percentage                                     
+ PP4E1 = CALC ((TP4E1 / TE1) * 100)  I-PIC (9(3))
+ PP4E2 = CALC ((TP4E2 / TE2) * 100)  I-PIC (9(3))
+ PP4E3 = CALC ((TP4E3 / TE3) * 100)  I-PIC (9(3))
+ PP4E4 = CALC ((TP4E4 / TE4) * 100)  I-PIC (9(3))
+ PP4E5 = CALC ((TP4E5 / TE5) * 100)  I-PIC (9(3))
+ PP4E6 = CALC ((TP4E6 / TE6) * 100)  I-PIC (9(3))
+ PP4E7 = CALC ((TP4E7 / TE7) * 100)  I-PIC (9(3))
+      
+%*   Display Language First Spoken as a child was not English Percentages                            
+ P4E1  = PP4E1  D-PIC (ZZ9)
+ P4E2  = PP4E2  D-PIC (ZZ9)
+ P4E3  = PP4E3  D-PIC (ZZ9)
+ P4E4  = PP4E4  D-PIC (ZZ9)
+ P4E5  = PP4E5  D-PIC (ZZ9)
+ P4E6  = PP4E6  D-PIC (ZZ9)
+ P4E7  = PP4E7  D-PIC (ZZ9)
+
+ TPB7 = CALC (PP4E1 + PP4E2) D-PIC (ZZ9)
+ TTB7 = CALC (PP4E3 + PP4E4) D-PIC (ZZ9)
+ PTB7 = CALC (PP4E1+PP4E2+PP4E3+PP4E4+PP4E5+PP4E6+PP4E7) D-PIC (ZZ9)
+
+%*   Compute Total First Language Spoken as a child was not English Percentages                      
+ TEP4  = CALC (TP4E1+TP4E2+TP4E3+TP4E4+TP4E5+TP4E6+TP4E7) I-PIC (9(5))   
+ TEP4A = CALC (TP4E1+TP4E2+TP4E3+TP4E4+TP4E5+TP4E6+TP4E7) D-PIC (ZZ,ZZ9)
+%* EP4   = CALC ((TEP4 / ETOT) * 100) I-PIC (9(3))
+ EP4   = CALC ((TEP4  / ITOT) * 100) I-PIC (9(3))
+ PEP4  = EP4  D-PIC (ZZ9)                                                      
+%*
+%*   Language Not English Sub-totals
+%*
+ P4P   = CHOOSE ( 1  IF (PTVL  = 'P', -     
+                         PU04  > '1', -     
+                         PRT   = 'Y'), 0)
+ P4T   = CHOOSE ( 1  IF (PTVL  = 'T', -   
+                         PU04  > '1', -   
+                         PRT   = 'Y'), 0)
+ P4F   = CHOOSE ( 1  IF (FRVL  = 'F', -    
+                         PU04  > '1', -    
+                         PRT   = 'Y'), 0)  
+ P4R   = CHOOSE ( 1  IF (FRVL  = 'R', -    
+                         PU04  > '1', -    
+                         PRT   = 'Y'), 0)   
+ TI4P  = CALC  (P4P * 1)  I-PIC (9(5))   
+ TI4T  = CALC  (P4T * 1)  I-PIC (9(5))  
+ TI4F  = CALC  (P4F * 1)  I-PIC (9(5))  
+ TI4R  = CALC  (P4R * 1)  I-PIC (9(5))  
+
+ TP4P  = total (P4P)  D-PIC (ZZ,ZZ9)
+ TP4T  = total (P4T)  D-PIC (ZZ,ZZ9)  
+ TP4F  = total (P4F)  D-PIC (ZZ,ZZ9)
+ TP4R  = total (P4R)  D-PIC (ZZ,ZZ9)
+%*                                                    
+%*   Racial, Ethnic, Ethno-Religious Minority Groups  
+%*                                                    
+ P5EL1 = CHOOSE ( 1  IF (EVL  = '1', -                
+                         PU05 = '1', -                
+                         PRT  = 'Y'), 0)              
+ P5EL2 = CHOOSE ( 1  IF (EVL  = '2', -                
+                         PU05 =  '1', -               
+                         PRT  = 'Y'), 0)              
+ P5EL3 = CHOOSE ( 1  IF (EVL  = '3', -                
+                         PU05 = '1', -                
+                         PRT  = 'Y'), 0)              
+ P5EL4 = CHOOSE ( 1  IF (EVL  = '4', -                
+                         PU05 = '1', -                
+                         PRT  = 'Y'), 0)              
+ P5EL5 = CHOOSE ( 1  IF (EVL  = '5', -                
+                         PU05 = '1', -                
+                         PRT  = 'Y'), 0)              
+ P5EL6 = CHOOSE ( 1  IF (EVL  = '6', -                
+                         PU05 = '1', -                
+                         PRT  = 'Y'), 0)
+ P5EL7 = CHOOSE ( 1  IF (EVL  = '7', -              
+                         PU05 = '1', -              
+                         PRT  = 'Y'), 0)                        
+%*   Racial, Ethnic, Ethno-Religious Minority Groups Totals                       
+ TI5E1 = CALC  (P5EL1 * 1)  I-PIC (9(5))   
+ TI5E2 = CALC  (P5EL2 * 1)  I-PIC (9(5))   
+ TI5E3 = CALC  (P5EL3 * 1)  I-PIC (9(5))   
+ TI5E4 = CALC  (P5EL4 * 1)  I-PIC (9(5))   
+ TI5E5 = CALC  (P5EL5 * 1)  I-PIC (9(5))   
+ TI5E6 = CALC  (P5EL6 * 1)  I-PIC (9(5))   
+ TI5E7 = CALC  (P5EL7 * 1)  I-PIC (9(5))   
+
+ TP5E1 = total (P5EL1)  D-PIC (ZZ,ZZ9)
+ TP5E2 = total (P5EL2)  D-PIC (ZZ,ZZ9)
+ TP5E3 = total (P5EL3)  D-PIC (ZZ,ZZ9)
+ TP5E4 = total (P5EL4)  D-PIC (ZZ,ZZ9)
+ TP5E5 = total (P5EL5)  D-PIC (ZZ,ZZ9)
+ TP5E6 = total (P5EL6)  D-PIC (ZZ,ZZ9)
+ TP5E7 = total (P5EL7)  D-PIC (ZZ,ZZ9)
+
+ TPA6 = CALC (TP5E1+TP5E2) D-PIC (ZZ,ZZ9)
+ TTA6 = CALC (TP5E3+TP5E4) D-PIC (ZZ,ZZ9)
+
+%*   Racial, Ethnic, Ethno-Religious Minority Groups Totals  Percentage           
+ PP5E1 = CALC ((TP5E1 / TE1) * 100)  I-PIC (9(3))
+ PP5E2 = CALC ((TP5E2 / TE2) * 100)  I-PIC (9(3))
+ PP5E3 = CALC ((TP5E3 / TE3) * 100)  I-PIC (9(3))
+ PP5E4 = CALC ((TP5E4 / TE4) * 100)  I-PIC (9(3))
+ PP5E5 = CALC ((TP5E5 / TE5) * 100)  I-PIC (9(3))
+ PP5E6 = CALC ((TP5E6 / TE6) * 100)  I-PIC (9(3))
+ PP5E7 = CALC ((TP5E7 / TE7) * 100)  I-PIC (9(3))
+
+%*   Display Racial, Ethnic, Ethno-Religious Minority Groups Total Percentages    
+ P5E1  = PP5E1  D-PIC (ZZ9)
+ P5E2  = PP5E2  D-PIC (ZZ9)
+ P5E3  = PP5E3  D-PIC (ZZ9)  
+ P5E4  = PP5E4  D-PIC (ZZ9) 
+ P5E5  = PP5E5  D-PIC (ZZ9)  
+ P5E6  = PP5E6  D-PIC (ZZ9) 
+ P5E7  = PP5E7  D-PIC (ZZ9)  
+
+ TPB6  = CALC (PP5E1 + PP5E2) D-PIC (ZZ9) 
+ TTB6  = CALC (PP5E3 + PP5E4) D-PIC (ZZ9) 
+ PTB6  = CALC (PP5E1+PP5E2+PP5E3+PP5E4+PP5E5+PP5E6+PP5E7) D-PIC (ZZ9) 
+
+%*   Compute Total Racial, Ethnic, Ethno-Religious Minority Groups Percentages
+%* TEP5  = CALC (TP5E1 + TP5E2 + TP5E3 + TP5E4 + TP5E5 + TP5E6 + TP5E7) D-PIC (ZZ,ZZ9)     
+ TEP5  = CALC (TP5E1+TP5E2+TP5E3+TP5E4+TP5E5+TP5E6+TP5E7) I-PIC (9(5))  
+ TEP5A = CALC (TP5E1+TP5E2+TP5E3+TP5E4+TP5E5+TP5E6+TP5E7) D-PIC (ZZ,ZZ9)
+%* EP5   = CALC ((TEP5 / ETOT) * 100) I-PIC (9(3))                 
+ EP5   = CALC ((TEP5 / ITOT) * 100) I-PIC (9(3))                 
+ PEP5  = EP5  D-PIC (ZZ9)                                        
+%*  
+%*   Racial, Ethnic, Ethno Sub-totals
+%*
+ P5P   = CHOOSE ( 1  IF (PTVL = 'P', -     
+                         PU05 = '1', -     
+                         PRT  = 'Y'), 0)
+ P5T   = CHOOSE ( 1  IF (PTVL = 'T', -    
+                         PU05 = '1', -    
+                         PRT  = 'Y'), 0)
+ P5F   = CHOOSE ( 1  IF (FRVL = 'F', -      
+                         PU05 = '1', -      
+                         PRT  = 'Y'), 0)    
+ P5R   = CHOOSE ( 1  IF (FRVL = 'R', -      
+                         PU05 = '1', -      
+                         PRT  = 'Y'), 0)      
+ TI5P  = CALC  (P5P * 1)  D-PIC (9(5))   
+ TI5T  = CALC  (P5T * 1)  D-PIC (9(5))   
+ TI5F  = CALC  (P5F * 1)  D-PIC (9(5))   
+ TI5R  = CALC  (P5R * 1)  D-PIC (9(5))   
+
+ TP5P  = total (P5P)  D-PIC (ZZ,ZZ9)
+ TP5T  = total (P5T)  D-PIC (ZZ,ZZ9)
+ TP5F  = total (P5F)  D-PIC (ZZ,ZZ9)   
+ TP5R  = total (P5R)  D-PIC (ZZ,ZZ9)
+%*                                       
+%*   Aboriginal & Torres Strait Islander People 
+%*                                              
+ P6EL1 = CHOOSE ( 1  IF (EVL  = '1',  -         
+                        (PU06 > '0',  -         
+                         PU06 < '4'), -         
+                         PRT  = 'Y'), 0)        
+ P6EL2 = CHOOSE ( 1  IF (EVL  = '2',  -         
+                        (PU06 > '0',  -         
+                         PU06 < '4'), -         
+                         PRT  = 'Y'), 0)        
+ P6EL3 = CHOOSE ( 1  IF (EVL  = '3',  -         
+                        (PU06 > '0',  -         
+                         PU06 < '4'), -         
+                         PRT  = 'Y'), 0)
+ P6EL4 = CHOOSE ( 1  IF (EVL  = '4',  -       
+                        (PU06 > '0',  -       
+                         PU06 < '4'), -       
+                         PRT  = 'Y'), 0)      
+ P6EL5 = CHOOSE ( 1  IF (EVL  = '5',  -       
+                        (PU06 > '0',  -       
+                         PU06 < '4'), -       
+                         PRT  = 'Y'), 0)      
+ P6EL6 = CHOOSE ( 1  IF (EVL  = '6',  -       
+                        (PU06 > '0',  -       
+                         PU06 < '4'), -       
+                         PRT  = 'Y'), 0)
+ P6EL7 = CHOOSE ( 1  IF (EVL  = '7',  -     
+                        (PU06 > '0',  -     
+                         PU06 < '4'), -     
+                         PRT  = 'Y'), 0)    
+%*   Aboriginal & Torres Strait Islander People Totals                         
+ TI6E1 = CALC  (P6EL1)   I-PIC (9(5))   
+ TI6E2 = CALC  (P6EL2)   I-PIC (9(5))
+ TI6E3 = CALC  (P6EL3)   I-PIC (9(5))
+ TI6E4 = CALC  (P6EL4)   I-PIC (9(5))
+ TI6E5 = CALC  (P6EL5)   I-PIC (9(5))  
+ TI6E6 = CALC  (P6EL6)   I-PIC (9(5))   
+ TI6E7 = CALC  (P6EL7)   I-PIC (9(5))  
+
+ TP6E1 = total (P6EL1)   D-PIC (ZZ,ZZ9)
+ TP6E2 = total (P6EL2)   D-PIC (ZZ,ZZ9)
+ TP6E3 = total (P6EL3)   D-PIC (ZZ,ZZ9)
+ TP6E4 = total (P6EL4)   D-PIC (ZZ,ZZ9)
+ TP6E5 = total (P6EL5)   D-PIC (ZZ,ZZ9)
+ TP6E6 = total (P6EL6)   D-PIC (ZZ,ZZ9)
+ TP6E7 = total (P6EL7)   D-PIC (ZZ,ZZ9)
+
+ TPA5 = CALC (TP6E1+TP6E2) D-PIC (ZZ,ZZ9) 
+ TTA5 = CALC (TP6E3+TP6E4) D-PIC (ZZ,ZZ9) 
+
+%*   Aboriginal & Torres Strait Islander People Totals  Percentage             
+ PP6E1 = CALC ((TP6E1 / TE1) * 100)  I-PIC (9(3)V99)
+ PP6E2 = CALC ((TP6E2 / TE2) * 100)  I-PIC (9(3)V99)
+ PP6E3 = CALC ((TP6E3 / TE3) * 100)  I-PIC (9(3)V99)
+ PP6E4 = CALC ((TP6E4 / TE4) * 100)  I-PIC (9(3)V99)
+ PP6E5 = CALC ((TP6E5 / TE5) * 100)  I-PIC (9(3)V99)
+ PP6E6 = CALC ((TP6E6 / TE6) * 100)  I-PIC (9(3)V99)
+ PP6E7 = CALC ((TP6E7 / TE7) * 100)  I-PIC (9(3)V99)
+
+%*   Display Aboriginal & Torres Strait Islander People Total Percentages      
+ P6E1  = PP6E1  D-PIC (ZZ9.99)
+ P6E2  = PP6E2  D-PIC (ZZ9.99)
+ P6E3  = PP6E3  D-PIC (ZZ9.99)   
+ P6E4  = PP6E4  D-PIC (ZZ9.99)  
+ P6E5  = PP6E5  D-PIC (ZZ9.99)   
+ P6E6  = PP6E6  D-PIC (ZZ9.99)  
+ P6E7  = PP6E7  D-PIC (ZZ9.99)   
+
+ TPB5 = CALC (PP6E1 + PP6E2) D-PIC (ZZ9.99)
+ TTB5 = CALC (PP6E3 + PP6E4) D-PIC (ZZ9.99)
+ PTB5 = CALC (PP6E1+PP6E2+PP6E3+PP6E4+PP6E5+PP6E6+PP6E7) D-PIC (ZZ9.99)
+
+%*   Compute Total Aboriginal & Torres Strait Islander People Percentages                       
+%* TEP6  = CALC (TP6E1 + TP6E2 + TP6E3 + TP6E4 + TP6E5 + TP6E6 + TP6E7) D-PIC (ZZ,ZZ9)   
+ TEP6  = CALC (TP6E1+TP6E2+TP6E3+TP6E4+TP6E5+TP6E6+TP6E7) I-PIC (9(5))     
+ TEP6A = CALC (TP6E1+TP6E2+TP6E3+TP6E4+TP6E5+TP6E6+TP6E7) D-PIC (ZZ,ZZ9)   
+
+%* EP6   = CALC ((TEP6 / ETOT) * 100) I-PIC (9(3)V99)
+ EP6   = CALC ((TEP6  / ITOT) * 100) I-PIC (9(3)V99) 
+ PEP6  = EP6  D-PIC (ZZ9.99)
+%*
+%*  Aboriginal Sub-totals
+%*
+ P6P   = CHOOSE ( 1  IF (PTVL = 'P',  -     
+                        (PU06 > '0',  -     
+                         PU06 < '4'), -     
+                         PRT  = 'Y'), 0)   
+ P6T   = CHOOSE ( 1  IF (PTVL = 'T',  -       
+                        (PU06 > '0',  -       
+                         PU06 < '4'), -       
+                         PRT  = 'Y'), 0)
+ P6F   = CHOOSE ( 1  IF (FRVL = 'F',  -       
+                        (PU06 > '0',  -       
+                         PU06 < '4'), -       
+                         PRT  = 'Y'), 0)
+ P6R   = CHOOSE ( 1  IF (FRVL = 'R',  -       
+                        (PU06 > '0',  -       
+                         PU06 < '4'), -       
+                         PRT  = 'Y'), 0)
+ TI6P  = CALC  (P6P * 1)  D-PIC (9(5))    
+ TI6T  = CALC  (P6T * 1)  D-PIC (9(5))    
+ TI6F  = CALC  (P6F * 1)  D-PIC (9(5))    
+ TI6R  = CALC  (P6R * 1)  D-PIC (9(5))    
+
+ TP6P  = total (P6P)  D-PIC (ZZ,ZZ9)
+ TP6T  = total (P6T)  D-PIC (ZZ,ZZ9)
+ TP6F  = total (P6F)  D-PIC (ZZ,ZZ9)
+ TP6R  = total (P6R)  D-PIC (ZZ,ZZ9)
+%*                                                                                     
+%*****************************************************************************         
+%*          Percent of Total Staff By Employment Basis                       *  
+%*      Percent of Respondents in each Employment Category                   *
+%*****************************************************************************         
+%*                                                             
+%*   Aboriginal & Torres Strait Islander People Totals  Percentage               
+ RI6E1 = CALC ((TP6E1 / TERL1) * 100)  I-PIC (9(3)V99)
+ RI6E2 = CALC ((TP6E2 / TERL2) * 100)  I-PIC (9(3)V99)
+ RI6E3 = CALC ((TP6E3 / TERL3) * 100)  I-PIC (9(3)V99)
+ RI6E4 = CALC ((TP6E4 / TERL4) * 100)  I-PIC (9(3)V99)
+ RI6E5 = CALC ((TP6E5 / TERL5) * 100)  I-PIC (9(3)V99)
+ RI6E6 = CALC ((TP6E6 / TERL6) * 100)  I-PIC (9(3)V99)
+ RI6E7 = CALC ((TP6E7 / TERL7) * 100)  I-PIC (9(3)V99)
+
+ RI6ET = CALC ((TEP6  / TER ) * 100)  I-PIC (9(3)V99)
+ 
+%*   Display Aboriginal & Torres Strait Islander People Total Percentages        
+ R6E1  = RI6E1  D-PIC (ZZ9.99)
+ R6E2  = RI6E2  D-PIC (ZZ9.99)
+ R6E3  = RI6E3  D-PIC (ZZ9.99)
+ R6E4  = RI6E4  D-PIC (ZZ9.99)
+ R6E5  = RI6E5  D-PIC (ZZ9.99)
+ R6E6  = RI6E6  D-PIC (ZZ9.99)
+ R6E7  = RI6E7  D-PIC (ZZ9.99)
+ R6ET  = RI6ET  D-PIC (ZZ9.99)
+
+ TPBB  = CALC (RI6E1+RI6E2) D-PIC (ZZ9.99)
+ TTBB  = CALC (RI6E3+RI6E4) D-PIC (ZZ9.99)
+ PTBB  = CALC (RI6E1+RI6E2+RI6E3+RI6E4+RI6E5+RI6E6+RI6E7) D-PIC (ZZ9.99)
+
+%*   Racial, Ethnic, Ethno-Religious Minority Groups Totals  Percentage                
+ RP5E1 = CALC ((TP5E1 / TERL1) * 100)  I-PIC (9(3))
+ RP5E2 = CALC ((TP5E2 / TERL1) * 100)  I-PIC (9(3))
+ RP5E3 = CALC ((TP5E3 / TERL3) * 100)  I-PIC (9(3))
+ RP5E4 = CALC ((TP5E4 / TERL4) * 100)  I-PIC (9(3))
+ RP5E5 = CALC ((TP5E5 / TERL5) * 100)  I-PIC (9(3))
+ RP5E6 = CALC ((TP5E6 / TERL6) * 100)  I-PIC (9(3))
+ RP5E7 = CALC ((TP5E7 / TERL7) * 100)  I-PIC (9(3))
+
+ RP5ET = CALC ((TEP5 / TER ) * 100)  I-PIC (9(3))  
+
+%*   Display Racial, Ethnic, Ethno-Religious Minority Groups Total Percentages         
+ R5E1  = RP5E1  D-PIC (ZZ9)
+ R5E2  = RP5E2  D-PIC (ZZ9)
+ R5E3  = RP5E3  D-PIC (ZZ9)
+ R5E4  = RP5E4  D-PIC (ZZ9)
+ R5E5  = RP5E5  D-PIC (ZZ9)
+ R5E6  = RP5E6  D-PIC (ZZ9)
+ R5E7  = RP5E7  D-PIC (ZZ9)
+
+ R5ET  = RP5ET  D-PIC (ZZ9)
+
+ TPBC  = CALC (RP5E1 + RP5E2) D-PIC (ZZ9)
+ TTBC  = CALC (RP5E3 + RP5E4) D-PIC (ZZ9)
+ PTBC  = CALC (RP5E1+RP5E2+RP5E3+RP5E4+RP5E5+RP5E6+RP5E7) D-PIC (ZZ9)
+
+%*   First Language Spoken Not English Totals  Percentage                   
+ RP4E1 = CALC ((TP4E1 / TERL1) * 100)  I-PIC (9(3))
+ RP4E2 = CALC ((TP4E2 / TERL2) * 100)  I-PIC (9(3))
+ RP4E3 = CALC ((TP4E3 / TERL3) * 100)  I-PIC (9(3))
+ RP4E4 = CALC ((TP4E4 / TERL4) * 100)  I-PIC (9(3))
+ RP4E5 = CALC ((TP4E5 / TERL5) * 100)  I-PIC (9(3))
+ RP4E6 = CALC ((TP4E6 / TERL6) * 100)  I-PIC (9(3))
+ RP4E7 = CALC ((TP4E7 / TERL7) * 100)  I-PIC (9(3))
+
+ RP4ET = CALC ((TEP4 / TER) * 100)  I-PIC (9(3))
+       
+%*   First Language Spoken Not English Total Percentages            
+ R4E1  = RP4E1  D-PIC (ZZ9) 
+ R4E2  = RP4E2  D-PIC (ZZ9) 
+ R4E3  = RP4E3  D-PIC (ZZ9) 
+ R4E4  = RP4E4  D-PIC (ZZ9) 
+ R4E5  = RP4E5  D-PIC (ZZ9) 
+ R4E6  = RP4E6  D-PIC (ZZ9) 
+ R4E7  = RP4E7  D-PIC (ZZ9) 
+
+ TPBD  = CALC (R4E1 + R4E2) D-PIC (ZZ9)
+ TTBD  = CALC (R4E3 + R4E4) D-PIC (ZZ9)
+ PTBD  = CALC (R4E1 + R4E2 + R4E3 + R4E4 + R4E5 + R4E6 + R4E7) D-PIC (ZZ9)
+
+%*   Disability Totals  Percentage                   
+ RP2E1 = CALC ((TP2E1 / TERL1) * 100)  I-PIC (9(3))
+ RP2E2 = CALC ((TP2E2 / TERL2) * 100)  I-PIC (9(3))
+ RP2E3 = CALC ((TP2E3 / TERL3) * 100)  I-PIC (9(3))
+ RP2E4 = CALC ((TP2E4 / TERL4) * 100)  I-PIC (9(3))
+ RP2E5 = CALC ((TP2E5 / TERL5) * 100)  I-PIC (9(3))
+ RP2E6 = CALC ((TP2E6 / TERL6) * 100)  I-PIC (9(3))
+ RP2E7 = CALC ((TP2E7 / TERL7) * 100)  I-PIC (9(3))
+
+ RP2ET = CALC ((TEP2  / TER ) * 100)  I-PIC (9(3))
+
+%*   Display Disability Total Percentages            
+ R2E1  = RP2E1  D-PIC (ZZ9)
+ R2E2  = RP2E2  D-PIC (ZZ9)
+ R2E3  = RP2E3  D-PIC (ZZ9)
+ R2E4  = RP2E4  D-PIC (ZZ9)
+ R2E5  = RP2E5  D-PIC (ZZ9)
+ R2E6  = RP2E6  D-PIC (ZZ9)
+ R2E7  = RP2E7  D-PIC (ZZ9)
+
+ R2ET  = RP2ET  D-PIC (ZZ9)
+
+ TPBE  = CALC (R2E1 + R2E2) D-PIC (ZZ9)
+ TTBE  = CALC (R2E3 + R2E4) D-PIC (ZZ9)
+ PTBE  = CALC (R2E1+R2E2+R2E3+R2E4+R2E5+R2E6+R2E7) D-PIC (ZZ9)
+
+%*   Disability Requiring Adjustments from Work Totals  Percentage                   
+ RP3E1 = CALC ((TP3E1 / TERL1) * 100)  I-PIC (9(3))
+ RP3E2 = CALC ((TP3E2 / TERL2) * 100)  I-PIC (9(3))
+ RP3E3 = CALC ((TP3E3 / TERL3) * 100)  I-PIC (9(3))
+ RP3E4 = CALC ((TP3E4 / TERL4) * 100)  I-PIC (9(3))
+ RP3E5 = CALC ((TP3E5 / TERL5) * 100)  I-PIC (9(3))
+ RP3E6 = CALC ((TP3E6 / TERL6) * 100)  I-PIC (9(3))
+ RP3E7 = CALC ((TP3E7 / TERL7) * 100)  I-PIC (9(3))
+
+ RP3ET = CALC ((TEP3  / TER ) * 100)  I-PIC (9(3))
+      
+%*   Display Disability Requiring Adjustments from Work Total Percentages            
+ R3E1  = RP3E1  D-PIC (ZZ9)
+ R3E2  = RP3E2  D-PIC (ZZ9)
+ R3E3  = RP3E3  D-PIC (ZZ9)
+ R3E4  = RP3E4  D-PIC (ZZ9)
+ R3E5  = RP3E5  D-PIC (ZZ9)
+ R3E6  = RP3E6  D-PIC (ZZ9)
+ R3E7  = RP3E7  D-PIC (ZZ9)
+
+ R3ET  = RP3ET  D-PIC (ZZ9)
+
+ TPBF  = CALC (R3E1 + R3E2) D-PIC (ZZ9)
+ TTBF  = CALC (R3E3 + R3E4) D-PIC (ZZ9)
+ PTBF  = CALC (R3E1  + R3E2  + R3E3 + R3E4 + R3E5 + R3E6 + R3E7) D-PIC (ZZ9)
+
+%*   Disability Requiring No Adjustments from Work Totals  Percentage 
+ RP7E1 = CALC ((TP7E1 / TERL1) * 100)  I-PIC (9(3)) 
+ RP7E2 = CALC ((TP7E2 / TERL2) * 100)  I-PIC (9(3))
+ RP7E3 = CALC ((TP7E3 / TERL3) * 100)  I-PIC (9(3))
+ RP7E4 = CALC ((TP7E4 / TERL4) * 100)  I-PIC (9(3))
+ RP7E5 = CALC ((TP7E5 / TERL5) * 100)  I-PIC (9(3))
+ RP7E6 = CALC ((TP7E6 / TERL6) * 100)  I-PIC (9(3))
+ RP7E7 = CALC ((TP7E7 / TERL7) * 100)  I-PIC (9(3))
+
+ RP7ETA = CALC ((TEP7 / TER ) * 100)  I-PIC (9(3))
+                             
+%*   Display Disability Requiring No Adjustments from Work Total Percentages
+
+ R7E1  = RP7E1  D-PIC (ZZ9)
+ R7E2  = RP7E2  D-PIC (ZZ9)
+ R7E3  = RP7E3  D-PIC (ZZ9)  
+ R7E4  = RP7E4  D-PIC (ZZ9)  
+ R7E5  = RP7E5  D-PIC (ZZ9)  
+ R7E6  = RP7E6  D-PIC (ZZ9)
+ R7E7  = RP7E7  D-PIC (ZZ9)
+
+%* R7ET  = RP7ET  D-PIC (ZZ9)
+ R7ET  = RP7ETA D-PIC (ZZ9)
+                                  
+ TPBG  = CALC (R7E1 + R7E2) D-PIC (ZZ9)
+ TTBG  = CALC (R7E3 + R7E4) D-PIC (ZZ9)
+ PTBG  = CALC (TPBG  + TTBG  + R7E5 + R7E6 + R7E7) D-PIC (ZZ9)
+
+%*****************************************************************************     
+%*          Percent of Total Staff By Employment Basis                       * 
+%*                   S  U  B  T  O  T  A  L  S                               *    
+%*      Percent of Total Staff in each Employment Category                   *     
+%*****************************************************************************     
+%*    Staff Reponding to EEO Data 
+ SPP   = CALC ((TPRI / TP) * 100)   I-PIC (9(3))
+ SPT   = CALC ((TTRI / TT) * 100)   I-PIC (9(3)) 
+ SPF   = CALC ((TFRI / TF) * 100)   I-PIC (9(3))
+ SPR   = CALC ((TRRI / TR) * 100)   I-PIC (9(3))
+
+ DSPP  = SPP  D-PIC (ZZ9)
+ DSPT  = SPT  D-PIC (ZZ9)
+ DSPF  = SPF  D-PIC (ZZ9)
+ DSPR  = SPR  D-PIC (ZZ9)
+%*     Sex 
+ PPM   = CALC ((TPM / TP) * 100)  I-PIC (9(3))
+ PPF   = CALC ((TPF / TP) * 100)  I-PIC (9(3)) 
+ PTM   = CALC ((TTM / TT) * 100)  I-PIC (9(3))   
+ PTF   = CALC ((TTF / TT) * 100)  I-PIC (9(3))
+ PFM   = CALC ((TFM / TF) * 100)  I-PIC (9(3))   
+ PFF   = CALC ((TFF / TF) * 100)  I-PIC (9(3))
+ PRM   = CALC ((TRM / TR) * 100)  I-PIC (9(3))   
+ PRF   = CALC ((TRF / TR) * 100)  I-PIC (9(3))
+
+ DPM   = PPM  D-PIC (ZZ9)
+ DPF   = PPF  D-PIC (ZZ9)
+ DTM   = PTM  D-PIC (ZZ9)           
+ DTF   = PTF  D-PIC (ZZ9)
+ DFM   = PFM  D-PIC (ZZ9)           
+ DFF   = PFF  D-PIC (ZZ9)          
+ DRM   = PRM  D-PIC (ZZ9)           
+ DRF   = PRF  D-PIC (ZZ9)                        
+
+%*  Aboriginal
+ PP6P  = CALC ((TP6P / TP) * 100)  I-PIC (9(3))
+ PP6T  = CALC ((TP6T / TT) * 100)  I-PIC (9(3))
+ PP6F  = CALC ((TP6F / TF) * 100)  I-PIC (9(3))    
+ PP6R  = CALC ((TP6R / TR) * 100)  I-PIC (9(3))      
+
+ DP6P  = PP6P  D-PIC (ZZ9)
+ DP6T  = PP6T  D-PIC (ZZ9)
+ DP6F  = PP6F  D-PIC (ZZ9)    
+ DP6R  = PP6R  D-PIC (ZZ9)
+
+%*  Racial, Ethnic, ...                                   
+ PP5P  = CALC ((TP5P / TP) * 100)  I-PIC (9(3))    
+ PP5T  = CALC ((TP5T / TP) * 100)  I-PIC (9(3))    
+ PP5F  = CALC ((TP5F / TP) * 100)  I-PIC (9(3))    
+ PP5R  = CALC ((TP5R / TR) * 100)  I-PIC (9(3))    
+
+ DP5P  = PP5P  D-PIC (ZZ9)                         
+ DP5T  = PP5T  D-PIC (ZZ9)                         
+ DP5F  = PP5F  D-PIC (ZZ9)                         
+ DP5R  = PP5R  D-PIC (ZZ9)
+
+%*  First Language Not English                      
+ PP4P  = CALC ((TP4P / TP) * 100)  I-PIC (9(3))    
+ PP4T  = CALC ((TP4T / TT) * 100)  I-PIC (9(3))    
+ PP4F  = CALC ((TP4F / TF) * 100)  I-PIC (9(3))    
+ PP4R  = CALC ((TP4R / TR) * 100)  I-PIC (9(3))    
+
+ DP4P  = PP4P  D-PIC (ZZ9)                         
+ DP4T  = PP4T  D-PIC (ZZ9)                         
+ DP4F  = PP4F  D-PIC (ZZ9)                         
+ DP4R  = PP4R  D-PIC (ZZ9)
+
+%*  Disability                          
+ PP2P  = CALC ((TP2P / TP) * 100)  I-PIC (9(3))    
+ PP2T  = CALC ((TP2T / TT) * 100)  I-PIC (9(3))    
+ PP2F  = CALC ((TP2F / TF) * 100)  I-PIC (9(3))    
+ PP2R  = CALC ((TP2R / TR) * 100)  I-PIC (9(3))    
+
+ DP2P  = PP2P  D-PIC (ZZ9)                         
+ DP2T  = PP2T  D-PIC (ZZ9)                         
+ DP2F  = PP2F  D-PIC (ZZ9)                         
+ DP2R  = PP2R  D-PIC (ZZ9)
+
+%*  Disability Requiring Adjustment from Work                           
+ PP3P  = CALC ((TP3P / TP) * 100)  I-PIC (9(3))    
+ PP3T  = CALC ((TP3T / TT) * 100)  I-PIC (9(3))    
+ PP3F  = CALC ((TP3F / TF) * 100)  I-PIC (9(3))    
+ PP3R  = CALC ((TP3R / TR) * 100)  I-PIC (9(3))    
+
+ DP3P  = PP3P  D-PIC (ZZ9)                         
+ DP3T  = PP3T  D-PIC (ZZ9)                         
+ DP3F  = PP3F  D-PIC (ZZ9)                         
+ DP3R  = PP3R  D-PIC (ZZ9)
+
+%*  Disability Requiring No Adjustment from Work
+ PP7P  = CALC ((TP7P / TP) * 100)  I-PIC (9(3))
+ PP7T  = CALC ((TP7T / TT) * 100)  I-PIC (9(3))
+ PP7F  = CALC ((TP7F / TF) * 100)  I-PIC (9(3))
+ PP7R  = CALC ((TP7R / TR) * 100)  I-PIC (9(3))
+
+ DP7P  = PP7P  D-PIC (ZZ9)
+ DP7T  = PP7T  D-PIC (ZZ9)
+ DP7F  = PP7F  D-PIC (ZZ9)
+ DP7R  = PP7R  D-PIC (ZZ9)
+%*****************************************************************************
+%*          Percent of Total Staff By Employment Basis                       *
+%*                   S  U  B  T  O  T  A  L  S                               *
+%*      Percent of Respondents in each Employment Category                   *
+%*****************************************************************************
+%*
+%*  Aboriginal                                               
+ RP6P  = CALC ((TP6P / TPR) * 100)  I-PIC (9(3))              
+ RP6T  = CALC ((TP6T / TTR) * 100)  I-PIC (9(3))              
+ RP6F  = CALC ((TP6F / TFR) * 100)  I-PIC (9(3))              
+ RP6R  = CALC ((TP6R / TRR) * 100)  I-PIC (9(3))              
+
+ DR6P  = RP6P  D-PIC (ZZ9)                                   
+ DR6T  = RP6T  D-PIC (ZZ9)                                   
+ DR6F  = RP6F  D-PIC (ZZ9)                                   
+ DR6R  = RP6R  D-PIC (ZZ9)                                   
+
+%*  Racial, Ethnic, ...                                      
+ RP5P  = CALC ((TP5P / TPR) * 100)  I-PIC (9(3))              
+ RP5T  = CALC ((TP5T / TTR) * 100)  I-PIC (9(3))              
+ RP5F  = CALC ((TP5F / TFR) * 100)  I-PIC (9(3))              
+ RP5R  = CALC ((TP5R / TRR) * 100)  I-PIC (9(3))              
+
+ DR5P  = RP5P  D-PIC (ZZ9)                                   
+ DR5T  = RP5T  D-PIC (ZZ9)                                   
+ DR5F  = RP5F  D-PIC (ZZ9)                                   
+ DR5R  = RP5R  D-PIC (ZZ9)                                  
+
+%*  Language First Spoken Not English                             
+ RP4P  = CALC ((TP4P / TPR) * 100)  I-PIC (9(3))      
+ RP4T  = CALC ((TP4T / TTR) * 100)  I-PIC (9(3))      
+ RP4F  = CALC ((TP4F / TFR) * 100)  I-PIC (9(3))      
+ RP4R  = CALC ((TP4R / TRR) * 100)  I-PIC (9(3))      
+
+ DR4P  = RP4P  D-PIC (ZZ9)                           
+ DR4T  = RP4T  D-PIC (ZZ9)                           
+ DR4F  = RP4F  D-PIC (ZZ9)                           
+ DR4R  = RP4R  D-PIC (ZZ9)
+
+%*  Disability                             
+ RP2P  = CALC ((TP2P / TPR) * 100)  I-PIC (9(3))      
+ RP2T  = CALC ((TP2T / TTR) * 100)  I-PIC (9(3))      
+ RP2F  = CALC ((TP2F / TFR) * 100)  I-PIC (9(3))      
+ RP2R  = CALC ((TP2R / TRR) * 100)  I-PIC (9(3))      
+
+ DR2P  = RP2P  D-PIC (ZZ9)                           
+ DR2T  = RP2T  D-PIC (ZZ9)                           
+ DR2F  = RP2F  D-PIC (ZZ9)                           
+ DR2R  = RP2R  D-PIC (ZZ9)
+
+%*  Disability Requiring Adjustments from Work                         
+ RP3P  = CALC ((TP3P / TPR) * 100)  I-PIC (9(3))      
+ RP3T  = CALC ((TP3T / TTR) * 100)  I-PIC (9(3))      
+ RP3F  = CALC ((TP3F / TFR) * 100)  I-PIC (9(3))      
+ RP3R  = CALC ((TP3R / TRR) * 100)  I-PIC (9(3))      
+     
+ DR3P  = RP3P  D-PIC (ZZ9)                           
+ DR3T  = RP3T  D-PIC (ZZ9)                           
+ DR3F  = RP3F  D-PIC (ZZ9)                           
+ DR3R  = RP3R  D-PIC (ZZ9)                         
+
+%*  Disability Requiring No Adjustments from Work
+ RP7P  = CALC ((TP7P / TPR) * 100)  I-PIC (9(3))
+ RP7T  = CALC ((TP7T / TTR) * 100)  I-PIC (9(3))
+ RP7F  = CALC ((TP7F / TFR) * 100)  I-PIC (9(3))
+ RP7R  = CALC ((TP7R / TRR) * 100)  I-PIC (9(3))
+      
+ DR7P  = RP7P  D-PIC (ZZ9)
+ DR7T  = RP7T  D-PIC (ZZ9)
+ DR7F  = RP7F  D-PIC (ZZ9)
+ DR7R  = RP7R  D-PIC (ZZ9)
+%*****************************************************************************     
+%*               Percent of Subgroup By Employment Basis                     *     
+%*****************************************************************************    
+%*
+%*   Aboriginal & Torres Strait Islander People Totals  Percentage                                         
+ SP6E1 = CALC ((TP6E1 / TEP6) * 100)  I-PIC (9(3)V99) 
+ SP6E2 = CALC ((TP6E2 / TEP6) * 100)  I-PIC (9(3)V99) 
+ SP6E3 = CALC ((TP6E3 / TEP6) * 100)  I-PIC (9(3)V99) 
+ SP6E4 = CALC ((TP6E4 / TEP6) * 100)  I-PIC (9(3)V99) 
+ SP6E5 = CALC ((TP6E5 / TEP6) * 100)  I-PIC (9(3)V99) 
+ SP6E6 = CALC ((TP6E6 / TEP6) * 100)  I-PIC (9(3)V99) 
+ SP6E7 = CALC ((TP6E7 / TEP6) * 100)  I-PIC (9(3)V99) 
+
+ SP6ET = CALC ((TEP6  / TEP6) * 100)  I-PIC (9(3)V99)
+      
+%*   Display Aboriginal & Torres Strait Islander People Total Percentages                                  
+ S6E1  = SP6E1  D-PIC (ZZ9.999)
+ S6E2  = SP6E2  D-PIC (ZZ9.999)
+ S6E3  = SP6E3  D-PIC (ZZ9.999)
+ S6E4  = SP6E4  D-PIC (ZZ9.999)
+ S6E5  = SP6E5  D-PIC (ZZ9.999)
+ S6E6  = SP6E6  D-PIC (ZZ9.999)
+ S6E7  = SP6E7  D-PIC (ZZ9.999)
+ S6ET  = SP6ET  D-PIC (ZZ9.999)
+
+ TPC5 = CALC (SP6E1 + SP6E2) D-PIC (ZZ9.999)
+ TTC5 = CALC (SP6E3 + SP6E4) D-PIC (ZZ9.999)
+ DTC5 = CALC (SP6E1+SP6E2+SP6E3+SP6E4+SP6E5+SP6E6+SP6E7) D-PIC (ZZ9.999)
+
+%*   Racial, Ethnic, Ethno-Religious Minority Groups Totals  Percentage                             
+ SP5E1 = CALC ((TP5E1 / TEP5) * 100)  I-PIC (9(3)V99)
+ SP5E2 = CALC ((TP5E2 / TEP5) * 100)  I-PIC (9(3)V99)
+ SP5E3 = CALC ((TP5E3 / TEP5) * 100)  I-PIC (9(3)V99)
+ SP5E4 = CALC ((TP5E4 / TEP5) * 100)  I-PIC (9(3)V99)
+ SP5E5 = CALC ((TP5E5 / TEP5) * 100)  I-PIC (9(3)V99)
+ SP5E6 = CALC ((TP5E6 / TEP5) * 100)  I-PIC (9(3)V99)
+ SP5E7 = CALC ((TP5E7 / TEP5) * 100)  I-PIC (9(3)V99)
+
+ SP5ET = CALC ((TEP5 / TEP5) * 100)  I-PIC (9(3)V99)         
+       
+%*   Display Racial, Ethnic, Ethno-Religious Minority Groups Total Percentages                      
+ S5E1  = SP5E1  D-PIC (ZZ9.999)
+ S5E2  = SP5E2  D-PIC (ZZ9.999)
+ S5E3  = SP5E3  D-PIC (ZZ9.999)
+ S5E4  = SP5E4  D-PIC (ZZ9.999)
+ S5E5  = SP5E5  D-PIC (ZZ9.999)
+ S5E6  = SP5E6  D-PIC (ZZ9.999)
+ S5E7  = SP5E7  D-PIC (ZZ9.999)
+ S5ET  = SP5ET  D-PIC (ZZ9.999)
+
+ TPC6 = CALC (SP5E1+SP5E2) D-PIC (ZZ9.999)
+ TTC6 = CALC (SP5E3+SP5E4) D-PIC (ZZ9.999)
+ DTC6 = CALC (SP5E1+SP5E2+SP5E3+SP5E4+SP5E5+SP5E6+SP5E7) D-PIC (ZZ9.999)
+
+%*   Language First Spoken as a child was not English Percentage                             
+ SP4E1 = CALC ((TP4E1 / TEP4) * 100)  I-PIC (9(3)V99)
+ SP4E2 = CALC ((TP4E2 / TEP4) * 100)  I-PIC (9(3)V99)
+ SP4E3 = CALC ((TP4E3 / TEP4) * 100)  I-PIC (9(3)V99)
+ SP4E4 = CALC ((TP4E4 / TEP4) * 100)  I-PIC (9(3)V99)
+ SP4E5 = CALC ((TP4E5 / TEP4) * 100)  I-PIC (9(3)V99)
+ SP4E6 = CALC ((TP4E6 / TEP4) * 100)  I-PIC (9(3)V99)
+ SP4E7 = CALC ((TP4E7 / TEP4) * 100)  I-PIC (9(3)V99)
+         
+ SP4ET = CALC ((TEP4  / TEP4) * 100)  I-PIC (9(3)V99)
+%*   Display Language First Spoken as a child was not English Percentages                    
+ S4E1  = SP4E1  D-PIC (ZZ9.999)
+ S4E2  = SP4E2  D-PIC (ZZ9.999)
+ S4E3  = SP4E3  D-PIC (ZZ9.999)
+ S4E4  = SP4E4  D-PIC (ZZ9.999)
+ S4E5  = SP4E5  D-PIC (ZZ9.999)
+ S4E6  = SP4E6  D-PIC (ZZ9.999)
+ S4E7  = SP4E7  D-PIC (ZZ9.999)
+ S4ET  = SP4ET  D-PIC (ZZ9.999)
+
+ TPC7 = CALC (SP4E1+SP4E2) D-PIC (ZZ9.999)
+ TTC7 = CALC (SP4E3+SP4E4) D-PIC (ZZ9.999)
+ DTC7 = CALC (SP4E1+SP4E2+SP4E3+SP4E4+SP4E5+SP4E6+SP4E7) D-PIC (ZZ9.999)
+
+%*   Compute Disability Percentage                    
+ SP2E1 = CALC ((TP2E1 / TEP2) * 100)  I-PIC (9(3)V99)     
+ SP2E2 = CALC ((TP2E2 / TEP2) * 100)  I-PIC (9(3)V99)     
+ SP2E3 = CALC ((TP2E3 / TEP2) * 100)  I-PIC (9(3)V99)     
+ SP2E4 = CALC ((TP2E4 / TEP2) * 100)  I-PIC (9(3)V99)     
+ SP2E5 = CALC ((TP2E5 / TEP2) * 100)  I-PIC (9(3)V99)     
+ SP2E6 = CALC ((TP2E6 / TEP2) * 100)  I-PIC (9(3)V99)     
+ SP2E7 = CALC ((TP2E7 / TEP2) * 100)  I-PIC (9(3)V99)
+
+ SP2ET = CALC ((TEP2  / TEP2) * 100)  I-PIC (9(3)V99)       
+                 
+%*   Display Disability Percentages       
+ S2E1  = SP2E1  D-PIC (ZZ9.999)               
+ S2E2  = SP2E2  D-PIC (ZZ9.999)               
+ S2E3  = SP2E3  D-PIC (ZZ9.999)               
+ S2E4  = SP2E4  D-PIC (ZZ9.999)               
+ S2E5  = SP2E5  D-PIC (ZZ9.999)               
+ S2E6  = SP2E6  D-PIC (ZZ9.999)               
+ S2E7  = SP2E7  D-PIC (ZZ9.999)
+ S2ET  = SP2ET  D-PIC (ZZ9.999)
+
+ TPC8 = CALC (SP2E1+SP2E2) D-PIC (ZZ9.999)
+ TTC8 = CALC (SP2E3+SP2E4) D-PIC (ZZ9.999)
+ DTC8 = CALC (SP2E1+SP2E2+SP2E3+SP2E5+SP2E6+SP2E6+SP2E7) D-PIC (ZZ9.999)
+
+%*   Compute Disability Requiring Adjustments Percentage                                             
+ SP3E1 = CALC ((TP3E1 / TEP3) * 100)  I-PIC (9(3)V99)
+ SP3E2 = CALC ((TP3E2 / TEP3) * 100)  I-PIC (9(3)V99)
+ SP3E3 = CALC ((TP3E3 / TEP3) * 100)  I-PIC (9(3)V99)
+ SP3E4 = CALC ((TP3E4 / TEP3) * 100)  I-PIC (9(3)V99)
+ SP3E5 = CALC ((TP3E5 / TEP3) * 100)  I-PIC (9(3)V99)
+ SP3E6 = CALC ((TP3E6 / TEP3) * 100)  I-PIC (9(3)V99)
+ SP3E7 = CALC ((TP3E7 / TEP3) * 100)  I-PIC (9(3)V99)
+
+ SP3ET = CALC ((TEP3  / TEP3) * 100)  I-PIC (9(3)V99)                                                         
+%*   Display Disability Requiring Adjustments Percentages                                            
+ S3E1  = SP3E1  D-PIC (ZZ9.999)
+ S3E2  = SP3E2  D-PIC (ZZ9.999)
+ S3E3  = SP3E3  D-PIC (ZZ9.999)
+ S3E4  = SP3E4  D-PIC (ZZ9.999)
+ S3E5  = SP3E5  D-PIC (ZZ9.999)
+ S3E6  = SP3E6  D-PIC (ZZ9.999)
+ S3E7  = SP3E7  D-PIC (ZZ9.999)
+ S3ET  = SP3ET  D-PIC (ZZ9.999)
+
+ TPC9 = CALC (SP3E1+SP3E2) D-PIC (ZZ9.999)
+ TTC9 = CALC (SP3E3+SP3E4) D-PIC (ZZ9.999)
+ DTC9 = CALC (SP3E1+SP3E2+SP3E3+SP3E4+SP3E5+SP3E6+SP3E7) D-PIC (ZZ9.999)
+
+%*   Compute Disability Requiring No Adjustments Percentage
+
+ SP7E1 = CALC ((TP7E1 / TEP7) * 100)  I-PIC (9(3)V99)
+ SP7E2 = CALC ((TP7E2 / TEP7) * 100)  I-PIC (9(3)V99)
+ SP7E3 = CALC ((TP7E3 / TEP7) * 100)  I-PIC (9(3)V99)
+ SP7E4 = CALC ((TP7E4 / TEP7) * 100)  I-PIC (9(3)V99)
+ SP7E5 = CALC ((TP7E5 / TEP7) * 100)  I-PIC (9(3)V99)
+ SP7E6 = CALC ((TP7E6 / TEP7) * 100)  I-PIC (9(3)V99)
+ SP7E7 = CALC ((TP7E7 / TEP7) * 100)  I-PIC (9(3)V99)
+
+ SP7ET = CALC ((TEP7 / TEP7) * 100)  I-PIC (9(3)V99)
+ 
+%*   Display Disability Requiring Adjustments Percentages
+
+ S7E1  = SP7E1  D-PIC (ZZ9.999)
+ S7E2  = SP7E2  D-PIC (ZZ9.999)
+ S7E3  = SP7E3  D-PIC (ZZ9.999)
+ S7E4  = SP7E4  D-PIC (ZZ9.999)
+ S7E5  = SP7E5  D-PIC (ZZ9.999)
+ S7E6  = SP7E6  D-PIC (ZZ9.999)
+ S7E7  = SP7E7  D-PIC (ZZ9.999)
+ S7ET  = SP7ET  D-PIC (ZZ9.999)
+  
+ TPCA = CALC (SP7E1+SP7E2) D-PIC (ZZ9.999)
+ TTCA = CALC (SP7E3+SP7E4) D-PIC (ZZ9.999)
+ DTCA = CALC (SP7E1+SP7E2+SP7E3+SP7E4+SP7E5+SP7E6+SP7E7) D-PIC (ZZ9.999)
+%*    
+%*                      End Of Program
+%*

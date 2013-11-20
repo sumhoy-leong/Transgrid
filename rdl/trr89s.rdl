@@ -1,0 +1,274 @@
+%PROGRAM-ID
+       TRR89S
+%AUTHOR
+       Ventyx
+%ROUTINES
+       MSSDAT
+       MSSTIM
+%*
+%NARRATIVE
+      **************************************************************************
+      **
+      **  Exception Report - Rostered Shifts Reduced
+      **
+      **  This report is to produce a list of employee roster schedule transactions
+      **  where there are no corresponding timesheet transactions for the entire
+      **  duration of the roster schedule.  A hard copy report is required for
+      **  actioning manually by Payroll Users.
+      **
+      **************************************************************************
+      **  Revision History
+      *** 18-Feb-13  a9zr4751    Rework coding 
+      *** .....................  to meet the requirements.
+      **  04-Dec-2012 O Santa-Ana   Initial Coding.
+      **
+      **************************************************************************
+%FILES
+       MFILE = MSF820
+       AFILE = MSF891
+       LFILE = MSF010
+       LFILE = MSF810
+       LFILE = MSF801
+       LFILE = MSF817
+       LFILE = MSF898
+       RFILE = TRR89SA
+%VERSION
+        002
+%SELECTION
+    <IF %PAYLOC% <> SPACES>
+        WHERE    (EMPLOYEE-ID   >= SPACES)
+        SELECTIF (PAY-LOCATION   = %PAYLOC%)
+    <ELSE>
+        WHERE    (EMPLOYEE-ID   >= SPACES)
+        REJECTIF (PAY-LOCATION   = SPACES)
+    <ENDIF>
+%REPORT
+       A
+%REPORT-TITLE
+       'Exception Report - Rostered Shifts Reduced'
+%BREAK-FIELDS
+      PAY-LOCATION
+%ORDER
+      PL         TEXT 'Pay Location (if requested)'
+      EMPNAME    TEXT 'Employee Name'
+      TRNDATE    TEXT 'Transaction Date'
+      FR-TIME    TEXT 'Transaction Start Time'
+%PAGE HEADING
+'Pay Period:' YYYYYYYY
+%BREAK PAY-LOCATION HEADER
+'                                                                                                                                  '
+'                                                                                                                                  '
+'Pay Location: 'PL' - '{PLDESC                      }
+'----------------------------------------------------------------------------------------------------------------------------------'
+'|Employee ID    |Employee Name                    |Day |Date       |Rostered    |Rostered    |Work   |Start    |Stop    |Status  |'
+'|               |                                 |    |           |Start Time  |Stop Time   |Code   |Time     |Time    |        |'
+'----------------------------------------------------------------------------------------------------------------------------------'
+%DETAIL
+<IF WRKC <> SPACES>
+ <IF FRTM-CHK = 'Y' OR EDTM-CHK = 'Y'>
+   <IF SH-CHK = 'Y' AND DUR-CHK = 'Y'>
+ L{EMP          }L{EMPNAME                        }LDDD L{TDT     } LMMMMMMM     LNNNNNNN     LWWW    L{FR-TIME}LPPPPPPP L{STATUS}L
+   <ENDIF>
+ <ENDIF>
+<ENDIF>
+%BREAK PAY-LOCATION FOOTER
+'----------------------------------------------------------------------------------------------------------------------------------'
+%SUMMARY
+'                                                                                                                                  '
+'                                                        *** END of REPORT ***'
+%*
+%REQUEST-PARAMETERS
+   PAYLOC    PIC (X(2))  TEXT 'Pay Location          - Blank for All : '
+   PERIODS   PIC (9(3))  TEXT 'Current Pay Periods to Process        : '
+%*
+%VARIABLES
+%*
+%* Parameters
+%*
+   PLOC      = %PAYLOC%
+   PDS       = %PERIODS%
+%*
+%* Constants
+%*
+   PGTG1    = 'TG1' CONSTANT
+   L        = '|' CONSTANT
+
+%*
+%* MSF820
+%*
+   PL        = PAY-LOCATION
+   EMP       = EMPLOYEE-ID
+   PG        = PAY-GROUP
+   PHY-LOC   = RPT-PHY-LOC
+%*
+%* MSF010 - PAYL
+%*
+   PLDESC    = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'PAYL', -
+                         TABLE-CODE = PL)
+%*
+%* MSF810
+%*
+   SNAME     = SURNAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = EMP)
+   FNAME     = FIRST-NAME VIA (SNAME)
+%* EMPNAME   = CATENATE (SNAME,' ',FNAME)
+%*
+   EMPGET   = HRGET (EMPLOYEE-ID FROM('MSF810,MSSEMP') KEY(EMPLOYEE-ID = EMP))
+   EMPNAME  = FORMATTED-NAME VIA (EMPGET)
+%*
+%* MSF801-PG
+%* Obtain Current Period End Date for Employee's Pay Group
+%*
+   PP-END    = CUR-END-DT-PG OF MSF801 -
+                  WHERE (CNTL-REC-TYPE = 'PG', -
+                         CNTL-KEY-REST = PGTG1)
+%*
+   RUNNO     = CUR-PRD-NO-PG VIA (PP-END)
+%*
+%*
+%* Use MSSDAT to obtain the Current Pay Period End Date
+%*
+%*
+   DAYSP     = CALC (PDS * -7) D-PIC (S9(6))
+   PP-START  = DATE2 OF MSSDAT -
+                   WHERE (OPTION = '1', -
+                          DATE1 = PP-END ,-
+                          DAYS = DAYSP)
+%*
+%* MSF891
+%* Obtain Allowance Transactions
+%*
+   WRKC      = WORK-CODE FROM MSF891 -
+                  WHERE (PAY-GROUP = PG, -
+                         TRN-DATE  >= SPACES) -
+                  REJECTIF (TRN-DATE < PP-START) -
+                  REJECTIF (TRN-DATE > PP-END) -
+                  REJECTIF (EMPLOYEE-ID <> EMP) -
+                  REJECTIF (TRAN-APPR-STATUS <> 'APPR')
+%*
+   TRNDATE   = TRN-DATE VIA (WRKC)
+   FR-TIME   = FROM-TIME VIA (WRKC)
+   ED-TIME   = END-TIME VIA (WRKC)
+   TRAPPST   = TRAN-APPR-STATUS VIA (WRKC)
+   TRREVST   = REVERSE-STATUS VIA (WRKC)
+   PAYPERNO  = PAY-PER-NO VIA (WRKC)
+   ADJPD     = ADJOINS-PREV-DAY VIA (WRKC)
+%*
+%* MSF801-R1
+%* Obtain Work Code description
+%* Obtain Shift Type
+%*
+   PHWK      = CATENATE ('***', WRKC)
+   WKC-DESC  = TNAME-R1 OF MSF801 -
+                 WHERE (CNTL-REC-TYPE = 'R1', -
+                        CNTL-KEY-REST = PHWK)
+%*
+   SH-TYPE     = SHIFT-TYPE-R1 VIA (WKC-DESC)
+   SH-CHK      = CHOOSE ('Y' IF (SH-TYPE = 'D'), -
+                         'Y' IF (SH-TYPE = 'A'), -
+                         'Y' IF (SH-TYPE = 'M'), -
+                         'Y' IF (SH-TYPE = 'N'), -
+                         'N')
+%*
+%* MSF898
+%* Rosters
+%*
+   WK898     = WORK-CODE OF MSF898 -
+                  WHERE (EMPLOYEE-ID = EMP, -
+                         TRN-DATE = TRNDATE, -
+                         TRN-STATUS >= SPACES) -
+                         MAX (1)
+%*
+   RSTARTTM  = ROST-STR-TIME VIA (WK898)
+   RENDTM    = ROST-STOP-TIME VIA (WK898)
+%*
+%* Time Comparison calculations
+%*
+%* Check that MSF891-FROM-TIME is greater than MSF898-ROST-STR-TIME
+
+   FRTM-CHK = CHOOSE ('Y' IF (FR-TIME > RSTARTTM), 'N')
+
+%* Check that MSF891-END-TIME is less than MSF898-ROST-STOP-TIME
+
+   EDTM-CHK = CHOOSE ('Y' IF (ED-TIME < RENDTM), 'N')
+
+%* Calculate the duration of the MSF891 Record
+%* - Validate Input Parameters
+
+%* - Get Hours
+   FR891-HH = TIME6 OF MSSTIM -
+                   WHERE (OPTION      = '9', -
+                          TIME4       = FR-TIME, -
+                          TIME-FORMAT = 'H')
+
+   ED891-HH = TIME6 OF MSSTIM -
+                   WHERE (OPTION      = '9', -
+                          TIME4       = ED-TIME, -
+                          TIME-FORMAT = 'H')
+                          
+%* - Get Minutes
+    FR891-MM = CALC ((FR-TIME - FR891-HH) * 100) I-PIC (S9(3))
+    ED891-MM = CALC ((ED-TIME - ED891-HH) * 100) I-PIC (S9(3))
+                          
+%* - convert into Minutes
+    FMIN-891 = CALC ((FR891-HH * 60) + FR891-MM)
+    EMIN-891 = CALC ((ED891-HH * 60) + ED891-MM)
+%* - Calculate Duration
+   DUR-891  = CALC (EMIN-891 - FMIN-891)
+
+
+%* Calculate the duration of the MSF898 Record
+%* - Validate Input Parameters
+
+%* - Get Hours
+   RS898-HH = TIME6 OF MSSTIM -
+                   WHERE (OPTION      = '9', -
+                          TIME4       =  RSTARTTM, -
+                          TIME-FORMAT = 'H')
+
+   RE898-HH = TIME6 OF MSSTIM -
+                   WHERE (OPTION      = '9', -
+                          TIME4       =  RENDTM, -
+                          TIME-FORMAT = 'H')
+                          
+%* - Get Minutes
+    RS898-MM = CALC ((RSTARTTM - RS898-HH) * 100) I-PIC (S9(3))
+    ED898-MM = CALC ((RENDTM - RE898-HH) * 100) I-PIC (S9(3))
+    
+%* - convert into Minutes
+    FMIN-898 = CALC ((RS898-HH * 60) + RS898-MM)
+    EMIN-898 = CALC ((RE898-HH * 60) + ED898-MM)
+%* - Calculate Duration
+   DUR-898  = CALC (EMIN-898 - FMIN-898)
+
+%* Now only return the records that rostered duration is greater than
+%*
+   DUR-CHK = CHOOSE ('Y' IF (DUR-898 > DUR-891), 'N')
+%*
+%* Misc. calculated fields for printing, totals etc.
+%*
+   D         = DAY-NAME OF MSSDAT -
+                   WHERE (OPTION = '6', -
+                          DATE1 = TRNDATE)
+%*
+   W         = WRKC
+   A         = TRAPPST
+   R         = TRREVST
+   M         = RSTARTTM D-PIC (-(3)9.99)
+   N         = RENDTM D-PIC (-(3)9.99)
+   O         = FR-TIME D-PIC (-(3)9.99)
+   P         = ED-TIME D-PIC (-(3)9.99)
+   T         = PAYPERNO
+   Y         = PP-END FORMAT (DATE)
+   H         = ADJPD
+   TDT       = TRNDATE FORMAT (DATE)
+   Z         = PP-START FORMAT (DATE)
+%*
+   C         = ',' CONSTANT
+   Q         = '~' CONSTANT
+   STATUS    = TRAPPST
+   DUMMY     = 'Y'
+   DUM       = choose ('Y' IF (EMP = EMP), DUMMY)
+%*
+%* End of Program

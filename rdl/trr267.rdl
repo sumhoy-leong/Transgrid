@@ -1,0 +1,376 @@
+%***  Revision History:
+%*** 30-May-13 L.Palmer      Reduce size of date and period fields.
+%***                         Remove unreferenced variables USR1, USR2, WRK, PRJ,
+%***                         KEY2.
+%*** 12-Nov-12 a9nl6176      Extend GSTC's length due to new account code's length
+%***                         in ellipse 8. Aligned header with details.
+%*** 14-Aug-12 a9tl3060      Convert from ellipse 6 to ellipse 8 (Version 0001).
+%*** 16-Jun-06 L Nee         WHD0792181
+%***                         Amended program to use VAL-INC-TAX-L-I field
+%***                         instead of INV-ITEM-DESC-I on report
+%*** 24-Jan-06 Amanda N.     Ellipse Upgrade.
+%***                         Continued from below.
+%*** 15-Nov-05 E Fredeluces  P05110870
+%***                         Fix compilation errors in Ellipse 5.2.3.7.
+%***  30-Aug-04  A Iesho     A04083070
+%***                         Initial Coding based on TRR268.  
+%PROGRAM-ID
+    TRR267
+%AUTHOR
+    Mincom PTY LTD
+%NARRATIVE
+    Lists Additional Tax made in a given period or transaction date
+    range for journals only.
+%MODULE
+    3260
+%VERSION
+    0002
+%FILES
+    IFILE = TRO265
+    LFILE = MSF000
+    AFILE = MSF900 
+    LFILE = MSF013
+    LFILE = MSF200
+    LFILE = MSF260
+    LFILE = MSF26A
+    RFILE = TRR267A
+%ROUTINES
+    MSSCNV
+    MSSDAT
+%INPUT-FILE
+    DSTRCT       PIC (X(4))
+    PROCESS-DATE PIC (X(8))
+    TRN-NO       PIC (X(11))
+    USERNO       PIC (X(4))
+    REC900       PIC (X(1))
+    ACCTC        PIC (X(13))
+    GSTC         PIC (X(13))
+    CNTR-REC     PIC (X(4))
+%ORDER
+    ASCENDING   A23 TEXT 'sort1'
+    ASCENDING   ATAX-CODE-I VIA (A75) TEXT 'atax-code-i'
+    ASCENDING   DSTRCT-CODE VIA (A75) TEXT 'dstrct-code'
+    ASCENDING   SUPPLIER-NO-I VIA (A75) TEXT 'supplier-no-i'
+    ASCENDING   INV-NO-I VIA (A75) TEXT 'inv-no-i'
+    ASCENDING   TRAN-TYPE VIA (A75) TEXT 'tran-type'
+    ASCENDING   FIRST-TRAN-KEY VIA (A48) TEXT 'first-tran-key'
+    ASCENDING   LAST-TRAN-KEY VIA (A49) TEXT 'last-tran-key'
+%BREAK-FIELDS
+    ATAX-CODE-I VIA (A75)
+    DSTRCT-CODE VIA (A75)
+    SUPPLIER-NO-I VIA (A75)
+    INV-NO-I VIA (A75)
+%CONTROL
+    TRIM-REPORT
+    DO-NOT-CHANGE-DISTRICTS
+%REPORT
+    A
+%TITLE
+    'Additional Tax Report with Expense Costings (Journals)'
+%PAGE HEADING
+<IF %REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES>
+                                         'Accounting Period :- From'{A24}'to'{A25}
+<ELSE>
+                                         'Date Created :- From'{A26     }'to'{A27     }
+<ENDIF>
+
+<IF %REQ-LEVEL% = 'D'>
+'Dist GST  MSF900-Key              Expense       GST Account  Tran Date Inv/Req/Jnl No.           Invoice Amount    Additional Tax'
+'Code Code                         Account Code  Code                                             Incl Tax'
+<ELSE>
+'                                                                                                 Invoice Amount     Additional Tax'
+'                                                                                                 Incl Tax'
+<ENDIF>
+%DETAIL
+<IF ( (( (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) AND ( A28 >= A04 AND A28 <= A09 ) ) ) OR ((%REQ-DATE-FROM% <> SPAC-
+ES OR %REQ-DATE-TO% <> SPACES ) AND ( A29 >= A19 AND A29 <= A20 ) ) ) AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES>
+ <IF %REQ-LEVEL% = 'D'>
+{A1} {A0} {KEY                   } {ACC        } {GSTC      } {DTE   }  {A36               }  {A69-1           }{A70              }
+ <ENDIF>
+<ENDIF>
+%BREAK ATAX-CODE-I VIA (A75) HEADING
+%* DD0920 Removed test on A31
+<IF ( (( (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) AND ( A28 >= A04 AND A28 <= A09 ) ) ) OR ((%REQ-DATE-FROM% <> SPAC-
+ES OR %REQ-DATE-TO% <> SPACES ) AND ( A29 >= A19 AND A29 <= A20 ) ) ) AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES>
+%*'Additional Tax Code'  {A0}  {A32                                   }
+%*'-------------------' '----  ----------------------------------------'
+%*
+<ENDIF>
+%BREAK DSTRCT-CODE VIA (A75) HEADING
+%* DD0920 Removed test on A31
+<IF ( (( (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) AND ( A28 >= A04 AND A28 <= A09 ) ) ) OR ((%REQ-DATE-FROM% <> SPAC-
+ES OR %REQ-DATE-TO% <> SPACES ) AND ( A29 >= A19 AND A29 <= A20 ) ) ) AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES>
+   <IF %REQ-LEVEL% = 'S' OR %REQ-LEVEL% = 'D'>
+%*'District Code'{A1}    {A33                                   }
+%*
+   <ENDIF>
+<ENDIF>
+%BREAK SUPPLIER-NO-I VIA (A75) HEADING
+%* DD0920 Removed test on A1
+<IF ( (( (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) AND ( A28 >= A04 AND A28 <= A09 ) ) ) OR ((%REQ-DATE-FROM% <> SPAC-
+ES OR %REQ-DATE-TO% <> SPACES ) AND ( A29 >= A19 AND A29 <= A20 ) ) ) AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES>
+   <IF %REQ-LEVEL% = 'D'>
+      <IF A34 = SPACES>
+'Journals/Requisitions'
+      <ELSE>
+'Supplier No'  {A34 }  {A35                           }
+
+      <ENDIF>
+   <ENDIF>
+<ENDIF>
+%BREAK SUPPLIER-NO-I VIA (A75) FOOTING
+%* DD0920 Removed test on A31
+<IF ( (( (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) AND ( A28 >= A04 AND A28 <= A09 ) ) ) OR ((%REQ-DATE-FROM% <> SPAC-
+ES OR %REQ-DATE-TO% <> SPACES ) AND ( A29 >= A19 AND A29 <= A20 ) ) ) AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES>
+   <IF %REQ-LEVEL% = 'S' OR %REQ-LEVEL% = 'D'>
+      <IF %REQ-LEVEL% = 'D'>
+                                                                                             '------------------ ------------------'
+         <IF A34 = SPACES>
+                    'Total for Journals/Requisitions'                                         {A37             } {A38             }
+         <ELSE>
+                    'Total for Supplier'   {A34 }                                             {A37             } {A38             }
+         <ENDIF>
+                                                                                             '------------------ ------------------'
+      <ELSE>
+         <IF A34 = SPACES>
+'Total for Journals/Requisitions'                                                             {A37             } {A38             }
+         <ELSE>
+'Total for Supplier'                       {A34 }  {A39                        }              {A37             } {A38             }
+         <ENDIF>
+      <ENDIF>
+   <ENDIF>
+<ENDIF>
+%BREAK DSTRCT-CODE VIA (A75) FOOTING
+%* DD0920 Removed test on A31
+<IF ( (( (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) AND ( A28 >= A04 AND A28 <= A09 ) ) ) OR ((%REQ-DATE-FROM% <> SPAC-
+ES OR %REQ-DATE-TO% <> SPACES ) AND ( A29 >= A19 AND A29 <= A20 ) ) ) AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES>
+   <IF %REQ-LEVEL% = 'S' OR %REQ-LEVEL% = 'D'>
+                                                                                             '------------------ ------------------'
+                    'Total for District'   {A1}                                               {A37             } {A38             }
+                                                                                             '------------------ ------------------'
+
+   <ELSE>
+'District'{A1} {A33                                   }                                       {A37             } {A38             }
+   <ENDIF>
+<ENDIF>
+%BREAK ATAX-CODE-I VIA (A75) FOOTING
+%* DD0920 Removed test on A31
+<IF ( (( (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) AND ( A28 >= A04 AND A28 <= A09 ) ) ) OR ((%REQ-DATE-FROM% <> SPAC-
+ES OR %REQ-DATE-TO% <> SPACES ) AND ( A29 >= A19 AND A29 <= A20 ) ) ) AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES>
+                                                                                             '================== =================='
+                    'Total for Additional Tax' {A0}                                           {A37             } {A38             }
+                                                                                             '================== =================='
+<ENDIF>
+%REPORT-SUMMARY
+
+                                                                                             '================== =================='
+                    'Grand Totals'                                                            {A37             } {A38             }
+                                                                                             '================== =================='
+%REQUEST-PARAMETERS
+    REQ-PER-FROM    PIC (X(4)) FORMAT (PERIOD)  TEXT 'Acctng Period From'
+    REQ-PER-TO      PIC (X(4)) FORMAT (PERIOD)  TEXT 'Acctng Period To'
+    REQ-DATE-FROM   PIC (X(8))  TEXT '               '
+    REQ-DATE-TO     PIC (X(8))  TEXT '               '
+    REQ-DIST1   PIC (X(4))  TEXT 'Select District(s)'
+    REQ-DIST2   PIC (X(4))  TEXT 
+    REQ-DIST3   PIC (X(4))  TEXT 
+    REQ-DIST4   PIC (X(4))  TEXT 
+    REQ-DIST5   PIC (X(4))  TEXT 
+    REQ-DIST6   PIC (X(4))  TEXT 
+    REQ-DIST7   PIC (X(4))  TEXT 
+    REQ-DIST8   PIC (X(4))  TEXT 
+    REQ-DIST9   PIC (X(4))  TEXT 
+    REQ-DIST10  PIC (X(4))  TEXT 
+    REQ-DIST11  PIC (X(4))  TEXT 
+    REQ-ATAX1   PIC (X(4))  TEXT 'Process Atax Code(s)'
+    REQ-ATAX2   PIC (X(4))  TEXT 
+    REQ-ATAX3   PIC (X(4))  TEXT 
+    REQ-ATAX4   PIC (X(4))  TEXT 
+    REQ-ATAX5   PIC (X(4))  TEXT 
+    REQ-ATAX6   PIC (X(4))  TEXT 
+    REQ-ATAX7   PIC (X(4))  TEXT 
+    REQ-ATAX8   PIC (X(4))  TEXT 
+    REQ-ATAX9   PIC (X(4))  TEXT 
+    REQ-SUPP1   PIC (X(6))  TEXT 'Process Supplier(s)'
+    REQ-SUPP2   PIC (X(6))  TEXT 
+    REQ-SUPP3   PIC (X(6))  TEXT 
+    REQ-SUPP4   PIC (X(6))  TEXT 
+    REQ-SUPP5   PIC (X(6))  TEXT 
+    REQ-LEVEL   PIC (X(1))  TEXT 'Detail Level'
+%VARIABLES
+    A47 = date() CONSTANT
+    A46 = WX-ACCTS-PAY-CP CONSTANT
+    A00 = CHOOSE(%REQ-PER-FROM%  IF (%REQ-PER-FROM% <> SPACES ) , A46 ) I-PIC (X(4)) CONSTANT
+    A01 = SUBSTR(A00 ,1 ,2 ) I-PIC (X(2)) CONSTANT
+    A02 = NUMERIC(A01 ) I-PIC (9(2)) CONSTANT
+    A03 = CHOOSE('19'  IF (A02 > 25 ) , '20' ) I-PIC (X(2)) CONSTANT
+    A05 = CHOOSE(%REQ-PER-TO%  IF (%REQ-PER-TO% <> SPACES ) , A46 ) I-PIC (X(4)) CONSTANT
+    A06 = SUBSTR(A05 ,1 ,2 ) I-PIC (X(2)) CONSTANT
+    A07 = NUMERIC(A06 ) I-PIC (9(2)) CONSTANT
+    A08 = CHOOSE('19'  IF (A07 > 25 ) , '20' ) I-PIC (X(2)) CONSTANT
+    A10 = CHOOSE(%REQ-DATE-FROM%  IF (%REQ-DATE-FROM% <> SPACES ) , A47 ) I-PIC (X(8)) CONSTANT
+    A11 = CHOOSE(%REQ-DATE-TO%  IF (%REQ-DATE-TO% <> SPACES ) , A47 ) I-PIC (X(8)) CONSTANT
+    A09 = CATENATE(A08 ,A05 ) I-PIC (X(6)) CONSTANT
+    A04 = CATENATE(A03 ,A00 ) I-PIC (X(6)) CONSTANT
+    A12 = CHOOSE('1'  IF (( %REQ-PER-FROM% <> SPACES OR %REQ-PER-TO% <> SPACES )-
+            AND ( %REQ-DATE-FROM% <> SPACES OR %REQ-DATE-TO% <> SPACES ) ) ,'1'  IF (A09 < A04 ) ,'1'  IF (A11 < A10 ) ,-
+            '1'  IF (%REQ-LEVEL% <> 'D' AND %REQ-LEVEL% <> 'S' AND %REQ-LEVEL% <> 'T' ) , '0' ) I-PIC (X(1)) CONSTANT
+    A40 = SUBSTR(A04 ,3 ,4 ) I-PIC (X(4)) CONSTANT
+    A59 = SUBSTR(A11 ,1 ,4 ) I-PIC (X(4)) CONSTANT
+    A58 = SUBSTR(A11 ,5 ,2 ) I-PIC (X(2)) CONSTANT
+    A57 = SUBSTR(A11 ,7 ,2 ) I-PIC (X(2)) CONSTANT
+    A56 = SUBSTR(A10 ,1 ,4 ) I-PIC (X(4)) CONSTANT
+    A55 = SUBSTR(A10 ,5 ,2 ) I-PIC (X(2)) CONSTANT
+    A54 = SUBSTR(A10 ,7 ,2 ) I-PIC (X(2)) CONSTANT
+    A53 = SUBSTR(A09 ,5 ,2 ) I-PIC (X(2)) CONSTANT
+    A52 = SUBSTR(A04 ,5 ,2 ) I-PIC (X(2)) CONSTANT
+    A24 = CATENATE(A52 ,'/' ,A01 ) I-PIC (X(5)) CONSTANT
+    A25 = CATENATE(A53 ,'/' ,A06 ) I-PIC (X(5)) CONSTANT
+    A26 = CATENATE(A54 ,'/' ,A55 ,'/' ,A56 ) CONSTANT
+    A27 = CATENATE(A57 ,'/' ,A58 ,'/' ,A59 ) I-PIC (X(10)) CONSTANT
+    A41 = SUBSTR(A09 ,3 ,4 ) I-PIC (X(4)) CONSTANT
+    A44 = NUMERIC(A11 ) I-PIC (9(8)) CONSTANT
+    A45 = NUMERIC(A10 ) I-PIC (9(8)) CONSTANT
+    A50 = DAYS OF MSSDAT -
+    WHERE (OPTION                 = '8', -
+           DATE1                  = A45) -
+    CONSTANT
+    A51 = DAYS OF MSSDAT -
+    WHERE (OPTION                 = '8', -
+           DATE1                  = A44) -
+    CONSTANT
+    CNTR = CNTR-REC
+    A15 = CHOOSE(A50  IF (%REQ-DATE-FROM% <> SPACES OR %REQ-DATE-TO% <> SPACES ) , A50 ) I-PIC (9(4)) CONSTANT
+    A16 = CHOOSE(A51  IF (%REQ-DATE-FROM% <> SPACES OR %REQ-DATE-TO% <> SPACES ) , A51 ) I-PIC (9(4)) CONSTANT
+    A18 = CHOOSE(A16  IF (%REQ-DATE-FROM% <> SPACES OR %REQ-DATE-TO% <> SPACES ) , A16 ) I-PIC (X(4)) CONSTANT
+    A17 = CHOOSE(A15  IF (%REQ-DATE-FROM% <> SPACES OR %REQ-DATE-TO% <> SPACES ) , A15 ) I-PIC (X(4)) CONSTANT
+    A49 = LAST-TRAN-KEY OF MSF000 -
+    WHERE (DSTRCT-CODE            = CNTR, -
+           CONTROL-REC-TYPE       = 'PC', -
+           CONTROL-REC-NO         = A41)
+    A48 = FIRST-TRAN-KEY OF MSF000 -
+    WHERE (DSTRCT-CODE            = CNTR, -
+           CONTROL-REC-TYPE       = 'PC', -
+           CONTROL-REC-NO         = A40)
+%*  This is the process date and the field size has changed from 4 to 8
+    A14 = SUBSTR(A49 ,5 ,8 ) I-PIC (X(8))
+    A13 = SUBSTR(A48 ,5 ,8 ) I-PIC (X(8))
+
+    A19 = CHOOSE(A13  IF (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) , A10 )
+    A20 = CHOOSE(A14  IF (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) , A11 )
+    DS  = DSTRCT 
+    P   = PROCESS-DATE 
+    TN  = TRN-NO       
+    USNO = USERNO
+    T   = REC900      
+    ACC = ACCTC
+    A75 = TRAN-AMOUNT FROM MSF900     -
+    WHERE    (DSTRCT-CODE     = DS,   -
+              PROCESS-DATE    = P,    -
+              TRANSACTION-NO  = TN,   -
+              USERNO          = USNO, -
+              REC900-TYPE    >= T,    -
+              REC900-TYPE    <= T)   
+%*
+    GSTC = ACCOUNT-CODE VIA (A75)
+    DTE = TRNDTE-REVSD VIA (A75) FORMAT (REVERSE-DATE)
+    TYP = REC900-TYPE  VIA (A75)
+%*
+    A28 = FULL-PERIOD     VIA (A75)
+    A74 = INV-ITEM-DESC-I VIA (A75)
+    A29 = PROCESS-DATE    VIA (A75)
+    UN  = USERNO          VIA (A75)
+%*
+    TRN = TRANSACTION-NO  VIA (A75)
+    KEY = CATENATE (A29,TRN,UN,TYP)
+%*
+    A1  = DSTRCT-CODE     VIA (A75)
+    A36 = INV-NO-I        VIA (A75)
+    A0  = ATAX-CODE-I     VIA (A75)
+    A34 = SUPPLIER-NO-I   VIA (A75)
+    A30 = ATAX-CODE-I     VIA (A75)
+    A42 = INV-ITEM-NO-I   VIA (A75)
+    A65 = VAL-INC-TAX-L-I VIA (A75)
+    A22 = CHOOSE('Y'  IF (%REQ-SUPP1% = SPACES AND %REQ-SUPP2% = SPACES AND -
+                          %REQ-SUPP3% = SPACES AND %REQ-SUPP4% = SPACES AND -
+                          %REQ-SUPP5% = SPACES ) ,-
+                 'Y'  IF (A34 = %REQ-SUPP1% AND %REQ-SUPP1% <> SPACES ) ,-
+                 'Y'  IF (A34 = %REQ-SUPP2% AND %REQ-SUPP2% <> SPACES ) ,-
+                 'Y'  IF (A34 = %REQ-SUPP3% AND %REQ-SUPP3% <> SPACES ) ,-
+                 'Y'  IF (A34 = %REQ-SUPP4% AND %REQ-SUPP4% <> SPACES ) ,-
+                 'Y'  IF (A34 = %REQ-SUPP5% AND %REQ-SUPP5% <> SPACES ) , 'N' )
+    A21 = CHOOSE('Y'  IF (%REQ-ATAX1% = SPACES AND %REQ-ATAX2% = SPACES AND -
+                          %REQ-ATAX3% = SPACES AND %REQ-ATAX4% = SPACES AND -
+                          %REQ-ATAX5% = SPACES AND %REQ-ATAX6% = SPACES AND -
+                          %REQ-ATAX7% = SPACES AND %REQ-ATAX8% = SPACES AND -
+                          %REQ-ATAX9% = SPACES ) ,-
+                 'Y'  IF (A30 = %REQ-ATAX1% AND %REQ-ATAX1% <> SPACES ) ,-
+                 'Y'  IF (A30 = %REQ-ATAX2% AND %REQ-ATAX2% <> SPACES ) ,-
+                 'Y'  IF (A30 = %REQ-ATAX3% AND %REQ-ATAX3% <> SPACES ) ,-
+                 'Y'  IF (A30 = %REQ-ATAX4% AND %REQ-ATAX4% <> SPACES ) ,-
+                 'Y'  IF (A30 = %REQ-ATAX5% AND %REQ-ATAX5% <> SPACES ) ,-
+                 'Y'  IF (A30 = %REQ-ATAX6% AND %REQ-ATAX6% <> SPACES ) ,-
+                 'Y'  IF (A30 = %REQ-ATAX7% AND %REQ-ATAX7% <> SPACES ) ,-
+                 'Y'  IF (A30 = %REQ-ATAX8% AND %REQ-ATAX8% <> SPACES ) ,-
+                 'Y'  IF (A30 = %REQ-ATAX9% AND %REQ-ATAX9% <> SPACES ) , 'N' )
+    A71 = SD-APPLIED OF MSF26A -
+          WHERE (DSTRCT-CODE            = A1, -
+                 SUPPLIER-NO            = A34, -
+                 INV-NO                 = A36, -
+                 INV-ITEM-NO            = A42)
+    A73 = PMT-STATUS OF MSF260 -
+          WHERE (DSTRCT-CODE            = A1, -
+                 SUPPLIER-NO            = A34, -
+                 INV-NO                 = A36)
+    A35 = SUPPLIER-NAME OF MSF200 -
+          WHERE (SUPPLIER-NO            = A34)
+    A39 = SUPPLIER-NAME VIA (A35)
+
+    A31 = PAY-SUPPLIER-SW OF MSF013 -
+          WHERE (ATAX-CODE              = A30)
+    A72 = DEDUCT-SW VIA (A31)
+    A32 = DESCRIPTION VIA (A31)
+
+    A43 = DSTRCT-NAME OF MSF000 -
+          WHERE (DSTRCT-CODE            = A1, -
+                 CONTROL-REC-TYPE       = 'DC', -
+                 CONTROL-REC-NO         = '0001')
+    A61 = CHOOSE(A71  IF (A34 <> SPACES AND A72 = 'Y' AND -
+                         (A73 = '50' OR A73 = '55' ) ) , 0 ) I-PIC (S9(13)V9(2))
+    A62 = CALC ( 0 - A61 )                                   I-PIC (S9(13)V9(2))
+    A23 = CHOOSE(1 IF(((((%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES)-
+                     AND ( A28 >= A04 AND A28 <= A09)))-
+                     OR ((%REQ-DATE-FROM% <> SPACES OR %REQ-DATE-TO% <> SPACES)-
+                     AND ( A29 >= A19 AND A29 <= A20)))-
+                     AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES), 0 )
+    A66 = CHOOSE(A65 IF(((((%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES)-
+                       AND (A28 >= A04 AND A28 <= A09)))-
+                       OR ((%REQ-DATE-FROM% <> SPACES OR %REQ-DATE-TO% <> SPACES)-
+                       AND (A29 >= A19 AND A29 <= A20)))-
+                       AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES) , -
+                    0 )                                     I-PIC (S9(13)V9(2))
+    A63 = CHOOSE(A62  IF (A66 < 0 ) , A61 ) I-PIC (S9(13)V9(2))
+    A67 = CALC ( A66 - A63 )  I-PIC (S9(13)V9(2))
+    A68 = CHOOSE(A67  IF (A72 = 'Y' ) , A66 )
+
+    A69 = CHOOSE(A68  IF (( (( (%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES ) AND ( A28 >= A04 AND A28 <= A09 ) ) )-
+            OR ((%REQ-DATE-FROM% <> SPACES OR %REQ-DATE-TO% <> SPACES ) AND ( A29 >= A19 AND A29 <= A20 ) ) )-
+            AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES) , 0 ) D-PIC ---,---,---,--9.99
+    A70 = CHOOSE(A75 IF(((((%REQ-DATE-FROM% = SPACES AND %REQ-DATE-TO% = SPACES)-
+                       AND ( A28 >= A04 AND A28 <= A09)))-
+                       OR ((%REQ-DATE-FROM% <> SPACES OR %REQ-DATE-TO% <> SPACES) -
+                       AND ( A29 >= A19 AND A29 <= A20 ) ) )-
+                       AND A21 = 'Y' AND A22 = 'Y' AND A30 <> SPACES) , -
+                 0 ) D-PIC ---,---,---,--9.99
+    A38 = TOTAL(A70 ) D-PIC ---,---,---,--9.99
+    A60 = OUT-STRING OF MSSCNV -
+          WHERE (OPTION                 = 'P', -
+                 INP-STRING             = A43)
+    A33 = SUBSTR(A60 ,1 ,40 )
+%*
+    A69-A = CALC (A69 + A70) D-PIC ---,---,---,--9.99
+    A69-1 = CHOOSE (A69-A IF (A0 = 'COMM'), A69) D-PIC ---,---,---,--9.99
+    A37   = TOTAL (A69-1) D-PIC ---,---,---,--9.99
+
+%*      *** End of Program
+%*

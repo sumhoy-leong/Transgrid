@@ -1,0 +1,219 @@
+%* TRR604.RDL
+%*
+%* Revision History
+%*-----------------
+%* 13/08/2012 a9nh4814    MO164 (Version 0001)
+%* .....................  Renamed reporting from WAR601 to TRR604
+%* .....................  Reset version number to 0001 for E8 upgrade.
+%* 22/08/2002 RK Mahajan  WCHG005327 - Created new report similar to WAR600
+%*
+%PROGRAM-ID
+       TRR604
+%NARRATIVE
+%* This is a Summary Only Report which produces a CSV file copied onto
+%* User's H drive.
+%VERSION
+       0001
+%FILES
+        MFILE = MSF600A
+        LFILE = MSF600
+        LFILE = MSF010
+        OFILE = TRT604A
+%*
+%SELECTION
+<IF %DIST% <> SPACES>
+       WHERE (DSTRCT-CODE  = %DIST%, -
+              EQUIP-NO-2  >= SPACES)
+       REJECTIF (%PNFROM% <> SPACES, PLANT-NO          < %PNFROM%)
+       REJECTIF (%PNTO%   <> SPACES, PLANT-NO          > %PNTO%)
+       REJECTIF (%EGI%    <> SPACES, EQUIP-GRP-ID     <> %EGI%)
+       REJECTIF (%EC%     <> SPACES, EQUIP-CLASS      <> %EC%)
+       REJECTIF (%INC%    <> SPACES, ITEM-NAME-CODE   <> %INC%) 
+       REJECTIF (%SDE%    <> SPACES, SHUTDOWN-EQUIP   <> %SDE%)
+       REJECTIF (%COCD%   <> SPACES, COMP-CODE        <> %COCD%)
+       REJECTIF (%EQTY%   <> SPACES, EQUIP-CLASSIF-15 <> %EQTY%) 
+       STOPIF (DSTRCT-CODE > %DIST%)
+<ELSE>
+       WHERE (DSTRCT-CODE >= SPACES)
+       REJECTIF (%PNFROM% <> SPACES, PLANT-NO          < %PNFROM%)
+       REJECTIF (%PNTO%   <> SPACES, PLANT-NO          > %PNTO%)
+       REJECTIF (%EGI%    <> SPACES, EQUIP-GRP-ID     <> %EGI%)
+       REJECTIF (%EC%     <> SPACES, EQUIP-CLASS      <> %EC%)
+       REJECTIF (%INC%    <> SPACES, ITEM-NAME-CODE   <> %INC%) 
+       REJECTIF (%SDE%    <> SPACES, SHUTDOWN-EQUIP   <> %SDE%)
+       REJECTIF (%COCD%   <> SPACES, COMP-CODE        <> %COCD%)
+       REJECTIF (%EQTY%   <> SPACES, EQUIP-CLASSIF-15 <> %EQTY%)
+<ENDIF>
+%*
+%SORT-FIELDS
+       ASCENDING EQUIP-CLASS
+                 PLANT-NO
+%*
+%BREAK-FIELDS
+       DUM
+       EQUIP-CLASS
+%*
+%* Output CSV file  ***********************
+%OUTPUT-FILE
+       A
+%CONTROL
+       RECORD-LENGTH = 248
+%BREAK DUM HEADING
+{H1                                                                  }- 
+{H2                                                                      }- 
+{H3                                                                     }
+%DETAIL
+<IF RTYPE = 'S'>
+{DC}QBBQ-
+{PLANT       }Q{DESC1                                 }Q{PEQN      }Q{EGI       }Q-
+{FMIS   }Q{EXPENS}Q{CD}QJJQKKQMMQNNQOOQEEQ-
+{EQUIP       }Q{DESC2                                 }Q{OP      }Q{SDPN      }Q-
+{INC}Q{LOC}QHHQFQSQTQPPQGGQAAQCCQDDQ
+<ENDIF>
+%SUMMARY
+'----------------- End of the CSV file ----------------------------'
+%*
+%REQUEST-PARAMETERS
+       DIST   PIC (X(4))          TEXT Dist CODE - Blank for ALL :
+%*       RTYPE  PIC (X)             TEXT Summary or Detailed (S/D) : 
+       PNFROM PIC (X(30))         TEXT Plant Number From         :
+       PNTO   PIC (X(30))         TEXT Plant Number To           :
+       EGI    LIKE EQUIP-GRP-ID   TEXT Group Identifier          :
+       EC     LIKE EQUIP-CLASS    TEXT Equipment Class           :
+       INC    LIKE ITEM-NAME-CODE TEXT Item Name Code            :
+       SDE    PIC (X(24))         TEXT ShutDown Equipment        :
+       EQTY   PIC (X(2))          TEXT Equipment Type            :
+       COCD   PIC (X(4))          TEXT Component Code            :
+%*
+%VARIABLES
+%*
+%* Constants
+       L = ':'  CONSTANT
+%****************** Variables & Headings for output CSV file ******************
+  H1 = 'District~EqCLass~Plant No.~Desc1~Prod Unit~EGI~AccountCD~Exp Elem~CCD~'
+  H2 = 'EQC1~EQC2~EQC3~EQC4~EQC5~EQC15~Equipment No.~Desc2~OperatorID~ShutDownEqup~'
+  H3 = 'ITNCD~EqLOC~EqSt~CostFlag~ActiveFlag~PrdUnitItm~EQC6~EQC7~EQC8~EQC9~EQC10~'
+  Q     = '~'         CONSTANT
+  DUMMY = 'Y'         CONSTANT
+  DUM   = choose ('Y' IF (Q = Q), DUMMY)
+  RTYPE = 'S'
+%*
+%* MSF600 variables - main file
+       DC     = DSTRCT-CODE
+       EQUIP  = EQUIP-NO 
+       PLANT  = PLANT-NO 
+       DESC1  = ITEM-NAME-1
+       DESC2  = ITEM-NAME-2
+       B      = EQUIP-CLASS
+       CUST   = CUSTODIAN 
+       IBY    = INPUT-BY
+       FMIS   = ACCOUNT-CODE
+       EXPENS = EXP-ELEMENT
+       EGI    = EQUIP-GRP-ID
+       PEQ    = PARENT-EQUIP
+       INC    = ITEM-NAME-CODE 
+       H      = EQUIP-STATUS 
+       LOC    = EQUIP-LOCATION
+       F      = COSTING-FLG
+       J      = EQUIP-CLASSIF (1)
+       K      = EQUIP-CLASSIF (2)
+       M      = EQUIP-CLASSIF (3)
+       N      = EQUIP-CLASSIF (4)
+       O      = EQUIP-CLASSIF (5)
+       P      = EQUIP-CLASSIF (6)
+       G      = EQUIP-CLASSIF (7)
+       A      = EQUIP-CLASSIF (8)
+       C      = EQUIP-CLASSIF (9)
+       D      = EQUIP-CLASSIF (10)
+       E      = EQUIP-CLASSIF (15)
+       CD     = COMP-CODE 
+       S      = ACTIVE-FLG
+       OP     = OPERATOR-ID 
+       T      = PROD-UNIT-ITEM
+       V      = WARR-STAT-TYPE
+       X      = WARR-STAT-VAL PIC Z(8)9.99
+       W      = SHUTDOWN-EQUIP
+       DDATE  = GET (DISPLAY-DATE FROM (DISPOSAL-DATE))
+       CDATE  = GET (DISPLAY-DATE FROM (REG-CANCEL-DTE)) 
+       WDATE  = GET (DISPLAY-DATE FROM (WARRANTY-DATE))
+       PDATE  = GET (DISPLAY-DATE FROM (PURCHASE-DATE))
+       Z      = COUNT (EQUIP)
+       ZC     = COUNT (B)
+       ZI     = COUNT (*)
+%***
+%* MSF600 variables - lookup file         
+       PE     = EQUIP-NO OF MSF600 -
+                WHERE (EQUIP-NO = PEQ)
+       PLNO   = PLANT-NO         VIA (PE)
+       PEQN   = choose (PLNO IF (PE = PEQ), SPACES)
+%*
+       SD     = EQUIP-NO OF MSF600 -
+                WHERE (EQUIP-NO = SHUTDOWN-EQUIP)
+       SPLNO  = PLANT-NO         VIA (SD)
+       SDPN   = choose (SPLNO IF (SD = W), SPACES)
+%***
+%* MSF010 variables
+       ECDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'EC', -
+                TABLE-CODE = B) 
+       CUDESC1 = hrget (EMPLOYEE-ID -
+                  from ('MSSEMP,MSF810') -
+                   key (EMPLOYEE-ID = CUST)
+       CUDESC  = FORMATTED-NAME via (CUDESC1)
+       IBDESC1 = hrget (EMPLOYEE-ID -
+                  from ('MSSEMP,MSF810') -
+                   key (EMPLOYEE-ID = IBY)
+       IBDESC  = FORMATTED-NAME via (IBDESC1)
+       VDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'SS', - 
+                TABLE-CODE = V)
+       DDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E9', - 
+                TABLE-CODE = D)
+       CDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E8', - 
+                TABLE-CODE = C)
+       ADESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E7', - 
+                TABLE-CODE = A)
+       GDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E6', - 
+                TABLE-CODE = G)
+       PDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E5', - 
+                TABLE-CODE = P)
+       ODESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E4', - 
+                TABLE-CODE = O)
+       NDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E3', - 
+                TABLE-CODE = N)
+       MDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E2', - 
+                TABLE-CODE = M)
+       KDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E1', - 
+                TABLE-CODE = K)
+       JDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E0', - 
+                TABLE-CODE = J)
+       EDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'E14',-
+                TABLE-CODE = E) 
+       CDDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'CO', -
+                TABLE-CODE = CD) 
+       HDESC  = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'ES', - 
+                TABLE-CODE = H)
+       LOCDESC= TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'EL', - 
+                TABLE-CODE = LOC)
+       L1     = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E0')
+       L2     = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E1')
+       L3     = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E2')
+       L4     = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E3')
+       L5     = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E4')
+       L6     = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E5')
+       L7     = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E6')
+       L8     = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E7')
+       L9     = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E8')
+       L10    = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E9')
+       L11    = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XX', -
+                TABLE-CODE = 'E14')
+%*
+%*  ----------------  End  of  the  Program   ------------------

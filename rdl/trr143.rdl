@@ -1,0 +1,285 @@
+%*** $Id: esr143.rdl,v3C 2008/05/16 13:35:00 elldev Exp $
+%*** TRR143.RDL
+%*** Revision History
+%*** 10-Sep-12 N Perry       
+%*** ......................  Convert to Ellipse 8 format.
+%*** ......................  Reset version number to 0001 for E8 upgrade
+%*** ......................  Rename program to TRR145
+%* ........................  Rename output file to TRT143
+%*** ......................  Changed PIC statements to D-PIC.
+%*** ......................  WX_MULTIWHOUSE no longer exists.
+%*** 13-Jun-08 Geoff Presser 1854344               (Version 0004)
+%*** ..................... Include a selection paramter of 
+%*** ..................... Authorising Officer. Because of problems,
+%*** ..................... write this info out to a file and get ESR145
+%*** ..................... to actually print the report.
+%*** 15-May-08 Janak Barar SC1854344 needs enhancement to sync the prog
+%*** ..................... with MSF900 database layout - Process-date,   
+%*** ..................... Transaction-no and rec900-type.               
+%*** 31-Aug-98 EFredeluces W808280037
+%*** ..................... With the intro of new procedures for salvage
+%*** ..................... system issues created for nil issue/price
+%*** ..................... With the intro of new procedures for salvage
+%*** ..................... system issues created for nil issue/price
+%*** ..................... be included in the report.  Also, added the
+%*** ..................... Picking Slip instructions in the MSF096 file.
+%*** 16-Apr-96 Mincom      Replace 'RC' table access with HRGET macro.
+%*** 15-Jun-94 Mary_W .... Version 3a. Amended to report new transfers 
+%*** ..................... Tran-Type 'ISI' due to upgrade to 3.010k.
+%*** 23-Dec-92 Mary_W .... Version 3. Amended so '0' issues don't report.
+%*** 14-Feb-92 David_G ... Change order (req-by before tran-date)
+%*** ..................... Print full req-by name (50 chars) as 1st detail line
+%*** ..................... Reverse req-by (L1) & transaction (L2) in heading(s).
+%*** ..................... Print full 50 chars auth name
+%*** ..................... Remove blank line in account code heading
+%PROGRAM-ID
+       TRR143
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  Stock Issue Transactions by Responsibility Report.
+      **
+%VERSION
+       0001
+%MODULE
+       3140
+%FILES
+        MFILE = MSF900
+        LFILE = MSF010
+        LFILE = MSF083
+        LFILE = MSF096
+        LFILE = MSF100
+        LFILE = MSF140
+        LFILE = MSF170
+        OFILE = TRT143A
+
+%SELECTION
+%*** Enter selection criteria for MSF900
+<IF %TRAN-FROM% <> SPACES OR %TRAN-TO% <> SPACES>
+       WHERE (DSTRCT-CODE    = %DISTRICT-CODE%, -
+              PROCESS-DATE  >= UK1)
+       START (DSTRCT-CODE    = %DISTRICT-CODE%, -
+              PROCESS-DATE   = UK1, -
+              TRANSACTION-NO = UK2, -
+              USERNO         = UK3, -
+              REC900-TYPE    = UK4)
+       SELECTIF (TRAN-TYPE = 'FAC')
+       SELECTIF (TRAN-TYPE = 'FAO')
+       SELECTIF (TRAN-TYPE = 'ISC')
+       SELECTIF (TRAN-TYPE = 'ISI')
+       SELECTIF (TRAN-TYPE = 'ISS')
+       SELECTIF (TRAN-TYPE = 'STW')
+       SELECTIF (TRAN-TYPE = 'CTW')
+       STOPIF (%TRAN-TO% <> SPACES, -
+               KEY-900 > TKEY)
+<ELSE>
+       WHERE (DSTRCT-CODE   >= %DISTRICT-CODE%, -
+              DSTRCT-CODE   <= %DISTRICT-CODE%) 
+       START (DSTRCT-CODE    = %DISTRICT-CODE%, - 
+              PROCESS-DATE   = RK2, -
+              TRANSACTION-NO = RK3, -
+              USERNO         = RK4, -
+              REC900-TYPE    = RK5)
+       SELECTIF (TRAN-TYPE = 'FAC')
+       SELECTIF (TRAN-TYPE = 'FAO')
+       SELECTIF (TRAN-TYPE = 'ISC')
+       SELECTIF (TRAN-TYPE = 'ISI')
+       SELECTIF (TRAN-TYPE = 'ISS')
+       SELECTIF (TRAN-TYPE = 'STW')
+       SELECTIF (TRAN-TYPE = 'CTW')
+       REJECTIF (KEY-900 = RST-KEY)
+<ENDIF>
+%OUTPUT-FILE
+       A
+%CONTROL
+       UPDATE-RESTART-FILE = UPD-KEY
+       COPY-REQUEST        = TRR145
+       RECORD-LENGTH       = 916
+%DETAIL
+<IF %AUTH-OFF% <> ZEROES, AUTH = %AUTH-OFF%> 
+{DS}{AUTH    }{B1                    }{REQBY   }{J     }{STK    }{K900                      }-
+{RDESC                                           }-
+{RBY                                             }-
+{DELIV                                                     }-
+{CKTEXT                                                    }-
+{CKTXT2                                                    }-
+{CKTXT3                                                    }-
+{CKTXT4                                                    }-
+{CKTXT5                                                    }-
+{C                     }{D }{E   }Z{F }{STK   }H{I1}JJJJJJJJ-
+MMNOOOOOOOOOOQQQQQQQQQQQQQQQQQKKKPPPPPPPPPPRRRRRRRRRRSSSSSSSSSSSSSSS-
+{L4   }UUUUUUUU{INAME                                 }{T1             }-
+{L5         }XXXXXXXXXXXX{IDESC1                      }{IDESC2                      }-
+{IDESC3                      }{IDESC4                      }{L6      }VWWWWWWW
+<ENDIF>
+<IF %AUTH-OFF% = ZEROES> 
+{DS}{AUTH    }{B1                    }{REQBY   }{J     }{STK    }{K900                      }-
+{RDESC                                           }-
+{RBY                                             }-
+{DELIV                                                     }-
+{CKTEXT                                                    }-
+{CKTXT2                                                    }-
+{CKTXT3                                                    }-
+{CKTXT4                                                    }-
+{CKTXT5                                                    }-
+{C                     }{D }{E   }Z{F }{STK   }H{I1}JJJJJJJJ-
+MMNOOOOOOOOOOQQQQQQQQQQQQQQQQQKKKPPPPPPPPPPRRRRRRRRRRSSSSSSSSSSSSSSS-
+{L4   }UUUUUUUU{INAME                                 }{T1             }-
+{L5         }XXXXXXXXXXXX{IDESC1                      }{IDESC2                      }-
+{IDESC3                      }{IDESC4                      }{L6      }VWWWWWWW
+<ENDIF>
+%REQUEST-PARAMETERS
+       TRAN-FROM D-PIC (X(24))  TEXT 'Transaction-Id from:'
+       TRAN-TO D-PIC (X(24))    TEXT 'Transaction-Id to  :'
+       AUTH-OFF D-PIC (X(10))   TEXT 'Authorising Officer:'
+%VARIABLES
+       DBL = '=================' CONSTANT
+       SGL = '-----------------' CONSTANT
+%* Split up user key into key elements
+       UK1 = SUBSTR (%TRAN-FROM%,1,8)  CONSTANT
+       UK2 = SUBSTR (%TRAN-FROM%,9,11)  CONSTANT
+       UK3 = SUBSTR (%TRAN-FROM%,20,4) CONSTANT
+       UK4 = SUBSTR (%TRAN-FROM%,24,1) CONSTANT
+       TPKEY = CHOOSE (%TRAN-TO% IF (%TRAN-TO% <> SPACES), -
+                       %TRAN-TO%) I-PIC (X(24)) CONSTANT 
+       DST  = %DISTRICT-CODE% CONSTANT
+       DS   = %DISTRICT-CODE% CONSTANT
+       TKEY = CATENATE (DST,TPKEY) CONSTANT
+       RST-KEY = LAST-SAVE-KEY OF MSF083 -
+                      WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                             PROG-NAME = 'TRR143') CONSTANT
+%* Split up system key into key elements
+       RK1 = SUBSTR (RST-KEY,1,4)  CONSTANT
+       RK2 = SUBSTR (RST-KEY,5,8)  CONSTANT
+       RK3 = SUBSTR (RST-KEY,13,11) CONSTANT
+       RK4 = SUBSTR (RST-KEY,24,4) CONSTANT
+       RK5 = SUBSTR (RST-KEY,28,1) CONSTANT
+       AUTH-OFF = %AUTH-OFF%       CONSTANT
+       ISC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'ISC') CONSTANT 
+       ISI = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'ISI') CONSTANT 
+       ISS = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'ISS') CONSTANT 
+       STW = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'STW') CONSTANT 
+       CTW = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'CTW') CONSTANT 
+       K900 = KEY-900
+       K9 = MAX (KEY-900)
+       UPD-KEY = CHOOSE (K9 IF (%TRAN-FROM% = SPACES, -
+                                 %TRAN-TO% = SPACES), RST-KEY)
+       A1 = AUTH-BY-F
+       A2 = AUTH-BY-S
+       RDESC1F = HRGET  (EMPLOYEE-ID -
+                        FROM ('MSSEMP,MSF810') -
+                        KEY  (EMPLOYEE-ID = A1)
+       RDESCF  = FORMATTED-NAME via (RDESC1F)
+       RDESC1S = HRGET  (EMPLOYEE-ID -
+                        FROM ('MSSEMP,MSF810') -
+                        KEY  (EMPLOYEE-ID = A2)
+       RDESCS  = FORMATTED-NAME via (RDESC1S)
+       RDESC = CHOOSE (RDESCF IF (REC900-TYPE = 'F'), -
+                       RDESCS IF (REC900-TYPE = 'S'), -
+                       SPACES)
+       AUTH = CHOOSE (A1 IF (REC900-TYPE = 'F'), -
+                   A2 IF (REC900-TYPE = 'S'), SPACES)
+%*       L = CHOOSE ('WH' IF (WX-MULTIWHOUSE = 'Y'), SPACES)
+       L = 'WH'
+       L1 = '         Transaction-'
+       L2 = 'Requested'
+       L3 = 'Account Code:'
+       L7 = 'Account Code Total:'
+       L8 = 'Responsible Officer Total:'
+       L9 = 'Report Total:'
+       B1 = ACCOUNT-CODE
+       C = SUBSTR (KEY-900,5,24)
+       C1 = REQUESTED-BY-S
+       REQBY = CHOOSE (C1 IF (REC900-TYPE = 'S'), SPACES)
+       D1 = WHOUSE-ID-F
+       D2 = WHOUSE-ID-S
+%*       D = CHOOSE ( D1 IF (WX-MULTIWHOUSE = 'Y' AND REC900-TYPE = 'F'), -
+%*                    D2 IF (WX-MULTIWHOUSE = 'Y' AND REC900-TYPE = 'S'), -
+%*                    SPACES)
+       D = CHOOSE ( D1 IF (REC900-TYPE = 'F'), -
+                    D2 IF (REC900-TYPE = 'S'), -
+                    SPACES)
+       E1 = ISSUE-REQ-NO-S
+       E2 = FUEL-OIL-TY-F
+       E = CHOOSE (E1 IF (REC900-TYPE = 'S'), E2 IF (REC900-TYPE = 'F'),SPACES)
+       Z = CHOOSE ('/' IF (REC900-TYPE = 'S'), SPACES)
+       F1 = IREQ-ITEM-NO-S
+       F = CHOOSE  (F1 IF (REC900-TYPE = 'S'), SPACES)
+       G1 = STOCK-CODE-F
+       G2 = STOCK-CODE-S
+       STK = CHOOSE ( G1 IF (REC900-TYPE = 'F'), -
+                      G2 IF (REC900-TYPE = 'S'),SPACES)
+       H = CLASS OF MSF170 WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+           STOCK-CODE = STK)
+       I1 = UNIT-OF-ISSUE VIA (H)
+       J = TRNDTE-REV-9 FORMAT (REVERSE-DATE)
+       K = TRAN-TYPE
+       M = ITRAN-TYPE-S IF (REC900-TYPE = 'S') ELSE (SPACES)
+       N = INABILTY-FLG-S IF (REC900-TYPE = 'S') ELSE (SPACES)
+       O1 = QUANTITY-REQ-S
+       P1 = QUANTITY-ISS-S
+       P2 = LITRES-ISS-F
+       O = CHOOSE (O1 IF (REC900-TYPE = 'S'), P2 IF (REC900-TYPE = 'F'), -
+           ZERO) D-PIC (Z(5)9.99-)
+       P = CHOOSE (P1 IF (REC900-TYPE = 'S'), P2 IF (REC900-TYPE = 'F'), -
+           ZERO) D-PIC (Z(5)9.99-)
+       Q1 = RATE-AMOUNT-F
+       Q2 = AVERAGE-PR-S
+       Q = CHOOSE (Q1 IF (REC900-TYPE = 'F'), Q2 IF (REC900-TYPE = 'S'), -
+           ZERO) D-PIC (Z(10)9.9(4)-)
+       R1 = SOH-AFTER-F
+       R2 = SOH-AFTER-S
+       R = CHOOSE (R1 IF (REC900-TYPE = 'F'),R2 IF (REC900-TYPE = 'S'), -
+           ZERO) D-PIC (Z(8)9-)
+       S = TRAN-AMOUNT D-PIC (S9(13)V99)
+       RBY11 = HRGET  (EMPLOYEE-ID -
+                      FROM ('MSSEMP,MSF810') -
+                      KEY  (EMPLOYEE-ID = REQUESTED-BY-S)
+       RBY1  = FORMATTED-NAME via (RBY11)
+       RBY = CHOOSE (RBY1 IF (REC900-TYPE = 'S'), SPACES)
+       INAME = ITEM-NAME OF MSF100 WHERE (STOCK-CODE = STK)
+       IDESC1 = DESC-LINE-1 VIA (INAME)
+       IDESC2 = DESC-LINE-2 VIA (INAME)
+       IDESC3 = DESC-LINE-3 VIA (INAME)
+       IDESC4 = DESC-LINE-4 VIA (INAME)
+       T1 = ON-COST-AMT-S IF (REC900-TYPE = 'S') ELSE (ZERO) -
+            D-PIC (Z(12)9.99- BLANK WHEN ZERO)
+       L4 = CHOOSE ('W/Order' IF (REC900-TYPE = 'S' AND WX-WORK-ORDERS-IN = 'Y'-
+            AND WORK-ORDER-S <> SPACES), 'Project' IF (REC900-TYPE = 'S' AND-
+            WX-PROJ-CONTROL-IN = 'Y' AND PROJECT-NO-S <> SPACES), SPACES)
+       U1 = WORK-ORDER-S
+       U2 = PROJECT-NO-S
+       U = CHOOSE (U1 IF (REC900-TYPE = 'S' AND WX-WORK-ORDERS-IN = 'Y'-
+            AND WORK-ORDER-S <> SPACES), U2 IF (REC900-TYPE = 'S' AND-
+            WX-PROJ-CONTROL-IN = 'Y' AND PROJECT-NO-S <> SPACES), SPACES)
+       X1 = EQUIP-NO-F
+       X2 = EQUIP-NO-S
+       X = CHOOSE (X1 IF (REC900-TYPE = 'F'), X2 IF (REC900-TYPE = 'S'), SPACES)
+       L5 = CHOOSE ('Equipment No.' IF (X <> SPACES), SPACES)
+       L6 =  CHOOSE ('Tax Code/%' IF (WX-SALES-TAX-FLAG = 'Y' AND -
+                     REC900-TYPE = 'S' AND TAX-CODE-S <> SPACES), SPACES)
+       V =  TAX-CODE-S IF (WX-SALES-TAX-FLAG = 'Y' AND REC900-TYPE = 'S' -
+                           AND TAX-CODE-S <> SPACES) ELSE(SPACES)
+       W =  TAX-PERCENT-S IF (WX-SALES-TAX-FLAG = 'Y' AND REC900-TYPE = 'S') -
+                          ELSE (ZERO) D-PIC (ZZ9.99- BLANK WHEN ZERO)
+       DELIV = DELIV-INSTR-A OF MSF140 WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                                            IREQ-NO = E1)
+%*  Get the Picking Slip Description
+       KEY96   = CATENATE (DST,E1)
+       CKTEXT  = STD-STATIC-1 OF MSF096           -
+                 WHERE  (STD-TEXT-CODE = 'PS',    -
+                         STD-KEY       = KEY96,   -
+                         STD-LINE-NO  >= 0)       -
+                         MAX (1)
+       CKTXT2 = STD-STATIC-2 VIA (CKTEXT)
+       CKTXT3 = STD-STATIC-3 VIA (CKTEXT)
+       CKTXT4 = STD-STATIC-4 VIA (CKTEXT)
+       CKTXT5 = STD-STATIC-5 VIA (CKTEXT)
+%*
+%*                    *** End Of Report
+%*

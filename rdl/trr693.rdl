@@ -1,0 +1,464 @@
+%*** Revision History *** 
+%***
+%*** 07-Oct-13 Shally Lee       SC0000004322541 (V0003)
+%***                            Add REC-735-TYPE 'ST' for csv file extraction.
+%*** 03-Apr-14 a9nh4814         MO164 (Version 0002)
+%*** .......................... Added double quote to texts
+%*** 25-Jan-14 a9nh4814         MO164
+%*** .......................... Corrected WO Type column location
+%*** 14-Nov-12 a9jw6280         MO164
+%*** .......................... Add Maintenance Type into request parameter.
+%*** .......................... Modify output file TRT693A to have a new layout
+%*** .......................... that refer to Appendix A in the URS. 
+%*** 21-Sep-12 a9is6175         MO164 (Version 0001)
+%*** .......................... Reset version number to 0001 for E8 upgrade. 
+%*** 17-Mar-03 R Yeung          WCHG015471
+%*** .......................... Add safety instruction field
+%*** 26-Aug-02 E Fredeluces     WCHG005418
+%*** .......................... In the output file include three (3)
+%*** .......................... Parent Standard Job columns.
+%*** 17-Sep-01 L Nee            W01090193
+%*** .......................... Initial Coding.
+%***
+%PROGRAM-ID
+    TRR693
+%AUTHOR
+    Mincom Pty Ltd
+%NARRATIVE
+    Standard Job Analysis Report. This program outputs
+    a file in CSV format. 
+%MODULE
+    3690
+%VERSION
+    0002
+%ORDER
+    STD-JOB-NO
+%FILES
+    MFILE = MSF690
+    LFILE = MSF010
+    LFILE = MSF696A
+    LFILE = MSF720
+    LFILE = MSF725
+    LFILE = MSF735
+    LFILE = MSF731A
+    AFILE = MSF693
+    LFILE = MSF600
+    RFILE = TRR693A
+    RFILE = TRR693B
+    OFILE = TRT693A
+%SELECTION
+<IF %DISTRICT-CODE% <> SPACES>
+    WHERE    (DSTRCT-CODE  = %DISTRICT-CODE%, -
+              STD-JOB-NO  >= SPACES)
+    REJECTIF (%SJFROM%    <> SPACES   AND STD-JOB-NO    <  %SJFROM%)
+    REJECTIF (%SJTO%      <> SPACES   AND STD-JOB-NO    >  %SJTO%)
+    REJECTIF (%WOTYPE%    <> SPACES   AND WO-TYPE       <> %WOTYPE%)
+    REJECTIF (%MAINTYPE%  <> SPACES   AND MAINT-TYPE    <> %MAINTYPE%)
+    REJECTIF (%COMPFROM%  <> SPACES   AND COMP-CODE     <  %COMPFROM%)
+    REJECTIF (%COMPTO%    <> SPACES   AND COMP-CODE     >  %COMPTO%)
+    REJECTIF (%MOD%       <> SPACES   AND COMP-MOD-CODE <> %MOD%)
+    REJECTIF (%WKCNTR%    <> SPACES   AND WORK-CENTRE   =  %WKCNTR%)
+    REJECTIF (%WKGRPFROM% <> SPACES   AND WORK-GROUP    <  %WKGRPFROM%)
+    REJECTIF (%WKGRPTO%   <> SPACES   AND WORK-GROUP    >  %WKGRPTO%)
+    REJECTIF (%SDCODE%    <> SPACES   AND SHUTDOWN-TYPE =  %SDCODE%)
+    REJECTIF (%ACCTFROM%  <> SPACES   AND ACCOUNT-CODE  <  %ACCTFROM%)
+    REJECTIF (%ACCTTO%    <> SPACES   AND ACCOUNT-CODE  >  %ACCTTO%)
+    REJECTIF (%ESTJHFROM% <> 0        AND EST-DUR-HRS   <  %ESTJHFROM%)
+    REJECTIF (%ESTJHTO%   <> 99999999 AND EST-DUR-HRS   >  %ESTJHTO%)
+    REJECTIF (%ORIG%      <> SPACES   AND ORIGINATOR-ID <> %ORIG%)
+<ELSE>
+    WHERE    (DSTRCT-CODE >= SPACES)
+    REJECTIF (%SJFROM%    <> SPACES   AND STD-JOB-NO    <  %SJFROM%)
+    REJECTIF (%SJTO%      <> SPACES   AND STD-JOB-NO    >  %SJTO%)
+    REJECTIF (%WOTYPE%    <> SPACES   AND WO-TYPE       <> %WOTYPE%)
+    REJECTIF (%MAINTYPE%  <> SPACES   AND MAINT-TYPE    <> %MAINTYPE%)
+    REJECTIF (%COMPFROM%  <> SPACES   AND COMP-CODE     <  %COMPFROM%)
+    REJECTIF (%COMPTO%    <> SPACES   AND COMP-CODE     >  %COMPTO%)
+    REJECTIF (%MOD%       <> SPACES   AND COMP-MOD-CODE <> %MOD%)
+    REJECTIF (%WKCNTR%    <> SPACES   AND WORK-CENTRE   =  %WKCNTR%)
+    REJECTIF (%WKGRPFROM% <> SPACES   AND WORK-GROUP    <  %WKGRPFROM%)
+    REJECTIF (%WKGRPTO%   <> SPACES   AND WORK-GROUP    >  %WKGRPTO%)
+    REJECTIF (%SDCODE%    <> SPACES   AND SHUTDOWN-TYPE =  %SDCODE%)
+    REJECTIF (%ACCTFROM%  <> SPACES   AND ACCOUNT-CODE  <  %ACCTFROM%)
+    REJECTIF (%ACCTTO%    <> SPACES   AND ACCOUNT-CODE  >  %ACCTTO%)
+    REJECTIF (%ESTJHFROM% <> 0        AND EST-DUR-HRS   <  %ESTJHFROM%)
+    REJECTIF (%ESTJHTO%   <> 99999999 AND EST-DUR-HRS   >  %ESTJHTO%)
+    REJECTIF (%ORIG%      <> SPACES   AND ORIGINATOR-ID <> %ORIG%)
+<ENDIF>
+%BREAK-FIELDS
+    DUM
+    STD-JOB-NO
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 738 
+%BREAK DUM HEADER
+<IF %RTYPE% = 'D'>
+'Standard Job,Description,Work Group,Assigned To,WO Type,Maint Type,Account Code, Project No,Duration,Comp Code,'-
+'Mod Code,Orig Priority,Resource Hrs,Est Resource,Est Material,Est Equip,Est Other,Res Class,Res Type,Cost Method,Crew Size,'-
+'Rate Amount,Fixed Amount,Hrs Reqd,Total Cost,Code W0,Code W1,Code W2,Code W3,Code W4,Code W5,Code W6,Code W7,Code W8,Code W9,'-
+'Task 1 Description,Job Description,Work Group,Assigned To,Job Desc Code,Compl Inst,Safety Inst,PSJ1,PSJ2,PSJ3'
+<ENDIF>
+%DETAIL
+<IF %RTYPE% = 'D'>
+{A00 }Y{SJD                                     }Y{A17  }Y{A12     }YAAYFFY{A10                   }Y{A100  }Y{A19       }Y{A1}-
+YHHYCCY{A18       }Y{A20           }Y{A21           }Y{A101          }Y{A22       }YWY{CD}YUYIIY{RTAMT        }Y{FXAMT        }-
+Y{HRSRQ      }Y{A23           }Y{A30                }Y{A31                }Y{A32                }Y{A33                }-
+Y{A34                }Y{A35                }Y{A36                }Y{A37                }Y{A38                }Y{A39                }-
+Y{TD                                                }Y{SJTD                                    }Y{A17  }Y{A12     }YMM-
+Y{CID                                               }Y{SIDS                                              }Y{PSJ1}Y{PSJ2}Y{PSJ3}
+<ENDIF>
+%REPORT
+    A
+%TITLE
+    'STANDARD JOB ANALYSIS REPORT - DETAIL'
+%BREAK STD-JOB-NO HEADING ON NEW-PAGE
+<IF %RTYPE% = 'D'>
+{A00   } {A01                                   }             {A02           } {A0}
+'W/O Type  :'AA {A03          }                               'Shutdown Equip:'{A04                         }
+'Originator:'{A05     } {A06                         }        'Shutdown Type :'BB {A07          }
+'Orig. Pri.:'CC {A08          }                               'Creation Date :'{A09    }
+'Cost Cntr/:'{A10                   }                         'Last Mod Date :'{A11    }
+  'Account' ' '                                               'No. of Tasks  :'{D}
+'Assign To :'{A12     } {A13                         }        'Highest Task  :'{E}
+'Maint Type:'FF {A14                         }                'Paper Hist.   :'G
+'Comp Code :'{A1}
+    {A15                                             }'-------------------------------  Estimated  --------------------------------'
+'Mod Code  :'HH {A16                         }         'Resrce Hrs     Dur. Hrs  Resrce Cost    Mat. Cost   Other Cost   Total Cost'
+'Work Group:'{A17  }                                   {A18      } {A19       } {A20       } {A21       } {A22       } {A23       }
+             {A24                                    }
+'Work Cntr :'{A25}                                    'Extended Desc.:'{A26                                                       }
+             {A27                                    }                 {A26                                                       }
+'Reall C Cntr/Acct:'{A28                   }                           {A26                                                       }
+'Job Codes :'{A29} {A30                } {A29} {A31                }   {A26                                                       }
+<SUPPRESS>
+             {A29} {A32                } {A29} {A33                }   {A26                                                       }
+<SUPPRESS>
+             {A29} {A34                } {A29} {A35                }   {A26                                                       }
+<SUPPRESS>
+             {A29} {A36                } {A29} {A37                }   {A26                                                       }
+<SUPPRESS>
+             {A29} {A38                } {A29} {A39                }   {A26                                                       }
+<REPEAT>
+                                                                       {A26                                                       }
+<ENDREPEAT>
+   <IF A41 <> 0>
+
+'Resources : Type   Description    Crew Spread    Est Hrs    Type   Description    Crew Spread    Est Hrs'
+             {A42 } {A43          }  II   J    {A44     }    {A42 } {A43          }  II   J    {A44     }
+   <ENDIF>
+   <IF %TREQ% = 'Y'>
+
+'TASKS'
+   <ENDIF>
+<ENDIF>
+%DETAIL
+<IF %RTYPE% = 'D'>
+   <IF %TREQ% = 'Y'>
+
+   {K} {A45                                   }
+     'Work Group  :'{A46  } {A47                                   }      'Assign To       :'{A48     } {A49                       }
+     'Work Centre :'{A50}   {A51                                   }      'Unit of Work    :'LL {A52          }
+     'Job Desc.   :'MM {A53                                            }  'Units Required  :'{A54     }
+     'Safety Instr:'NN {A55                                            }  'Units per day   :'{A56     }
+     'Compl. Instr:'OO {A57                                            }  'Est. Mach. Hours:'{A58     }
+     'Compl. Text :'PP {A59          }                                    'Plan Offset Days:'{Q}
+     'APL'{A60     } {A61                         } {A62}{A2} {A3}RR {A4}{A5}
+      <IF A64 <> 0>
+     'Resources : Type   Description    Crew Spread    Est Hrs  Type   Description    Crew Spread    Est Hrs'
+      <ENDIF>
+<REPEAT>
+<SUPPRESS>
+                  {A65 } {A66          }  SS   T    {A67     }  {A65 } {A66          }  SS   T    {A67     }
+<ENDREPEAT>
+   <ENDIF>
+<ENDIF>
+%REPORT
+    B
+%TITLE
+    'STANDARD JOB ANALYSIS REPORT - SUMMARY'
+%PAGE HEADING
+<IF %RTYPE% = 'S'>
+                                                    {A68                                                                           }
+'Standard Job'                                      {A69                                                                           }
+<ENDIF>
+%BREAK STD-JOB-NO HEADING
+<IF %RTYPE% = 'S'>
+ {A00   } {A01                                   }  {A17  }    {A05     }    {A1}    {A18      }{A20       }{A21       }{A23       }
+         'Job Codes:'{A29} {A29} {A29} {A29} {A29}  {A10                   }
+                     {A29} {A29} {A29} {A29} {A29}
+   <IF %TREQ% = 'Y'>
+ 'Task No Description'                            'Work Grp Wk Cntr JD APL No.'
+   <ENDIF>
+<ENDIF>
+%DETAIL
+<IF %RTYPE% = 'S'>
+   <IF %TREQ% = 'Y'>
+      {K} {A45                                   } {A46  }  {A50}   MM {A70       } {A71       }
+   <ENDIF>
+
+<ENDIF>
+%REPORT-SUMMARY
+<IF %RTYPE% = 'S'>
+{A72  }'Standard Job(s) - TOTAL'
+<ENDIF>
+%REQUEST-PARAMETERS
+    RTYPE     PIC (X(1))  TEXT 'Summary or Detail Report (S/D)'
+    TREQ      PIC (X(1))  TEXT 'Tasks required (Y/N)'
+    SJFROM    PIC (X(6))  TEXT 'Standard Job Numbers - From'
+    SJTO      PIC (X(6))  TEXT '                       To'
+    WOTYPE    PIC (X(2))  TEXT 'Work Order Type'
+    MAINTYPE  PIC (X(2))  TEXT 'Maintenance Type'
+    COMPFROM  PIC (X(4))  TEXT 'Component Code - From'
+    COMPTO    PIC (X(4))  TEXT '                 To'
+    MOD       PIC (X(2))  TEXT 'Modifier Code'
+    WKCNTR    PIC (X(5))  TEXT 'Work Centre'
+    WKGRPFROM PIC (X(7))  TEXT 'Work Group - From'
+    WKGRPTO   PIC (X(7))  TEXT '             To'
+    SDCODE    PIC (X(2))  TEXT 'Shutdown Code'
+    ACCTFROM  PIC (X(24)) TEXT 'Account Code - From'
+    ACCTTO    PIC (X(24)) TEXT '               To'
+    ESTJHFROM PIC (9(8))  TEXT 'Estimated Job Hours - From'
+    ESTJHTO   PIC (9(8))  TEXT '                      To'
+    ORIG      PIC (X(10)) TEXT 'Originator'
+%VARIABLES
+    A69 = 'Cost Cntr/Account        Code          Hours    Resource    Material       Total'
+    A68 = 'Wk Grp/    Originator    Comp       Resource --------- Estimated Costs ---------'
+    A02 = CHOOSE('District       :'  IF (%DISTRICT-CODE% = SPACES ) , SPACES )
+    A18 = EST-LAB-HRS D-PIC ( ZZZZZZZ9.99 )
+    A17 = WORK-GROUP
+    A19 = EST-DUR-HRS D-PIC ( ZZZZZZZZ9.99 )
+    A20 = EST-LAB-COST D-PIC ( ZZZZZZZZ9.99 )
+    G   = PAPER-HIST
+    H   = COMP-MOD-CODE
+    A1  = COMP-CODE
+    F   = MAINT-TYPE
+    A29 = WO-JOB-CODE
+    A28 = REALL-ACCT-CDE
+    A77 = DSTRCT-CODE
+    A21 = EST-MAT-COST D-PIC ( ZZZZZZZZ9.99 )
+    A22 = EST-OTHER-COST D-PIC ( ZZZZZZZZ9.99 )
+    A25 = WORK-CENTRE
+    A23 = EST-TOTAL-COST D-PIC ( ZZZZZZZZ9.99 )
+    A00 = STD-JOB-NO
+    B   = SHUTDOWN-TYPE
+    A05 = ORIGINATOR-ID
+    C   = ORIG-PRIORITY
+    A10 = ACCOUNT-CODE
+    A01 = STD-JOB-DESC
+    A04 = SHUTDOWN-EQUIP
+    A   = WO-TYPE
+    E   = HIGHEST-TASK-9
+    A12 = ASSIGN-PERSON
+    D   = NO-OF-TASKS-9
+    A72 = COUNT(STD-JOB-NO )
+    A11 = GET (DISPLAY-DATE FROM (LAST-MOD-DATE ))
+    A09 = GET (DISPLAY-DATE FROM (CREATION-DATE ))
+    A26 = GET (READ-TEXT FROM ('MSF096') CODE ('SJ' ) KEY(DSTRCT-CODE ,STD-JOB-NO )) MAX(20 ) 
+    A0  = CHOOSE(A77  IF (%DISTRICT-CODE% = SPACES ) , SPACES )
+    A35 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W5', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A34 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W4', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A31 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W1', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A27 = WORK-CTR-DESC OF MSF725 -
+    WHERE (DSTRCT-CODE            = DSTRCT-CODE, -
+           WORK-CENTRE            = WORK-CENTRE)
+    A15 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'CO', -
+           TABLE-CODE             = COMP-CODE)
+    A37 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W7', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A86 = HRGET ( EMPLOYEE-ID from('MSSEMP,MSF810')  KEY(EMPLOYEE-ID = ASSIGN-PERSON ) )
+    A13 = FORMATTED-NAME VIA (A86)
+    A08 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'PY', -
+           TABLE-CODE             = ORIG-PRIORITY)
+    A87 = HRGET ( EMPLOYEE-ID from('MSF810,MSSEMP')  KEY(EMPLOYEE-ID = ORIGINATOR-ID ) )
+    A06 = FORMATTED-NAME VIA (A87)
+    A36 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W6', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A44 = EST-RESRCE-HRS OF MSF735 -
+    WHERE (REC-735-TYPE           = 'SJ', -
+           KEY-735-ID             = KEY-690, -
+           RESOURCE-TYPE         >= SPACES) -
+    MAX(10) D-PIC ( ZZZZZZ9.99 )
+    J   = RESRCE-SPREAD VIA (A44)
+    I   = CREW-SIZE-9   VIA (A44)
+    A73 = RESOURCE-TYPE VIA (A44)
+
+    A14 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'MT', -
+           TABLE-CODE             = MAINT-TYPE)
+    A38 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W8', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A03 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'WO', -
+           TABLE-CODE             = WO-TYPE)
+    A24 = WORK-GRP-DESC OF MSF720 -
+    WHERE (WORK-GROUP             = WORK-GROUP)
+    A33 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W3', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A39 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W9', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A16 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'MO', -
+           TABLE-CODE             = COMP-MOD-CODE)
+    A07 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'SD', -
+           TABLE-CODE             = SHUTDOWN-TYPE)
+    A30 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W0', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A32 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'W2', -
+           TABLE-CODE             = WO-JOB-CODE)
+    A40 = RESOURCE-TYPE VIA (A44)
+    A41 = SIZE(A40 )
+    A78 = SUBSTR(A73 ,1 ,1 )
+    A79 = SUBSTR(A73 ,2 ,4 )
+    A42 = CATENATE(A78 ,' ' ,A79 )
+    A43 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'TT', -
+           TABLE-CODE             = A73) -
+    MAX(10)
+    Q   = PLAN-OFFSET-9 FROM MSF693 -
+    WHERE (DSTRCT-CODE            = DSTRCT-CODE, -
+           STD-JOB-NO             = STD-JOB-NO, -
+           STD-JOB-TASK          >= SPACES) -
+    MAX(999)
+    K   = STD-JOB-TASK   VIA (Q)
+    A45 = SJ-TASK-DESC   VIA (Q)
+    SJTD = CATENATE('"', A45, '"')
+    P   = COMPL-TEXT-CDE VIA (Q)
+    A58 = EST-MACH-HRS   VIA (Q) D-PIC ( ZZZZZZ9.99 )
+    A84 = APL-NO         VIA (Q)
+    R   = COMP-MOD-CODE  VIA (Q)
+    A75 = KEY-693        VIA (Q)
+    A2  = COMP-CODE      VIA (Q)
+    A80 = APL-TYPE       VIA (Q)
+    A5  = APL-SEQ-NO     VIA (Q)
+    M   = JOB-DESC-CODE  VIA (Q)
+    A50 = WORK-CENTRE    VIA (Q)
+    A46 = WORK-GROUP     VIA (Q)
+    L   = UNIT-OF-WORK   VIA (Q)
+    A74 = EQUIP-GRP-ID   VIA (Q)
+    A56 = UNITS-PER-DAY  VIA (Q) D-PIC ( ZZZZZZ9.99 )
+    O   = COMPLETE-INSTR VIA (Q)
+    A54 = UNITS-REQUIRED VIA (Q) D-PIC ( ZZZZZZ9.99 )
+    A48 = ASSIGN-PERSON  VIA (Q)
+    N   = SAFETY-INSTR   VIA (Q)
+    SIDD = TABLE-DESC OF MSF010 -
+           WHERE (TABLE-TYPE             = 'SI', -
+           TABLE-CODE             = N)
+    SID = SUBSTR(SIDD,1,32)
+%* V0003 [START]
+    A102 = RESOURCE-TYPE OF MSF735 -
+    WHERE (REC-735-TYPE           = 'ST', -
+           KEY-735-ID             = A75, -
+           RESOURCE-TYPE         >= SPACES)
+    A103 = SUBSTR(A102 ,1 ,1 )
+    A104 = SUBSTR(A102 ,2 ,4 )
+%* V0003 [END]
+    A71 = SUBSTR(A84 ,13 ,11 )
+    A4  = CHOOSE('Seq:'  IF (A74 <> SPACES ) , SPACES )
+    A3  = CHOOSE('Mod:'  IF (A74 <> SPACES ) , SPACES )
+    A62 = CHOOSE('Comp:'  IF (A74 <> SPACES ) , SPACES )
+    A60 = CHOOSE('Equipment:'  IF (A80 = 'E' ) ,'EGI'  IF (A80 = 'G' ) , SPACES )
+    A47 = WORK-GRP-DESC OF MSF720 -
+    WHERE (WORK-GROUP             = A46)
+    A52 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'UW', -
+           TABLE-CODE             = L)
+    A53 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'JD', -
+           TABLE-CODE             = M)
+    TD  = CATENATE('"', A53, '"')
+    A59 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'CC', -
+           TABLE-CODE             = P)
+    A57 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'CI', -
+           TABLE-CODE             = O)
+    CID = CATENATE('"', A57, '"')
+    A88 = HRGET ( EMPLOYEE-ID from('MSF810,MSSEMP')  KEY(EMPLOYEE-ID = A48 ) )
+    A49 = FORMATTED-NAME VIA (A88)
+    A55 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'SI', -
+           TABLE-CODE             = N)
+    SIDS = CATENATE('"', A55, '"')
+    A76 = RESOURCE-TYPE OF MSF735 -
+    WHERE (REC-735-TYPE           = 'ST', -
+           KEY-735-ID             = A75, -
+           RESOURCE-TYPE         >= SPACES) -
+    MAX(10)
+    S   = CREW-SIZE-9 VIA (A76)
+    A67 = EST-RESRCE-HRS VIA (A76) D-PIC ( ZZZZZZ9.99 )
+    T   = RESRCE-SPREAD VIA (A76)
+    A85 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = A74)
+    A51 = WORK-CTR-DESC OF MSF725 -
+    WHERE (DSTRCT-CODE            = DSTRCT-CODE, -
+           WORK-CENTRE            = A50)
+    A81 = CHOOSE(A85  IF (A80 = 'E' ) , SPACES )
+    A61 = CHOOSE(A81  IF (A81 <> SPACES ) , A74 )
+    A70 = CHOOSE(A81  IF (A81 <> SPACES ) , A74 )
+    A63 = RESOURCE-TYPE VIA (A76)
+    A64 = SIZE(A63 )
+    A82 = SUBSTR(A76 ,1 ,1 )
+    A83 = SUBSTR(A76 ,2 ,4 )
+    A65 = CATENATE(A82 ,' ' ,A83 )
+    A66 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'TT', -
+           TABLE-CODE             = A76) -
+    MAX(10)
+%* output file
+    PROJ  = PROJECT-NO
+    HDG   = 'Standard Job,Description,Work Group,Assigned To,WO Type,Maint Type,Account Code, Project No,Duration,Comp Code,'-
+'Mod Code,Orig Priority,Resource Hrs,Est Resource,Est Material,Est Equip,Est Other,Res Class,Res Type,Cost Method,Crew Size,'-
+'Rate Amount,Fixed Amount,Hrs Reqd,Total Cost,Code W0,Code W1,Code W2,Code W3,Code W4,Code W5,Code W6,Code W7,Code W8,Code W9,'-
+'Task 1 Description,Job Description,Work Group,Assigned To,Job Desc Code,Compl Inst,Safety Inst,PSJ1,PSJ2,PSJ3'    
+
+    SJD   = catenate ('"', A01, '"')
+    Y     = ','
+    DUMMY = 'Y'
+    DUM   = CHOOSE ('Y' IF (STD-JOB-NO = STD-JOB-NO), DUMMY)
+%*
+%* EF0802 Read MSF696 to get info for Parent Std Job.
+%*
+       PSJ     = SJP-PSJ-NO-2 OF MSF696A                -
+                 WHERE    (DSTRCT-CODE-2 = DSTRCT-CODE, -
+                           PSJ-SJ-IND-2  = 'S',         -
+                           PSJ-SJ-NO-2   = A00,         -
+                           SJP-PSJ-IND-2 = 'P',         -
+                           SJP-PSJ-NO-2 >= SPACES)      -
+                 SELECTIF (SJP-PSJ-NO-2 <> SPACES)      -
+                 MAX (3)
+%*
+       PSJ11   = PUT (PSJ) MAX (3)
+       PSJ1    = single (PSJ11(1))
+       PSJ2    = single (PSJ11(2))
+       PSJ3    = single (PSJ11(3))
+
+%*New Variables (start by A100)
+   A100 = PROJECT-NO
+   A101 = EST-EQUIP-COST D-PIC (-Z(12)9.99)
+   W    = A103
+   CD   = A104
+   U    = ENTERED-IND OF MSF731A -
+          WHERE (RESOURCE-TYPE = A76, -
+                 CU-JE-CLASS-TYPE-1 >= SPACES) MAX (1)
+   RTAMT = RATE-AMOUNT VIA (U) D-PIC (-Z(10)9.99)              
+   FXAMT = FIXED-AMOUNT VIA (U) D-PIC (-Z(10)9.99)
+   HRSRQ = HRS-REQD VIA (U) D-PIC (-Z(8)9.99)
+   
+%* end of program

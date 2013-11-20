@@ -1,0 +1,109 @@
+%*** TRR6M1.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%***  04-Jan-13  a9nl6176     Print LIST-ID instead of LIST-NUMBER. Change
+%***  ......................  error messages text so it displayed properly.
+%***  06-Des-12  a9nl6176     Modify to check equipment class
+%***  ......................  on #MLI table file. Change layout variable
+%***  ......................  to adjust with requirement.
+%***  ......................  Add LIST-ID constraint in MFILE to retrieve
+%***  ......................  all records.
+%***  30-Jul-12  Neil Perry   MO164 (Version 0001)
+%***  ......................  Reset version number to 0001 for E8 upgrade.
+%***  02-Apr-09  G Presser    2285977        (Version 001)
+%***                          Initial Version
+%***
+%***
+%PROGRAM-ID
+       TRR6M1
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report will extract Equipment Lists
+%VERSION
+       0003
+%MODULE
+       3880
+%FILES
+        MFILE = MSF010
+        AFILE = MSF606
+        AFILE = MSF607
+        LFILE = MSF600
+        RFILE = TRR6M1A
+        OFILE = TRT6M1A
+%ORDER
+        TABLE-CODE
+		LIST-ID VIA (LT)
+%SELECTION
+        WHERE (TABLE-TYPE  = '#MLI',-
+		TABLE-CODE >= ' ')
+%REPORT
+       A
+%REPORT-TITLE
+       'SUMMARY ERROR REPORT'
+%PAGE HEADING
+'Line/Field Ref/Value            Error/Warning Message'
+%DETAIL
+%SUMMARY
+%*'SCT : ' {SCT}
+%*<IF SCT = 0>
+%*  <IF CLT = 0>
+%*'MSF606                          No list number records found'
+%*  <ENDIF>
+<IF CTC = 0>
+'MSF010                          #MLI table is not setup'
+<ENDIF>
+<IF CLT = 0 AND CTC > 0>
+'MSF606                          No list number found with list type in #MLI'
+<ENDIF>
+<IF CLT > 0 AND CTC > 0>
+'                                List number records successfully extracted'
+<ENDIF>
+%CONTROL REPORT A
+       TRIM-REPORT
+%OUTPUT-FILE
+        A
+%CONTROL
+        RECORD-LENGTH = 153
+%DETAIL
+<IF CLT > 0>
+{LT  }XC{LI        }CXC{LD1                                   }C-
+XC{LD2                                   }CXC{ME                          }C-
+X{PN        }
+<ENDIF>
+%VARIABLES
+       X         = ','  CONSTANT
+       C         = '"'  CONSTANT
+
+       TC     = TABLE-CODE
+
+       LT        = LIST-TYP FROM MSF606 -
+	               WHERE    (LIST-TYP = TC,-
+                   LIST-ID >= ' ')-
+				   SELECTIF (LIST-TYP <> SPACES)
+
+       LI        = LIST-ID VIA (LT)                          D-PIC (X(12))
+       LD1       = LIST-DESCR-1 VIA (LT)
+       LD2       = LIST-DESCR-2 VIA (LT)
+
+       MT        = MEM-TYPE FROM MSF607     -
+                   WHERE (LIST-TYP   = LT,  -
+                          LIST-ID    = LI,  -
+                          MEM-TYPE   >= SPACES)
+%*     MG        = MEM-EQUIP-GRP     VIA (MT)       D-PIC (X(30))
+       ME        = MEM-EQUIP-NO      VIA (MT)       D-PIC (X(30))
+%*
+       DC        = DSTRCT-CODE OF MSF600    -
+                   WHERE (EQUIP-NO = ME)
+       PN        = PLANT-NO          VIA (DC)
+       CTC       = choose (1 IF (TC <> SPACES), 0)
+       CLT       = choose (1 IF (LT <> SPACES), 0)
+%*       SEL       = choose ('Y' IF (LT = TC), 'N')
+%*       SC        = choose (1 IF (SEL = 'Y'), 0)
+%*       SCT       = SUM(SC)
+%*
+%*            End of Program
+%*

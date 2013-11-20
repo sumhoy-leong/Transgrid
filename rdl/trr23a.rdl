@@ -1,0 +1,763 @@
+%***  $Id: trr23a.rdl,v6.0 23/09/2011 11:52:00 Exp $
+%*** TRR23A.rdl
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 25-Mar-13  AIT Gianakis
+%*** .....................v004 Changed the way the date is displayed.
+%*** ..................... This seemed to fix item 1 not displaying.
+%*** 19-Mar-13  AIT Gianakis
+%*** .....................v003 Increased length of desc from 39-40.
+%*** ..................... Previously truncated.
+%*** 04-Mar-13  AIT Gianakis
+%*** .....................v002 Authorised Value not displaying.Fixed D-PIC/BWZ.
+%*** .....................Stuart James requested:
+%*** .....................-Fixed the parameter page displaying on Report A
+%*** ..................... removed TRIM-REPORT
+%*** .....................-reportA sort by WHOUSE & PO is stuffing up the order
+%*** ..................... of PRs & Items. Now sorted by PR/PRItem only.
+%*** .....................-increased size of alloc percentage display.
+%*** .....................-Extended text (PR) was adding spaces to preq-no 
+%*** ..................... in key.Replaced to search for D1 instead of D.
+%*** ..................... E8 now has one disrtict GRID.
+%*** .....................-Extended text (PI) was adding spaces to preq-no 
+%*** ..................... in key.Replaced to search for D1 instead of D.
+%*** ..................... E8 now has one disrtict GRID.
+%*** ..................... PI also part of 096_medium.
+%*** .....................-Removed whouse and purch officer breaks in both reports.
+%*** .....................-Only totalling in summary for both reports.
+%*** 21-Feb-13  AIT Gianakis
+%*** .....................Migrated RDL to ELlipse 8 Environment(v001).
+%*** 23-Sep-11  E Fredeluces SC3778159
+%*** .....................Remove Dynamic printing for both reports.    
+%*** .....................Reference to +WH will be removed.
+%*** 22-Feb-06  AIesho    P05110872
+%*** .....................Append the %DISTRICT-CODE% code to STORE when
+%*** .....................searching for a printer.  This is part of the
+%*** .....................Ellipse Upgrade where every printer must be
+%*** .....................unique. District code has to be before and after
+%*** .....................the word STORE
+%*** 13-Feb-06 DDiolaso   Ellipse Upgrade [DD13]
+%*** .................... Modification due changes to the printer naming
+%*** .................... convention.
+%*** 06-Jun-05 AIesho     P05060270
+%*** .................... Modified program to cope with district consolidation
+%*** .................... into GRID. Added sort by WHOUSE, added a read of
+%*** .................... MSF010 '+WH' table file, added WHOUSE request
+%*** .................... parameter to compare against MSF231,appended WHOUSE
+%*** .................... ID to Req number and Purchase Orders
+%*** 12-Aug-99 DDiolaso   W99080169
+%*** .................... This a clone of esr23a.
+%*** .................... This program has been created due to the following 
+%*** .................... reasons:
+%*** ....................  a) ESR23A has been revised to generate report
+%*** ....................     only for purchase requisitions authorised
+%*** ....................     the previous day regardless of the print run
+%*** ....................     number.
+%*** ....................  b) To cater for any request for a print of
+%*** ....................     authorised requisitions for a specific run
+%*** ....................     number.
+%*** 06-Aug-99 DDiolaso   W99080169
+%*** .................... Modification to print only Authorised Purchase
+%*** .................... Requisition
+%*** 03-Aug-99 DDiolaso   W99070891
+%*** .................... Status of authorised/unauorised printed on report
+%*** .................... to allow differentiation
+%*** 09-Jul-99 EFredeluces W99070211
+%*** .................... To print even when the Purchasing Officer 
+%*** .................... is blank.
+%*** 03-Nov-98            Fix for MIMS 4.3
+%*** 16-Apr-96 Mincom     Replace 'RC' table access with HRGET macro.
+%*** 16-NOV-95 Peter Lacey
+%*** .................... Converted from 3.010 to 3.013. Changed AUTHSD-VALUE
+%*** .................... to AUTHSD-TOT-AMT.
+%*** 13-FEB-92 DAVIDG     CHANGE '01' INV.CTRL PRINTER TO '1G' CITY STORE AS REQUESTED BY INV.CTRL.
+%*** 21-JAN-92 DAVIDG     ADD REPORT B - REGISTER OF DC REQ'S
+%*** 03-SEP-91 DAVIDG     CHANGES FOR ECNSW AS FOLLOWS
+%*** .................... PRINT PC COMMENTARY, PRINT 60 CHARS COMMENTARY X 100 LINES
+%*** .................... TRIM REPORT
+%*** .................... PRINT AT 18TH FL OR SITE OFFICE PRINTER NOT SITE PO'S PRINTER
+%*** 30-OCT-90 RUDI       INVALID DECIMAL DATA (ECNSW) (SPACES IN PO-ITEM-NO)
+%*** 26-Sep-90 BARBARA    Add specific Commentary and correct Ext Desc. 
+%*** 13-Aug-90 Steve      C98000 Version 005. 3.003 to 3.004/8.
+%*** 05-Jun-90 BARBARA    Correct line longer than 132 chars.
+%*** 01-Jun-90 PHILR      CHANGE TO USE STATUS-231-2 IN SELECT
+%*** .................... INSTEAD OF AIX3-KEY-231.
+%*** .................... THE FIRST IS A DB ITEM, THE SECOND IS NOT.
+%*** 01-Jun-90 Philr      CSB23A Version 004. From M3002 to M3003/4.
+%*** 11-May-90 BARBARA    Fix on DB-IO for MSF231B.
+%*** 03-May-90 Chrisj     CSB23A Version 003. From M3001A to M3002/4.
+%*** 11-Apr-90 Chrisj     CSB23A Version 002A. From M3000C to M3001A.
+%***                      Recompiled for addition of exec string statement
+%*** 20-Mar-90 Ross       C99548 Version 002. From M3000 to M3000C.
+%*** 04-Feb-90 BARBARA    Initial Coding
+%***                      Generated by Version 002 of NEWRDL.MAC
+%***
+%PROGRAM-ID
+       TRR23A
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  This report is the printed version of Purchase Requisitions
+      **   entered in the system.
+%VERSION
+       004
+%MODULE
+       3210
+%FILES
+        MFILE = MSF231B
+        LFILE = MSF230
+        LFILE = MSF010
+        LFILE = MSF232
+        LFILE = MSF600
+        LFILE = MSFX05
+        RFILE = TRR23AA
+        RFILE = TRR23AB
+%ROUTINES
+       MSS232
+       MSSDAT
+%SELECTION
+%*** Enter selection criteria for MSF231B
+      WHERE    (DSTRCT-CODE-3     = %DISTRICT-CODE%,    -
+                 PRINT-RUN-NO-2   = %RUN-NO%,           -
+                 STATUS-231-2    >= SPACES)
+       REJECTIF (%PURCH%         <> SPACES,             - 
+                 PURCH-OFFICER   <> %PURCH%)
+       REJECTIF(WHOUSE-ID <> WHOUSI,                    -
+                WHOUSI <> SPACES)
+%ORDER
+%**       WHOUSE-ID
+%**       PURCH-OFFICER
+       PREQ-NO
+       PREQ-ITEM-NO
+%CONTROL-BREAKS
+%*** List names of 2 control break fields
+%**       WHOUSE-ID
+%**       PURCH-OFFICER
+       PREQ-NO
+%REPORT 
+   A 
+%REPORT-TITLE
+        'AUTHORISED PURCHASE REQUISITION REPORT - BY RUN NO.'
+%PAGE HEADING
+<IF PREC = 'Y'>
+'Run Number        :' {RNBR}
+'Purchasing Officer:' AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+<ENDIF>
+%BREAK PREQ-NO HEADING ON NEW-PAGE
+<IF PREC = 'Y'>
+                                                             'Date      Date      ---------Authorised -----------    Delegated '
+'Req.No    Requested By:'BBBBBBBBBB   'Priority:'CCCC        'Entered   Required  By        Date      Value          Authority '
+ DDDDDDDDD {RBYDESC                                         } EEEEEEEEE FFFFFFFFF IIIIIIIIII JJJJJJJJJ {K          }'$______________'
+'Authorised Status   :' {AUTH-S       }
+<IF G <> SPACES OR H <> SPACES>
+        'Material Grp:'GGGGGG    'Related Req:'HHHHHH                           {AUTHDESC                                        }
+<ELSE>
+                                                                                {AUTHDESC                                        }
+<ENDIF>
+'Delivery Instruction:'{DELIV                                                     }'Suggested Suppl:'{SSUP                         }
+<IF Q1 <> SPACES OR Q2 <> SPACES OR Q3 <> SPACES OR Q4 <> SPACES>
+
+%*'Purchasing Question'                   'Purchasing Answer'
+  <SUPPRESS>
+ {Q1                                    } {A1                          }
+  <SUPPRESS>
+ {Q2                                    } {A2                          }
+  <SUPPRESS>
+ {Q3                                    } {A3                          }
+  <SUPPRESS>
+ {Q4                                    } {A4                          }
+<ENDIF>
+
+<IF PISIZE > 0>
+'Purchasing Instructions:'
+  <REPEAT>
+ {PINSTR                                                    }
+  <ENDREPEAT>
+<ENDIF>
+<IF S1 <> 'X'>
+'-----------------------------Default Costing Details------------------------------'
+ {L1                }           'Project/Work Order Account Code'             '%'
+  <IF AC1 <> SPACES>
+ {EQUIP1                      }       {M1    }      {AC1                   } {AP1  }
+  <ENDIF>
+  <IF AC2 <> SPACES>
+ {EQUIP2                      }       {M2    }      {AC2                   } {AP2  }
+  <ENDIF>
+  <IF AC3 <> SPACES>
+ {EQUIP3                      }       {M3    }      {AC3                   } {AP3  }
+  <ENDIF>
+  <IF AC4 <> SPACES>
+ {EQUIP4                      }       {M4    }      {AC4                   } {AP4  }
+  <ENDIF>
+  <IF AC5 <> SPACES>
+ {EQUIP5                      }       {M5    }      {AC5                   } {AP5  }
+  <ENDIF>
+  <IF AC6 <> SPACES>
+ {EQUIP6                      }       {M6    }      {AC6                   } {AP6  }
+  <ENDIF>
+  <IF AC7 <> SPACES>
+ {EQUIP7                      }       {M7    }      {AC7                   } {AP7  }
+  <ENDIF>
+<ENDIF>
+                                                                              'Order No/'             'Lead'
+'Item Quantity   UOM     Est. Price Description/Mnemonic and Part Number'     'Item  No.   Supplier  Time  Frt  Dlv    Act. Price'
+<ENDIF>
+%DETAIL TEST-PAGE (4)
+<IF PREC = 'Y'>
+
+ OOO {QTY      } PPPP {EPR        } {IDESC                                 }'|'{P4     }'|'       '|'   '|'  '|'    '|'           '|'
+                                    {IDESC                                 }'|'RRR       X  SSSSSS'|'TTT'|'UU'|'VVVV'|'{APR       }X
+'Status:'{STAT               }      {IDESC                                 }'|-----------------------------------------------------|'
+<SUPPRESS>
+                                    {IDESC                                 }
+<REPEAT>
+                                    {EXTDESC                                                   }
+<ENDREPEAT>
+<REPEAT>
+                                    {GCOMAS                                                    }
+<ENDREPEAT>
+<REPEAT>
+                                    {GCOMPC                                                    }
+<ENDREPEAT>
+<REPEAT>
+                                    {DCOMAR                                                    }
+<ENDREPEAT>
+<REPEAT>
+                                    {DCOMPC                                                    }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL1                                                     }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL2                                                     }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL3                                                     }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL4                                                     }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL5                                                     }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL6                                                     }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL7                                                     }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL8                                                     }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL9                                                     }
+<ENDREPEAT>
+<REPEAT>
+                                    {POCL10                                                    }
+<ENDREPEAT>
+                                    YYYYYYYY {PARTNO                      }
+<IF S2 = 'I'>
+'-----------------------------Item Costing Details----------------------------------'
+  {L1               }          'Project/Work Order Account Code'             '%'
+  <IF ACI1 <> SPACES>
+ {EQUIPI1                     }       {MI1   }      {ACI1                  } {API1 }
+  <ENDIF>
+  <IF ACI2 <> SPACES>
+ {EQUIPI2                     }       {MI2   }      {ACI2                  } {API2 }
+  <ENDIF>
+  <IF ACI3 <> SPACES>
+ {EQUIPI3                     }       {MI3   }      {ACI3                  } {API3 }
+  <ENDIF>
+  <IF ACI4 <> SPACES>
+ {EQUIPI4                     }       {MI4   }      {ACI4                  } {API4 }
+  <ENDIF>
+  <IF ACI5 <> SPACES>
+ {EQUIPI5                     }       {MI5   }      {ACI5                  } {API5 }
+  <ENDIF>
+  <IF ACI6 <> SPACES>
+ {EQUIPI6                     }       {MI6   }      {ACI6                  } {API6 }
+  <ENDIF>
+  <IF ACI7 <> SPACES>
+ {EQUIPI7                     }       {MI7   }      {ACI7                  } {API7 }
+  <ENDIF>
+<ENDIF>
+%*DD060899
+<ENDIF>
+%*** Control Break footings for up to 2 control level(s)
+%*%BREAK PREQ-NO FOOTING
+<IF PREC = 'Y'>
+'Offers -   Supplier Name |Contact Officer|Phone No |Price  |L/Time|  Disc|Settle.Disc|UOP |Freight|Delivery|Signature'
+'1 |                      |               |         |$      |      |     %|   %   Days|    |       |        |'
+'  |Comments:______________________________________________________________________________________________________________________'
+'2 |                      |               |         |$      |      |     %|   %   Days|    |       |        |'
+'  |Comments:______________________________________________________________________________________________________________________'
+'3 |                      |               |         |$      |      |     %|   %   Days|    |       |        |'
+'  |Comments:______________________________________________________________________________________________________________________'
+
+<ENDIF>
+%BREAK PREQ-NO FOOTING
+<IF PREC = 'Y'>
+
+
+'QUOTATIONS INVITED IN ACCORDANCE WITH PROCUREMENT PROCEDURES - Signed .................... Date ........ Total Expenditure $......'
+
+'OFFERS  ACCEPTED   IN ACCORDANCE WITH PROCUREMENT PROCEDURES'
+'             AND THE DELEGATION OF AUTHORITY FOR EXPENDITURE - Signed .................... Title .................... Date .......'
+<ENDIF>
+%*BREAK PURCH-OFFICER FOOTING
+%*<IF W > 0>
+%*
+%*'--------------------------------------------------------------------------'
+%*'TOTAL NUMBER OF AUTHORISED REQS. FOR PURCHASING OFFICER'{POFF    }Z WWWWWW
+%*'--------------------------------------------------------------------------'
+%*<ENDIF>
+%*BREAK WHOUSE-ID FOOTING
+%SUMMARY 
+
+'--------------------------------------------------------------------------'
+'TOTAL NUMBER OF AUTHORISED REQS. FOR THIS REPORT'                 Z WWWWWW
+'--------------------------------------------------------------------------'
+%* report b - register of dc req's
+%REPORT 
+   B 
+%CONTROL 
+    TRIM-REPORT
+%REPORT-TITLE
+       'REGISTER OF AUTHORISED DIRECT CHARGE PURCH REQUISITIONS - BY RUN NO.'
+%PAGE HEADING
+                'Authorised                                             Date  Follow Up'     
+    'Req.No    Itm   Status     Run No Run Date PO/No          Buyer Code  Referred  Date       Comments'
+%*BREAK WHOUSE-ID HEADING ON NEW-PAGE RESET-PAGE-COUNT
+%DETAIL  
+<IF PREC = 'Y'>
+  <IF PRINA = '1G'>
+'H/O'DDDDDDDDD OOO {AUTH-S    }  {RN}  {E      }{P4     }LRRRX           X          X         X                    
+  <ELSE>
+     DDDDDDDDD OOO {AUTH-S    }  {RN}  {E      }{P4     }LRRRX{POFF    } X      
+  <ENDIF>
+{L9                                                              }{L9                                                              }
+<ENDIF>
+%**BREAK WHOUSE-ID FOOTING
+%SUMMARY
+
+%*'Total No. of'                                                      'Total Authorised'
+%*'Head Office Authorised Direct Charge Purchase Reqs  ='{DCPRHOT  }  'Est.Value=      '{DCPRHOET    }
+%*                                                                                                    'Total Authorised'
+%*'Total No.of Site Authorised Direct Charge Purch Reqs='{DCPRSTT  }                                  ' Act.Value=     '{DCPRATOTAL  }
+                                                                    'Total Authorised'              'Total Authorised'
+'Total No.of ALL  Authorised Direct Charge Purch Reqs='{DCPRCOUNT}  'Est.Value      ='{DCPRETOTAL  }' Act.Value=     '{DCPRATOTAL  }
+
+%REQUEST-PARAMETERS
+       RUN-NO  LIKE PRINT-RUN-NO-2  TEXT 'Run Number'
+       PURCH   LIKE PURCH-OFFICER   TEXT 'Purchasing Officer (Optional)'
+       WHOUSE  LIKE WHOUSE-ID       TEXT 'Warehouse ID (Optional)'
+       DEFPRIN LIKE PRINTER1 OF MSF080      
+%VARIABLES
+       WHOUSI      = %WHOUSE%       CONSTANT
+       RNBR        = %RUN-NO%       CONSTANT
+       TODAY       = DATE ()        CONSTANT FORMAT (DATE)
+       YESTERDAY   = DATE2 OF MSSDAT -
+                     WHERE (OPTION = '1', -
+                            DATE1  = TODAY, -
+                            DAYS   = -1) CONSTANT FORMAT (DATE)
+%*   To determine the DAY today
+      DY          = DAYS OF MSSDAT       -
+                    WHERE (OPTION = '6', -
+                           DATE1  = TODAY)
+%*
+%*    To choose the Friday Date if today is Sunday in the Approved Loaded Date
+%*
+      SUNDAY      = DATE2 OF MSSDAT      -
+                        WHERE (OPTION = '1', -
+                           DATE1  = TODAY,  -
+                           DAYS   = -2)  -
+                    FORMAT (DATE)
+%*
+%*    To choose the Friday date if today is Monday in the Approved Loaded Date
+%*
+      MONDAY      = DATE2 OF MSSDAT      -
+                    WHERE (OPTION = '1', -
+                           DATE1  = TODAY,  -
+                           DAYS   = -3)  -
+                    FORMAT (DATE)  
+%*
+       DTE         = choose (SUNDAY IF (DY = 7), -
+                             MONDAY IF (DY = 1), -
+                             YESTERDAY) I-PIC (9(8)) 
+       RN         = %RUN-NO%                                    CONSTANT
+       L9         = '__________________________________________________________________' CONSTANT
+       POFF       = PURCH-OFFICER
+       A1X        = hrget    (EMPLOYEE-ID                       -
+                    from     ('MSSEMP,MSF810')                  -
+                    key      (EMPLOYEE-ID = POFF)
+       A          = FORMATTED-NAME     VIA (A1X)
+%*     PRIN       = PRINTER-ID         VIA (A1X)
+%*     Printing will be done in the STORE's printer instead of 
+%*              Purchashing Officer  
+       WHOUSE     = WHOUSE-ID  
+%*     PRINS      = ASSOC-REC OF MSF010           -
+%*                  WHERE   (TABLE-TYPE = '+WH', -
+%*                           TABLE-CODE =  DSTRCT-CODE & WHOUSE)
+%*     PRINW      = substr(PRINS,1,2)   I-PIC (X(2))
+       DCST       = CATENATE (%DISTRICT-CODE%,'STORE', %DISTRICT-CODE%)
+
+       PRINA      = PRINTER OF MSF010           -
+                    WHERE   (TABLE-TYPE = 'PR', -
+                             TABLE-CODE =  DCST)   
+%*     PRINA      = choose  (PRINW IF(PRINW <> SPACES, DSTRCT-CODE = 'GRID'), -
+%*                           PRINM)
+%*     PRINX      = PRINTER (PRINA)
+       B          = REQUESTED-BY OF MSF230               -
+                    WHERE   (DSTRCT-CODE = DSTRCT-CODE,  -
+                             PREQ-NO     = PREQ-NO)
+       C          = PRIORITY-CODE      VIA (B)
+       AUTH-STAT  = AUTHSD-STATUS      VIA (B)
+       AUTH-S     = CHOOSE('Unauthorised' IF(AUTH-STAT = 'U'), -
+                           'Unauthorised' IF(AUTH-STAT = ' '), -
+                           'Authorised  ' IF(AUTH-STAT = 'A'), -
+                           'Notify      ' IF(AUTH-STAT = 'N'), -
+                           SPACES)                  D-PIC (X(12))
+       AUTH-DTE   = AUTHSD-DATE     VIA (B)
+       AUTHD      = CHOOSE(AUTH-DTE IF(AUTH-DTE > SPACES),     -
+                           99999999)        I-PIC (9(8))
+       DATEEQ     = CHOOSE('Y' IF(DTE = AUTHD), 'N')
+       PREC       = CHOOSE('Y' IF(AUTH-STAT = 'A'), -
+                           'N')          
+       D1         = PREQ-NO
+       D2         = catenate(D1,'-',WHOUSE)  I-PIC (X(9))
+       D3         = catenate(D1,'   ')  I-PIC (X(9))
+       D          = choose(D3 IF(DSTRCT-CODE <> 'GRID'), D2)  I-PIC (X(9))
+       PCNT       = CHOOSE(1 IF (D <> SPACES AND PREC = 'Y'), 0)
+       W          = TOTAL(PCNT)
+       RBYDESC1   = hrget    (EMPLOYEE-ID                       -
+                    from     ('MSSEMP,MSF810')                  -
+                    key      (EMPLOYEE-ID = B)
+       RBYDESC    = FORMATTED-NAME     VIA (RBYDESC1)
+
+       E1         = CREATION-DATE      VIA (B)
+       E          = E1 FORMAT (DATE)
+       F1         = REQ-BY-DATE VIA (B)
+       F          = F1 FORMAT (DATE)
+       G          = MAT-GROUP-CODE     VIA (B)
+       H          = RELATED-WH-REQ     VIA (B)
+       I          = AUTHSD-BY          VIA (B)
+       AUTHDESC1  = hrget  (EMPLOYEE-ID                         -
+                    from ('MSSEMP,MSF810')                      -
+                    key  (EMPLOYEE-ID = I)
+       AUTHDESC   = FORMATTED-NAME     VIA (AUTHDESC1)
+
+       J1         = AUTHSD-DATE        VIA (B)
+       J          = J1 FORMAT (DATE)
+       K          = AUTHSD-TOT-AMT     VIA (B)  D-PIC (Z(8)9.99)
+       DELIV      = DELIV-INSTR        VIA (B)
+       SSUP       = SUGGESTED-SUPP     VIA (B)
+       Q1         = TABLE-DESC OF MSF010 -
+                    WHERE    (TABLE-TYPE       = 'XX',          -
+                              TABLE-CODE       = 'R1')
+       Q2         = TABLE-DESC OF MSF010 -
+                    WHERE    (TABLE-TYPE       = 'XX',          -
+                              TABLE-CODE       = 'R2')
+       Q3         = TABLE-DESC OF MSF010 -
+                    WHERE    (TABLE-TYPE       = 'XX',          -
+                              TABLE-CODE       = 'R3')
+       Q4         = TABLE-DESC OF MSF010 -
+                    WHERE    (TABLE-TYPE       = 'XX',          -
+                              TABLE-CODE       = 'R4')
+       ANS1       = OTHER-ANSWERS (1)  VIA (B)
+       ANS2       = OTHER-ANSWERS (2)  VIA (B)
+       ANS3       = OTHER-ANSWERS (3)  VIA (B)
+       ANS4       = OTHER-ANSWERS (4)  VIA (B)
+       A1         = TABLE-DESC OF MSF010 -
+                    WHERE    (TABLE-TYPE       = 'R1',          -
+                              TABLE-CODE       = ANS1)
+       A2         = TABLE-DESC OF MSF010 -
+                    WHERE    (TABLE-TYPE       = 'R2',          -
+                              TABLE-CODE       = ANS2)
+       A3         = TABLE-DESC OF MSF010 - 
+                    WHERE    (TABLE-TYPE       = 'R3',          -
+                              TABLE-CODE       = ANS3)
+       A4         = TABLE-DESC OF MSF010 -
+                    WHERE (TABLE-TYPE          = 'R4',          -
+                           TABLE-CODE          = ANS4)
+       ST         = STATUS-231
+       STAT       = CHOOSE ('Not Ordered'            IF (ST = '0'), -
+                            'Proforma Requisition'   IF (ST = '1'), -
+                            'Ordered, Not Received'  IF (ST = '2'), -
+                            'Partially Received'     IF (ST = '3'), -
+                            'Fully Received'         IF (ST = '4'), -
+                            'Complete'               IF (ST = '9'), -
+                             SPACES)
+%*       PINSTR      = GET (READ-TEXT FROM ('MSF096') CODE ('PI') -
+%*                            KEY (DSTRCT-CODE, D)) MAX(100)
+       PINSTR      = GET (READ-TEXT FROM ('MSF096') CODE ('PI') -
+                            KEY (DSTRCT-CODE, D1)) MAX(100)
+       PISIZE     = SIZE (PINSTR)
+       L1         = CHOOSE ('Equipment Reference'               -
+                        IF (WX-EQUIP-REG-IN = 'Y' OR            -
+                            WX-PLANT-NO-IND = 'Y'),             -
+                            SPACES)
+       AC1        = GL-ACCOUNT-1 OF MSS232 -
+                    WHERE    (OPTION           = 'R',           -
+                              DSTRCT-CODE      = DSTRCT-CODE,   -
+                              REQ-TYPE-IND     = 'P',           -
+                              REQ-NO           = D,             -
+                              PREQ-ITEM        = '000')
+       ENO1       = EQUIP-NO-1         VIA (AC1)
+       AP1        = ALLOC-PC-1         VIA (AC1) PIC (ZZ9.99)
+       WO1        = WORK-ORDER-1       VIA (AC1)
+       PJ1        = PROJECT-NO-1       VIA (AC1)
+       PLANT1     = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENO1)
+       EQUIP1     = CHOOSE (PLANT1 IF (PLANT1 <> SPACES), ENO1)
+       M1         = CHOOSE (WO1    IF (WO1    <> SPACES),       -
+                            PJ1    IF (PJ1    <> SPACES),       -
+                            SPACES)
+       S1         = RETURN-STATUS      VIA (AC1)
+       AC2        = GL-ACCOUNT-2       VIA (AC1)
+       ENO2       = EQUIP-NO-2         VIA (AC1)
+       AP2        = ALLOC-PC-2         VIA (AC1) PIC (ZZ9.99)
+       WO2        = WORK-ORDER-2       VIA (AC1)
+       PJ2        = PROJECT-NO-2       VIA (AC1)
+       PLANT2     = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENO2)
+       EQUIP2     = CHOOSE (PLANT2 IF (PLANT2 <> SPACES), ENO2)
+       M2         = CHOOSE (WO2    IF (WO2    <> SPACES),       -
+                            PJ2    IF (PJ2    <> SPACES),       -
+                            SPACES)
+       AC3        = GL-ACCOUNT-3       VIA (AC1)
+       ENO3       = EQUIP-NO-3         VIA (AC1)
+       AP3        = ALLOC-PC-3         VIA (AC1) PIC (ZZ9.99)
+       WO3        = WORK-ORDER-3       VIA (AC1)
+       PJ3        = PROJECT-NO-3       VIA (AC1)
+       PLANT3     = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENO3)
+       EQUIP3     = CHOOSE (PLANT3 IF (PLANT3 <> SPACES), ENO3)
+       M3         = CHOOSE (WO3    IF (WO3 <> SPACES),          -
+                            PJ3    IF (PJ3 <> SPACES),          -
+                            SPACES)
+       AC4        = GL-ACCOUNT-4       VIA (AC1)
+       ENO4       = EQUIP-NO-4         VIA (AC1)
+       AP4        = ALLOC-PC-4         VIA (AC1) PIC (ZZ9.99)
+       WO4        = WORK-ORDER-4       VIA (AC1)
+       PJ4        = PROJECT-NO-4       VIA (AC1)
+       PLANT4     = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENO4)
+       EQUIP4     = choose (PLANT4 IF (PLANT4 <> SPACES), ENO4)
+       M4         = choose (WO4    IF (WO4    <> SPACES),       -
+                            PJ4    IF (PJ4    <> SPACES),       -
+                            SPACES)
+       AC5        = GL-ACCOUNT-5       VIA (AC1)
+       ENO5       = EQUIP-NO-5         VIA (AC1)
+       AP5        = ALLOC-PC-5         VIA (AC1) PIC (ZZ9.99)
+       WO5        = WORK-ORDER-5       VIA (AC1)
+       PJ5        = PROJECT-NO-5       VIA (AC1)
+       PLANT5     = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO        = ENO5)
+       EQUIP5     = choose (PLANT5 IF (PLANT5 <> SPACES), ENO5)
+       M5         = choose (WO5    IF (WO5    <> SPACES),       -
+                            PJ5    IF (PJ5    <> SPACES),       -
+                            SPACES)
+       AC6        = GL-ACCOUNT-6       VIA (AC1)
+       ENO6       = EQUIP-NO-6         VIA (AC1)
+       AP6        = ALLOC-PC-6         VIA (AC1) PIC (ZZ9.99)
+       WO6        = WORK-ORDER-6       VIA (AC1)
+       PJ6        = PROJECT-NO-6       VIA (AC1)
+       PLANT6     = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENO6)
+       EQUIP6     = choose (PLANT6 IF (PLANT6 <> SPACES), ENO6)
+       M6         = choose (WO6    IF (WO6    <> SPACES),       -
+                            PJ6    IF (PJ6    <> SPACES),       -
+                            SPACES)
+       AC7        = GL-ACCOUNT-7       VIA (AC1)
+       ENO7       = EQUIP-NO-7         VIA (AC1)
+       AP7        = ALLOC-PC-7         VIA (AC1) PIC (ZZ9.99)
+       WO7        = WORK-ORDER-7       VIA (AC1)
+       PJ7        = PROJECT-NO-7       VIA (AC1)
+       PLANT7     = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENO7)
+       EQUIP7     = choose (PLANT7 IF (PLANT7 <> SPACES), ENO7)
+       M7         = choose (WO7    IF (WO7    <> SPACES),       -
+                            PJ7    IF (PJ7    <> SPACES),       -
+                            SPACES)
+       O          = PREQ-ITEM-NO-9
+       QTY        = PR-QTY-REQD
+       P          = UNIT-OF-MEAS
+       EPR0       = EST-PRICE
+       EPR        = CHOOSE(EPR0 IF(PREC = 'Y'), 0)   PIC (Z(9)9.99)
+       DCPRETOTAL = total (EPR)
+       IDESC      = ITEM-DESC
+       S          = SUPPLIER-NO
+
+%*       EXTDESC    = GET (READ-TEXT FROM ('MSF096') CODE ('PR') -
+%*                               KEY (%DISTRICT-CODE%,D,O)) MAX(100)
+       EXTDESC    = GET (READ-TEXT FROM ('MSF096') CODE ('PR') -
+                               KEY (%DISTRICT-CODE%,D1,O)) MAX(100)
+
+       GCOMAS     = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('AS') -
+                     SUPPLIER-VALUE (S)) MAX(100)
+
+       GCOMPC     = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PC') -
+                     SUPPLIER-VALUE (S))  MAX(100)
+
+       DCOMAR     = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('AR') -
+                     DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (S)) MAX(100)
+
+       DCOMPC     = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PC') -
+                     DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (S)) MAX(100)
+
+       CLAUX1     = CLAUSE-ID OF MSFX05 -
+                    WHERE    (CLAUSE-ENT-TYPE  = 'P',           -
+                              CLAUSE-ENT-ID   >= DSTRCT-CODE & PREQ-NO, -
+                              CLAUSE-ENT-ID   <= DSTRCT-CODE & PREQ-NO & '999') -
+                    MAX (20)
+       CLAUX2     = CLAUSE-VER-NO      VIA (CLAUX1)
+       CLAUX3     = CATENATE (CLAUX1, CLAUX2)
+       CLAUX4     = PUT (CLAUX3)  MAX (20)
+       
+       PO1        = SINGLE (CLAUX4 ( 1))
+       POCL1      = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO1))
+
+       PO2        = SINGLE (CLAUX4 ( 2))
+       POCL2      = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO2))
+
+       PO3        = SINGLE (CLAUX4 ( 3))
+       POCL3      = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO3))
+
+       PO4        = SINGLE (CLAUX4 ( 4))
+       POCL4      = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO4))
+
+       PO5        = SINGLE (CLAUX4 ( 5))
+       POCL5      = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO5))
+
+       PO6        = SINGLE (CLAUX4 ( 6))
+       POCL6      = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO6))
+
+       PO7        = SINGLE (CLAUX4 ( 7))
+       POCL7      = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO7))
+
+       PO8        = SINGLE (CLAUX4 ( 8))
+       POCL8      = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO8))
+
+       PO9        = SINGLE (CLAUX4 ( 9))
+       POCL9      = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO9))
+
+       PO10       = SINGLE (CLAUX4 (10))
+       POCL10     = GET (READ-TEXT FROM ('MSF096') CODE ('PC') KEY (PO10))
+
+       Y          = MNEMONIC
+       PARTNO     = PART-NO
+       Q          = PO-NO
+       P2         = catenate(Q,'-',WHOUSE)
+       P3         = catenate(Q,'   ')
+       P4         = choose(P2 IF(DSTRCT-CODE = 'GRID',Q <> SPACES), P3)
+       L          = choose ( '/' IF (ST > 1), SPACES)
+       R          = choose ( 0 IF (PURCH-ORDER = SPACES),       -
+                             PO-ITEM-NO-9)  D-PIC (999) FORMAT (BWZ)
+       T          = SUPP-LEAD-TIME          D-PIC (ZZ9) FORMAT (BWZ)
+       U          = FREIGHT-CODE
+       V          = DELIV-LOCATION
+       APR0       = ACT-GROSS-PR
+       APR        = CHOOSE(APR0 IF(PREC = 'Y'), 0)         PIC (Z(8)9.99)
+       DCPRATOTAL = total (APR)
+       DCPRST     = CHOOSE (1   IF (PRINA <> '1G' AND PREC = 'Y'), 0)
+       DCPRSTT    = TOTAL (DCPRST)
+       DCPRHO     = CHOOSE (1   IF (PRINA =  '1G' AND PREC = 'Y'), 0)
+       DCPRHOT    = TOTAL (DCPRHO)
+       DCPRHOE    = CHOOSE (EPR IF (PRINA =  '1G'), 0)
+       DCPRHOET   = TOTAL (DCPRHOE)
+       DCPRCOUNT0  = CHOOSE (1   IF (PRINA <> '1G' AND PREC = 'Y'), -
+                             1   IF (PRINA  = '1G' AND PREC = 'Y'), -
+                            0)
+       DCPRCOUNT   = TOTAL(DCPRCOUNT0)
+
+       X          = '|'
+       ACI1       = GL-ACCOUNT-1 OF MSS232 -
+                    WHERE    (OPTION           = 'R',           -
+                              DSTRCT-CODE      = DSTRCT-CODE,   -
+                              REQ-TYPE-IND     = 'P',           -
+                              REQ-NO           = D,             -
+                              PREQ-ITEM        = O)
+       ENOI1      = EQUIP-NO-1         VIA (ACI1)
+       API1       = ALLOC-PC-1         VIA (ACI1) PIC (ZZ9.99)
+       WOI1       = WORK-ORDER-1       VIA (ACI1)
+       PJI1       = PROJECT-NO-1       VIA (ACI1)
+       PLANTI1    = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENOI1)
+       EQUIPI1    = choose (PLANTI1 IF (PLANTI1 <> SPACES), ENOI1)
+       MI1        = choose (WOI1    IF (WOI1 <> SPACES),        -
+                            PJI1    IF (PJI1 <> SPACES),        -
+                            SPACES)
+       S2         = RETURN-STATUS      VIA (ACI1)
+       ACI2       = GL-ACCOUNT-2       VIA (ACI1)
+       ENOI2      = EQUIP-NO-2         VIA (ACI1)
+       API2       = ALLOC-PC-2         VIA (ACI1) PIC (ZZ9.99)
+       WOI2       = WORK-ORDER-2       VIA (ACI1)
+       PJI2       = PROJECT-NO-2       VIA (ACI1)
+       PLANTI2    = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENOI2)
+       EQUIPI2    = choose (PLANTI2 IF (PLANTI2 <> SPACES), ENOI2)
+       MI2        = choose (WOI2    IF (WOI2    <> SPACES),     -
+                            PJI2    IF (PJI2    <> SPACES),     -
+                            SPACES)
+       ACI3       = GL-ACCOUNT-3       VIA (ACI1)
+       ENOI3      = EQUIP-NO-3         VIA (ACI1)
+       API3       = ALLOC-PC-3         VIA (ACI1) PIC (ZZ9.99)
+       WOI3       = WORK-ORDER-3       VIA (ACI1)
+       PJI3       = PROJECT-NO-3       VIA (ACI1)
+       PLANTI3    = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENOI3)
+       EQUIPI3    = choose (PLANTI3 IF (PLANTI3 <> SPACES), ENOI3)
+       MI3        = choose (WOI3    IF (WOI3    <> SPACES),     -
+                            PJI3    IF (PJI3    <> SPACES),     -
+                            SPACES)
+       ACI4       = GL-ACCOUNT-4       VIA (ACI1)
+       ENOI4      = EQUIP-NO-4         VIA (ACI1)
+       API4       = ALLOC-PC-4         VIA (ACI1) PIC (ZZ9.99)
+       WOI4       = WORK-ORDER-4       VIA (ACI1)
+       PJI4       = PROJECT-NO-4       VIA (ACI1)
+       PLANTI4    = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENOI4)
+       EQUIPI4    = choose (PLANTI4 IF (PLANTI4 <> SPACES), ENOI4)
+       MI4        = choose (WOI4    IF (WOI4    <> SPACES),     -
+                            PJI4    IF (PJI4    <> SPACES),     -
+                            SPACES)
+       ACI5       = GL-ACCOUNT-5       VIA (ACI1)
+       ENOI5      = EQUIP-NO-5         VIA (ACI1)
+       API5       = ALLOC-PC-5         VIA (ACI1) PIC (ZZ9.99)
+       WOI5       = WORK-ORDER-5       VIA (ACI1)
+       PJI5       = PROJECT-NO-5       VIA (ACI1)
+       PLANTI5    = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENOI5)
+       EQUIPI5    = choose (PLANTI5 IF (PLANTI5 <> SPACES), ENOI5)
+       MI5        = choose (WOI5    IF (WOI5    <> SPACES),     -
+                            PJI5    IF (PJI5    <> SPACES),     -
+                            SPACES)
+       ACI6       = GL-ACCOUNT-6       VIA (ACI1)
+       ENOI6      = EQUIP-NO-6         VIA (ACI1)
+       API6       = ALLOC-PC-6         VIA (ACI1) PIC (ZZ9.99)
+       WOI6       = WORK-ORDER-6       VIA (ACI1)
+       PJI6       = PROJECT-NO-6       VIA (ACI1)
+       PLANTI6    = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENOI6)
+       EQUIPI6    = choose (PLANTI6 IF (PLANTI6 <> SPACES), ENOI6)
+       MI6        = choose (WOI6    IF (WOI6    <> SPACES),     -
+                            PJI6    IF (PJI6    <> SPACES),     -
+                            SPACES)
+       ACI7       = GL-ACCOUNT-7       VIA (ACI1)
+       ENOI7      = EQUIP-NO-7         VIA (ACI1)
+       API7       = ALLOC-PC-7         VIA (ACI1) PIC (ZZ9.99)
+       WOI7       = WORK-ORDER-7       VIA (ACI1)
+       PJI7       = PROJECT-NO-7       VIA (ACI1)
+       PLANTI7    = PLANT-NO OF MSF600 -
+                    WHERE    (EQUIP-NO         = ENOI7)
+       EQUIPI7    = choose (PLANTI7 IF (PLANTI7 <> SPACES), ENOI7)
+       MI7        = choose (WOI7    IF (WOI7    <> SPACES),     -
+                            PJI7    IF (PJI7    <> SPACES),     -
+                            SPACES)
+       Z          = ':'
+%***
+%***                    *** END OF PROGRAM ***
+%***

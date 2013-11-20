@@ -1,0 +1,374 @@
+%PROGRAM-ID
+       TRR69F
+%******************************************************************************
+%***
+%***  Revision History 
+%***
+%*** 24-Nov-98 DDiolaso  Fix for MIMS 4.3
+%*** ....................
+%*** 16-Apr-96 Mincom        Replace 'RC' table access with HRGET macro.
+%*** ....................
+%***  03-Mar-93  Lourdes FRS W478901 - Fix selection section to put stopif
+%***                     statement.  
+%***  12-Oct-92  HenryG Add Check Sheet.  Clean up Code
+%***  05-May-92  DavidC Program not breaking correctly on reverse
+%***  ................. Numeric STD JOB numbers
+%***  03-Sep-91  Owen   Selection parameter order changed
+%***  20-Aug-91  Owen   Dynamic Printer error fixed
+%***  31-May-91  Mabel  Added sort by request sequence no.
+%***  29-apr-91  Owen   SELECTIF statements debugged
+%***  24-APR-91  Owen   Created, based on MSB690
+%***
+%NARRATIVE
+%***      This program prints the job card for standard job tasks
+%***      listed in the selection parameters. 
+%***
+%******************************************************************************
+%FILES
+        MFILE = MSF693
+        LFILE = MSF690
+        LFILE = MSF720
+        LFILE = MSF735
+        LFILE = MSF600
+        LFILE = MSF010
+        LFILE = MSF096
+        RFILE = TRR69FA
+%******************************************************************************
+%SELECTION
+WHERE (DSTRCT-CODE = %DISTRICT-CODE%, STD-JOB-NO >= SPACES)
+       SELECTIF (%SJNO1%  <> SPACES, STD-JOB-NO = %SJNO1%)
+       SELECTIF (%SJNO2%  <> SPACES, STD-JOB-NO = %SJNO2%)
+       SELECTIF (%SJNO3%  <> SPACES, STD-JOB-NO = %SJNO3%)
+       SELECTIF (%SJNO4%  <> SPACES, STD-JOB-NO = %SJNO4%)
+       SELECTIF (%SJNO5%  <> SPACES, STD-JOB-NO = %SJNO5%)
+       SELECTIF (%SJNO6%  <> SPACES, STD-JOB-NO = %SJNO6%)
+       SELECTIF (%SJNO7%  <> SPACES, STD-JOB-NO = %SJNO7%)
+       SELECTIF (%SJNO8%  <> SPACES, STD-JOB-NO = %SJNO8%)
+       SELECTIF (%SJNO9%  <> SPACES, STD-JOB-NO = %SJNO9%)
+       SELECTIF (%SJNO10% <> SPACES, STD-JOB-NO = %SJNO10%)
+       SELECTIF (%SJNO11% <> SPACES, STD-JOB-NO = %SJNO11%)
+       SELECTIF (%SJNO12% <> SPACES, STD-JOB-NO = %SJNO12%)
+       SELECTIF (%SJNO13% <> SPACES, STD-JOB-NO = %SJNO13%)
+       SELECTIF (%SJNO14% <> SPACES, STD-JOB-NO = %SJNO14%)
+       SELECTIF (%SJNO15% <> SPACES, STD-JOB-NO = %SJNO15%)
+       SELECTIF (%SJNO16% <> SPACES, STD-JOB-NO = %SJNO16%)
+       SELECTIF (%SJNO17% <> SPACES, STD-JOB-NO = %SJNO17%)
+       SELECTIF (%SJNO18% <> SPACES, STD-JOB-NO = %SJNO18%)
+       SELECTIF (%SJNO19% <> SPACES, STD-JOB-NO = %SJNO19%)
+       SELECTIF (%SJNO20% <> SPACES, STD-JOB-NO = %SJNO20%)
+       SELECTIF (%SJNO21% <> SPACES, STD-JOB-NO = %SJNO21%)
+       SELECTIF (%SJNO22% <> SPACES, STD-JOB-NO = %SJNO22%)
+       SELECTIF (%SJNO23% <> SPACES, STD-JOB-NO = %SJNO23%)
+       SELECTIF (%SJNO24% <> SPACES, STD-JOB-NO = %SJNO24%)
+       SELECTIF (%SJNO25% <> SPACES, STD-JOB-NO = %SJNO25%)
+       SELECTIF (%SJNO26% <> SPACES, STD-JOB-NO = %SJNO26%)
+       SELECTIF (%SJNO27% <> SPACES, STD-JOB-NO = %SJNO27%)
+       SELECTIF (%SJNO28% <> SPACES, STD-JOB-NO = %SJNO28%)
+       SELECTIF (%SJNO29% <> SPACES, STD-JOB-NO = %SJNO29%)
+       SELECTIF (%SJNO30% <> SPACES, STD-JOB-NO = %SJNO30%)
+       STOPIF (DSTRCT-CODE <> %DISTRICT-CODE%)
+%******************************************************************************
+%ORDER
+       SEQ-NO
+%******************************************************************************
+%CONTROL-BREAKS
+       STD-JOB-NO
+       STD-JOB-TASK
+%******************************************************************************
+%CONTROL
+       PAGE-LENGTH = 61
+%******************************************************************************
+%BREAK STD-JOB-TASK HEADING ON NEW-PAGE
+'*****************************************************************************'
+'*'                                                                         '*'
+'*'                         'STANDARD JOB ONLY'                             '*'
+'*'               'DO NOT UNDERTAKE WORK FROM THIS DOCUMENT'                '*'
+'*'                                                                         '*'
+'*****************************************************************************'
+{UNDERLINE                                                                    }
+               'JOB CARD FOR STANDARD JOB'{STDJOB} 'TASK'BBB         {DATE    }
+{UNDERLINE                                                                    }
+
+                    {TSKDESC                               }
+<SUPPRESS>
+                    {JDDESC                                }
+%******************************************************************************
+%BREAK STD-JOB-TASK FOOTING ON NEW-PAGE
+       <REPEAT>
+{CKTEXT                                                                        }
+       <ENDREPEAT>    
+%******************************************************************************
+%DETAIL
+'Lead Work Group:'{LWGDESC                               }
+'Task Work Group:'{WGDESC                                }
+'Assign To      :'{ASS                         }
+'Originator     :'GGGGGGGGGGGGGGGGGGGGGGGGGGGGG
+'Cost Code      :'FFFFFFFFFFFFFFFFFFFFFFFF 
+<IF RSIZE > 0>
+<IF RSIZE = 1>
+'Resource Type    No. Reqd.  Est.Hours'
+ CCCCCCCCCCCCCCCC       DD   EEEEEEEEE
+<ELSE>
+'Resource Type    No. Reqd.  Est.Hours     Resource Type    No. Reqd.  Est.Hours'
+   <REPEAT>
+ CCCCCCCCCCCCCCCC       DD   EEEEEEEEE     CCCCCCCCCCCCCCCC       DD   EEEEEEEEE
+    <ENDREPEAT>
+<ENDIF>
+<ENDIF>
+'Date      Offset'
+'Raised    Days    Priority Work Order Type  Shutdown Type     Shutdown Equip'
+ HHHHHHHHH  III      JJ     KKKKKKKKKKKKKKK  MMMMMMMMMMMMMMM   NNNNNNNNNNNN
+<SUPPRESS>
+ {L7         }                  {L8                       }
+<SUPPRESS>
+ OOOOOOOOOOOOOOOOOOOOOOOOOOOOOO   PPPP       QQ      RRRR
+{UNDERLINE                                                                     }
+<IF SJD <> SPACES>
+                          '--  WORK DESCRIPTION --'
+
+                    {SJD                                    }
+
+   <REPEAT>
+{SJEXT                                                                         }
+   <ENDREPEAT>
+<ENDIF>
+{UNDERLINE                                                                     }
+                         '--  SAFETY INSTRUCTIONS  --'
+<REPEAT>
+{GTTEXT                                                                        }
+<ENDREPEAT>
+
+<IF SI <> SPACES>
+{SIDESC                                                                        }
+  <REPEAT>
+{SITEXT                                                                        }
+  <ENDREPEAT>
+<ENDIF>
+<IF JISIZE > 0>
+                          '--  JOB INSTRUCTIONS  --'
+
+                {TSKDESC                                }
+
+  <REPEAT>
+{JITEXT                                                                        }
+  <ENDREPEAT>
+<ENDIF>
+<IF CI <> SPACES>
+                       '--  COMPLETION INSTRUCTIONS  --'
+{CIDESC                                                                        }
+  <REPEAT>
+{CITEXT                                                                        }
+  <ENDREPEAT>
+<ENDIF>
+<IF CC <> SPACES>
+                       '-- MAINTENANCE REPORT FORM --'
+
+                {CCDESC             }
+
+{CCDESC                                                                        }
+  <REPEAT>
+{CCTEXT                                                                        }
+  <ENDREPEAT>
+
+<ENDIF>
+%******************************************************************************
+%CONTROL REPORT A
+       TRIM-REPORT
+       NO-STD-HEADINGS
+       DYNAMIC-PRINTER
+%******************************************************************************
+%REQUEST-PARAMETERS
+       SJNO1    LIKE STD-JOB-NO TEXT 'Standard Job Number-1 '
+       SJNO2    LIKE STD-JOB-NO TEXT 'Standard Job Number-2 '
+       SJNO3    LIKE STD-JOB-NO TEXT 'Standard Job Number-3 '
+       SJNO4    LIKE STD-JOB-NO TEXT 'Standard Job Number-4 '
+       SJNO5    LIKE STD-JOB-NO TEXT 'Standard Job Number-5 '
+       SJNO6    LIKE STD-JOB-NO TEXT 'Standard Job Number-6 '
+       SJNO7    LIKE STD-JOB-NO TEXT 'Standard Job Number-7 '
+       SJNO8    LIKE STD-JOB-NO TEXT 'Standard Job Number-8 '
+       SJNO9    LIKE STD-JOB-NO TEXT 'Standard Job Number-9 '
+       SJNO10   LIKE STD-JOB-NO TEXT 'Standard Job Number-10'
+       SJNO11   LIKE STD-JOB-NO TEXT 'Standard Job Number-11'
+       SJNO12   LIKE STD-JOB-NO TEXT 'Standard Job Number-12'
+       SJNO13   LIKE STD-JOB-NO TEXT 'Standard Job Number-13'
+       SJNO14   LIKE STD-JOB-NO TEXT 'Standard Job Number-14'
+       SJNO15   LIKE STD-JOB-NO TEXT 'Standard Job Number-15'
+       SJNO16   LIKE STD-JOB-NO TEXT 'Standard Job Number-16'
+       SJNO17   LIKE STD-JOB-NO TEXT 'Standard Job Number-17'
+       SJNO18   LIKE STD-JOB-NO TEXT 'Standard Job Number-18'
+       SJNO19   LIKE STD-JOB-NO TEXT 'Standard Job Number-19'
+       SJNO20   LIKE STD-JOB-NO TEXT 'Standard Job Number-20'
+       SJNO21   LIKE STD-JOB-NO TEXT 'Standard Job Number-21'
+       SJNO22   LIKE STD-JOB-NO TEXT 'Standard Job Number-22'
+       SJNO23   LIKE STD-JOB-NO TEXT 'Standard Job Number-23'
+       SJNO24   LIKE STD-JOB-NO TEXT 'Standard Job Number-24'
+       SJNO25   LIKE STD-JOB-NO TEXT 'Standard Job Number-25'
+       SJNO26   LIKE STD-JOB-NO TEXT 'Standard Job Number-26'
+       SJNO27   LIKE STD-JOB-NO TEXT 'Standard Job Number-27'
+       SJNO28   LIKE STD-JOB-NO TEXT 'Standard Job Number-28'
+       SJNO29   LIKE STD-JOB-NO TEXT 'Standard Job Number-29'
+       SJNO30   LIKE STD-JOB-NO TEXT 'Standard Job Number-30'
+%* line re-instated. Owen 20/8/91, moved to here 3/9/91
+       DEFPRIN LIKE PRINTER1 OF MSF080
+%******************************************************************************
+%VARIABLES
+%***
+%***   MSF693 variables
+%***
+       STDJOB = STD-JOB-NO
+       B      = STD-JOB-TASK
+       TSKDESC= SJ-TASK-DESC      
+       EGI    = EQUIP-GRP-ID
+       P      = COMP-CODE
+       Q      = COMP-MOD-CODE
+       R      = APL-SEQ-NO
+       CC     = COMPL-TEXT-CDE
+       SI     = SAFETY-INSTR
+       CI     = COMPLETE-INSTR
+       I      = PLAN-OFFSET-9
+       LT     = APL-TYPE
+       L7     = choose ('APL Equipment' IF (LT = 'E'), -
+                        'APL Group Id'  IF (LT = 'G'), SPACES)
+       L8     = choose ('Component Modifier Sequence' IF (LT <> SPACES), SPACES)
+%***
+%***   MSF735 variables
+%***
+       C1     = RESOURCE-TYPE OF MSF735 WHERE (REC-735-TYPE = 'ST', -
+                KEY-735-ID = %DISTRICT-CODE% & STD-JOB-NO & STD-JOB-TASK, -
+                RESOURCE-TYPE >= SPACES) MAX (10)
+       RSIZE  = SIZE (C1)
+       D      = CREW-SIZE-9    VIA (C1)
+       E      = EST-RESRCE-HRS VIA (C1) PIC Z(5)9.99
+%***
+%***   MSF600 variables
+%***
+       O2     = PLANT-NO OF MSF600 WHERE (EQUIP-NO = EGI)
+       O      = choose (O2 IF (O2 <> SPACES), EGI)
+%***
+%***   MSF690 variables
+%***
+       F      = ACCOUNT-CODE OF MSF690 WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+                                              STD-JOB-NO  = STD-JOB-NO)
+       LWG    = WORK-GROUP       VIA (F)
+       G1     = ORIGINATOR-ID    VIA (F)
+       J      = ORIG-PRIORITY    VIA (F)
+       K1     = WO-TYPE          VIA (F)
+       M1     = SHUTDOWN-TYPE    VIA (F)
+       N      = SHUTDOWN-EQUIP   VIA (F)
+       SJD    = STD-JOB-DESC     VIA (F)
+       H1     = CREATION-DATE    VIA (F)
+       H      = GET (DISPLAY-DATE FROM (H1))
+%***
+%***   MSF720 variables
+%***
+       WGDESC  = WORK-GRP-DESC OF MSF720 WHERE (WORK-GROUP = WORK-GROUP)
+       LWGDESC = WORK-GRP-DESC OF MSF720 WHERE (WORK-GROUP = LWG)
+%***
+%***   MSF010 variables
+%***
+       ASS1 = hrget  (EMPLOYEE-ID -
+                     from ('MSSEMP,MSF810') -
+                     key  (EMPLOYEE-ID = ASSIGN-PERSON)
+       ASS  = FORMATTED-NAME via (ASS1)
+       C      = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TT', -
+                TABLE-CODE = C1)
+       JDDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'JD', -
+                TABLE-CODE = JOB-DESC-CODE)
+       G1X = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = G1)
+       G   = FORMATTED-NAME via (G1X)
+       CCDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'CC', -
+                TABLE-CODE = CC)
+       SIDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'SI', -
+                TABLE-CODE = SI)
+       CIDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'CI', -
+                TABLE-CODE = CI)
+       K      = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'WO', -
+                TABLE-CODE = K1)
+       M      = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'SD', -
+                TABLE-CODE = M1)
+%***
+%***   MSF096 variables
+%***
+       SITEXT = GET (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                     KEY ('SI',SI) )               MAX (300)
+       CITEXT = GET (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                     KEY ('CI',CI) )               MAX (300)
+       CCTEXT = GET (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                     KEY ('CC',CC) )               MAX (300)
+       SJEXT  = GET (READ-TEXT FROM ('MSF096') CODE ('SJ') -
+                     KEY (%DISTRICT-CODE%,STDJOB)) MAX (300)
+       GTTEXT = GET (READ-TEXT FROM ('MSF096') CODE ('GT') -
+                     KEY ('PPSAFETY'))             MAX (300)
+       JITEXT = GET (READ-TEXT FROM ('MSF096') CODE ('JI') -
+                     KEY (DSTRCT-CODE,STDJOB,B) )  MAX (300)
+       JISIZE = SIZE (JITEXT)
+%***
+%***  Check sheet TEXT held in MSF096
+%***
+%***   TEXTKEY = CATENATE ('CK', %DISTRICT-CODE%, STDJOB, B, '123456789')
+       TEXTKEY = CATENATE ('CK', %DISTRICT-CODE%, STDJOB, B, '         ')
+       CKTEXT  = STD-TEXT-REC-X-1 OF MSF096       -
+                 WHERE  (STD-TEXT-CODE = 'TT',    -
+                         STD-KEY       = TEXTKEY, -
+                         STD-LINE-NO  >= 0)       -
+                         MAX (390)
+%***
+%***   Working Storage
+%***
+       SEQ-NO = CHOOSE ('01' IF (STD-JOB-NO = %SJNO1%), -
+                        '02' IF (STD-JOB-NO = %SJNO2%), -
+                        '03' IF (STD-JOB-NO = %SJNO3%), -
+                        '04' IF (STD-JOB-NO = %SJNO4%), -
+                        '05' IF (STD-JOB-NO = %SJNO5%), -
+                        '06' IF (STD-JOB-NO = %SJNO6%), -
+                        '07' IF (STD-JOB-NO = %SJNO7%), -
+                        '08' IF (STD-JOB-NO = %SJNO8%), -
+                        '09' IF (STD-JOB-NO = %SJNO9%), -
+                        '10' IF (STD-JOB-NO = %SJNO10%), -
+                        '11' IF (STD-JOB-NO = %SJNO11%), -
+                        '12' IF (STD-JOB-NO = %SJNO12%), -
+                        '13' IF (STD-JOB-NO = %SJNO13%), -
+                        '14' IF (STD-JOB-NO = %SJNO14%), -
+                        '15' IF (STD-JOB-NO = %SJNO15%), -
+                        '16' IF (STD-JOB-NO = %SJNO16%), -
+                        '17' IF (STD-JOB-NO = %SJNO17%), -
+                        '18' IF (STD-JOB-NO = %SJNO18%), -
+                        '19' IF (STD-JOB-NO = %SJNO19%), -
+                        '20' IF (STD-JOB-NO = %SJNO20%), -
+                        '21' IF (STD-JOB-NO = %SJNO21%), -
+                        '22' IF (STD-JOB-NO = %SJNO22%), -
+                        '23' IF (STD-JOB-NO = %SJNO23%), -
+                        '24' IF (STD-JOB-NO = %SJNO24%), -
+                        '25' IF (STD-JOB-NO = %SJNO25%), -
+                        '26' IF (STD-JOB-NO = %SJNO26%), -
+                        '27' IF (STD-JOB-NO = %SJNO27%), -
+                        '28' IF (STD-JOB-NO = %SJNO28%), -
+                        '29' IF (STD-JOB-NO = %SJNO29%), -
+                        '30' IF (STD-JOB-NO = %SJNO30%), '31')
+
+%****************************************
+%*       Get the printer
+%****************************************
+%* If no printer is assigned yet
+%*    - Work group         (MSF690)
+%*    - Assigned Person    (MSF690)
+%*    - Originator         (MSF690)
+%*    - Default (spaces)
+%****************************************
+       WG1 = WORK-GROUP    VIA (F)
+       AP1 = ASSIGN-PERSON VIA (F)
+       OR1 = ORIGINATOR-ID VIA (F)
+       PN1 = PRINTER-NAME  VIA (WGDESC)
+       PR1 = PRINTER OF MSF010 WHERE (TABLE-TYPE = 'PR', -
+                                      TABLE-CODE = PN1)
+       PR2 = PRINTER-ID VIA (ASS1)
+       PR3 = PRINTER-ID VIA (G1X)
+%* default printer re-instated. Owen 20/8/91
+       PRINA = CHOOSE (%DEFPRIN% IF (%DEFPRIN% <> SPACES), -
+                       PR1       IF (PR1       <> SPACES), -
+                       PR2       IF (PR2       <> SPACES), -
+                       PR3       IF (PR3       <> SPACES), -
+                       PR1)
+       PRINX = PRINTER (PRINA)

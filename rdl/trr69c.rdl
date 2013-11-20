@@ -1,0 +1,96 @@
+%*** TRR69C.RDL
+%***
+%*** Revision History ***
+%*** 27-Jul-12 N Perry          MO164 (Version 0001)
+%*** .........................  Convert to Ellipse 8 format.
+%*** .........................  Reset version number to 0001 for E8 upgrade.
+%*** 10-Sep-02 RK Mahajan       WCHG005916 The requirements necessitated to 
+%***                            rewrite the whole program.
+%*** 22-Aug-02 L Nee .........  WCHG005332 - Initial Coding.
+%***
+%PROGRAM-ID
+       TRR69C
+%AUTHOR
+       Mincom Pty Ltd
+%NARRATIVE
+      ** Standard Job Analysis Report. This program outputs a file in TXT format
+      ** with '~' character as delimitor.
+%MODULE
+       3690
+%VERSION
+       0001
+%ORDER
+       DSTRCT-CODE
+       STD-JOB-NO
+%FILES
+       MFILE = MSF690
+       AFILE = MSF693
+       AFILE = MSF696A
+       LFILE = MSF695
+       OFILE = TRT69CA
+%SELECTION
+<IF %DISTCD% <> SPACES>
+       WHERE    (DSTRCT-CODE = %DISTCD%, -
+                 STD-JOB-NO >= %SJFR%)
+       REJECTIF (%SJFR%     <> SPACES, STD-JOB-NO < %SJFR%)
+       REJECTIF (%SJTO%     <> SPACES, STD-JOB-NO > %SJTO%)
+       REJECTIF (%WKGRPFR%  <> SPACES, WORK-GROUP < %WKGRPFR%)
+       REJECTIF (%WKGRPTO%  <> SPACES, WORK-GROUP > %WKGRPTO%)
+       REJECTIF (DSTRCT-CODE < %DISTCD%)
+       STOPIF   (DSTRCT-CODE > %DISTCD%)
+<ELSE>
+       WHERE    (DSTRCT-CODE >= SPACES)
+       REJECTIF (%SJFR%      <> SPACES, STD-JOB-NO < %SJFR%)
+       REJECTIF (%SJTO%      <> SPACES, STD-JOB-NO > %SJTO%)
+       REJECTIF (%WKGRPFR%   <> SPACES, WORK-GROUP < %WKGRPFR%)
+       REJECTIF (%WKGRPTO%   <> SPACES, WORK-GROUP > %WKGRPTO%)
+<ENDIF>
+%BREAK-FIELDS
+       DSTRCT-CODE
+       STD-JOB-NO
+%OUTPUT-FILE
+       A
+%CONTROL
+       COPY-REQUEST  = TRR69D
+       RECORD-LENGTH = 146
+%DETAIL
+{DC}{SJ  }{SJDESC                                }{WG   }TTT-
+{SJTD                                  }{PSJ }{PSJD                                  }
+%REQUEST-PARAMETERS
+    DISTCD     D-PIC (X(4))  TEXT 'District Code (blank for ALL) : '
+    SJFR       D-PIC (X(6))  TEXT 'Standard Job Numbers - From   : '
+    SJTO       D-PIC (X(6))  TEXT '                       To     : '
+    WKGRPFR    D-PIC (X(7))  TEXT 'Work Group - From             : '
+    WKGRPTO    D-PIC (X(7))  TEXT '             To               : '
+%VARIABLES
+    DC     = DSTRCT-CODE
+    SJ     = STD-JOB-NO
+    SJDESC = STD-JOB-DESC
+    WG     = WORK-GROUP
+%*
+%* MSF693 - Get info about Std Job Task
+    WG1    = WORK-GROUP FROM MSF693 -
+             WHERE    (DSTRCT-CODE   = DC, -
+                       STD-JOB-NO    = SJ, -
+                       STD-JOB-TASK >= SPACES) -
+             SELECTIF (STD-JOB-TASK  > SPACES)
+    T      = STD-JOB-TASK        VIA (WG1)
+    SJTD   = SJ-TASK-DESC        VIA (WG1)
+%*
+%* MSF696 - Get info about Parent Std Jobs.
+    PSJ    = SJP-PSJ-NO-2 FROM MSF696A -
+             WHERE (DSTRCT-CODE-2 = DC, -
+                    PSJ-SJ-IND-2  = 'S', -
+                    PSJ-SJ-NO-2   = SJ, -
+                    SJP-PSJ-IND-2 = 'P', -
+                    SJP-PSJ-NO-2 >= SPACES) -
+             MAX (3)
+%*
+%* MSF695 - Get info about Parent Std Job Description.
+    PSJD   = SJP-PSJ-DESC OF MSF695 -
+             WHERE (DSTRCT-CODE = DC, -
+                    SJP-PSJ-IND = 'P', -
+                    SJP-PSJ-NO  = PSJ)
+%*
+%* -----------------  End  of  the  Program  -------------------------
+

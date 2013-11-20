@@ -1,0 +1,79 @@
+%*** Revision History
+%*** 17-Sep-12 a9nh4814       MO164 (Version 0001)
+%*** .......................  Modified to version 0001 for Ellipse 8 migration.
+%*** 22-Jun-06  Phil Rowlands
+%*** .......................  Increased input field sizes
+%*** 12-May-98  E Fredeluces  W804300036
+%*** .......................  Initial Coding.
+%***
+%PROGRAM-ID
+       TRR53H
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+       This RDL will generate the Workers Compensation 
+       History Report.  It uses the TRT53F.SEQ input 
+       created from TRR53F program.
+%VERSION
+       0001
+%MODULE
+       3820
+%FILES
+       IFILE = TRT53F
+       RFILE = TRR53HA
+%INPUT-FILE
+       IN-FINLYR      PIC (X(9))
+       IN-ESTIMATE    PIC (S9(13)V99)
+       IN-PAYMENT     PIC (S9(13)V99)
+       IN-RECOVERY    PIC (S9(13)V99)
+%BREAK-FIELDS
+       IN-FINLYR
+%REPORT-TITLE 
+'Workers Compensation History Report'
+%PAGE HEADING 
+'Fincl Year     No. of New Claims         Estimates          Payments        Recoveries           Balance'
+%BREAK IN-FINLYR FOOTING
+ FFFFFFFFF          {TC   }          {TE           }   {TP           }     {TR           } {TB           }           
+%REPORT-SUMMARY
+'                   -------------------------------------------------------------------------------------'
+                    {TC   }          {TE           }   {TP           }     {TR           } {TB           }
+'                   ====================================================================================='
+
+
+'                                           ******* End Of Report ******'
+%PARAMETERS
+        SDATE1  PIC(X(4)) TEXT Financial Year From  1 :
+        EDATE1  PIC(X(4)) TEXT Financial Year To    1 :
+        SDATE2  PIC(X(4)) TEXT Financial Year From  2 :
+        EDATE2  PIC(X(4)) TEXT Financial Year To    2 :
+        SDATE3  PIC(X(4)) TEXT Financial Year From  3 :
+        EDATE3  PIC(X(4)) TEXT Financial Year To    3 :
+        SDATE4  PIC(X(4)) TEXT Financial Year From  4 :
+        EDATE4  PIC(X(4)) TEXT Financial Year To    4 :
+        SDATE5  PIC(X(4)) TEXT Financial Year From  5 :
+        EDATE5  PIC(X(4)) TEXT Financial Year To    5 :
+        SDATE6  PIC(X(4)) TEXT Financial Year From  6 :
+        EDATE6  PIC(X(4)) TEXT Financial Year To    6 :
+        SDATE7  PIC(X(4)) TEXT Financial Year From  7 :
+        EDATE7  PIC(X(4)) TEXT Financial Year To    7 :
+        SDATE8  PIC(X(4)) TEXT Financial Year From  8 :
+        EDATE8  PIC(X(4)) TEXT Financial Year To    8 :
+        SDATE9  PIC(X(4)) TEXT Financial Year From  9 :
+        EDATE9  PIC(X(4)) TEXT Financial Year To    9 :
+        SDATE10 PIC(X(4)) TEXT Financial Year From 10 :
+        EDATE10 PIC(X(4)) TEXT Financial Year To   10 :
+
+%VARIABLES
+        F       = IN-FINLYR
+        P       = IN-PAYMENT
+	E       = IN-ESTIMATE
+	R       = IN-RECOVERY
+	B       = calc  (E - P + R) D-PIC (ZZZ,ZZZ,ZZ9.99-)
+	TP      = total (P)         D-PIC (ZZZ,ZZZ,ZZ9.99-)
+	TE	= total (E)         D-PIC (ZZZ,ZZZ,ZZ9.99-)
+	TR	= total (R)         D-PIC (ZZZ,ZZZ,ZZ9.99-)
+	TB	= total (B)         D-PIC (ZZZ,ZZZ,ZZ9.99-)
+        TC      = count (*)         D-PIC (ZZZ,ZZ9)
+%*
+%*                              End Of Program
+%*

@@ -1,0 +1,267 @@
+%*** Revision History
+%*** 17-Sep-12 a9nh4814       MO164 (Version 0001)
+%*** .......................  - Fixed revdate calculations
+%*** .......................  - Modified to version 0001 for Ellipse 8 migration.
+%*** .......................  - Modified decimal formatting for D-PIC.
+%*** 22-Jun-06 Phil Rowlands
+%*** .......................  Changed numeric field size to input
+%*** .......................  size, S9(7)V99 to S9(13)V99.
+%*** 20-May-98  E Fredeluces
+%*** .......................  To report based on the date of the
+%*** .......................  incident instead of the claim.
+%*** 11-May-98  E Fredeluces  W804300036
+%*** .......................  To generate report by financial year 
+%*** .......................  and not by calendar year.  Split the
+%*** .......................  program into two.  First, to extract
+%*** ........................ and the second, to generate the report.
+%*** 07-Apr-98  E Fredeluces  W803300028
+%*** .......................  Initial Coding.
+%***
+%PROGRAM-ID
+       TRR53F
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+       This RDL will extract claims received for a particular
+       financial year.  The output file TRT53F.SEQ will be inputted
+       to TRR53H to generate the Workers Compensation History Report.
+%VERSION
+       0001
+%MODULE
+       3820
+%FILES
+       MFILE = MSF510B
+       AFILE = MSF536B
+       OFILE = TRT53FA
+%ORDER
+       DESC REV-OCC-DATE-2
+%SELECTION
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE1, REV-OCC-DATE-2 <= REVSDATE1)
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE2, REVEDATE2      <> SPACES, -
+                 REV-OCC-DATE-2 <= REVSDATE2, REVSDATE2      <> SPACES)
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE3, REVEDATE3      <> SPACES, -
+                 REV-OCC-DATE-2 <= REVSDATE3, REVSDATE3      <> SPACES)
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE4, REVEDATE4      <> SPACES, -
+                 REV-OCC-DATE-2 <= REVSDATE4, REVSDATE4      <> SPACES)
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE5, REVEDATE5      <> SPACES, -
+                 REV-OCC-DATE-2 <= REVSDATE5, REVSDATE5      <> SPACES)
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE6, REVEDATE6      <> SPACES, -
+                 REV-OCC-DATE-2 <= REVSDATE6, REVSDATE6      <> SPACES)
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE7, REVEDATE7      <> SPACES, -
+                 REV-OCC-DATE-2 <= REVSDATE7, REVSDATE7      <> SPACES)
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE8, REVEDATE8      <> SPACES, -
+                 REV-OCC-DATE-2 <= REVSDATE8, REVSDATE8      <> SPACES)
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE9, REVEDATE9      <> SPACES, -
+                 REV-OCC-DATE-2 <= REVSDATE9, REVSDATE9      <> SPACES)
+       SELECTIF (REV-OCC-DATE-2 >= REVEDATE10, REVEDATE10    <> SPACES, -
+                 REV-OCC-DATE-2 <= REVSDATE10, REVSDATE10    <> SPACES)
+%CONTROL
+       COPY-REQUEST = TRR53H
+%OUTPUT-FILE
+       A
+%DETAIL
+<IF CLNO <> SPACES>
+{FLFRTO }EEEEEEEEEEEEEEEPPPPPPPPPPPPPPPRRRRRRRRRRRRRRR
+<ENDIF>
+%PARAMETERS
+        SDATE1  PIC(X(4)) TEXT Financial Year From   1 :
+        EDATE1  PIC(X(4)) TEXT Financial Year To     1 :
+        SDATE2  PIC(X(4)) TEXT Financial Year From   2 :
+        EDATE2  PIC(X(4)) TEXT Financial Year To     2 :
+        SDATE3  PIC(X(4)) TEXT Financial Year From   3 :
+        EDATE3  PIC(X(4)) TEXT Financial Year To     3 :
+        SDATE4  PIC(X(4)) TEXT Financial Year From   4 :
+        EDATE4  PIC(X(4)) TEXT Financial Year To     4 :
+        SDATE5  PIC(X(4)) TEXT Financial Year From   5 :
+        EDATE5  PIC(X(4)) TEXT Financial Year To     5 :
+        SDATE6  PIC(X(4)) TEXT Financial Year From   6 :
+        EDATE6  PIC(X(4)) TEXT Financial Year To     6 :
+        SDATE7  PIC(X(4)) TEXT Financial Year From   7 :
+        EDATE7  PIC(X(4)) TEXT Financial Year To     7 :
+        SDATE8  PIC(X(4)) TEXT Financial Year From   8 :
+        EDATE8  PIC(X(4)) TEXT Financial Year To     8 :
+        SDATE9  PIC(X(4)) TEXT Financial Year From   9 :
+        EDATE9  PIC(X(4)) TEXT Financial Year To     9 :
+        SDATE10 PIC(X(4)) TEXT Financial Year From  10 :
+        EDATE10 PIC(X(4)) TEXT Financial Year To    10 :
+%VARIABLES 
+        DATEFR1         = %SDATE1%                    CONSTANT
+        DATETO1         = %EDATE1%                    CONSTANT
+        DATEFR2         = %SDATE2%                    CONSTANT
+        DATETO2         = %EDATE2%                    CONSTANT
+        DATEFR3         = %SDATE3%                    CONSTANT
+        DATETO3         = %EDATE3%                    CONSTANT
+        DATEFR4         = %SDATE4%                    CONSTANT
+        DATETO4         = %EDATE4%                    CONSTANT
+        DATEFR5         = %SDATE5%                    CONSTANT
+        DATETO5         = %EDATE5%                    CONSTANT
+        DATEFR6         = %SDATE6%                    CONSTANT
+        DATETO6         = %EDATE6%                    CONSTANT
+        DATEFR7         = %SDATE7%                    CONSTANT
+        DATETO7         = %EDATE7%                    CONSTANT
+        DATEFR8         = %SDATE8%                    CONSTANT
+        DATETO8         = %EDATE8%                    CONSTANT
+        DATEFR9         = %SDATE9%                    CONSTANT
+        DATETO9         = %EDATE9%                    CONSTANT
+        DATEFR10        = %SDATE10%                   CONSTANT
+        DATETO10        = %EDATE10%                   CONSTANT
+        SDATE1          = CATENATE (DATEFR1,'0701')   CONSTANT
+        EDATE1          = CATENATE (DATETO1,'0630')   CONSTANT
+        SDATE2          = CATENATE (DATEFR2,'0701')   CONSTANT
+        EDATE2          = CATENATE (DATETO2,'0630')   CONSTANT
+        SDATE3          = CATENATE (DATEFR3,'0701')   CONSTANT
+        EDATE3          = CATENATE (DATETO3,'0630')   CONSTANT
+        SDATE4          = CATENATE (DATEFR4,'0701')   CONSTANT
+        EDATE4          = CATENATE (DATETO4,'0630')   CONSTANT
+        SDATE5          = CATENATE (DATEFR5,'0701')   CONSTANT
+        EDATE5          = CATENATE (DATETO5,'0630')   CONSTANT
+        SDATE6          = CATENATE (DATEFR6,'0701')   CONSTANT
+        EDATE6          = CATENATE (DATETO6,'0630')   CONSTANT
+        SDATE7          = CATENATE (DATEFR7,'0701')   CONSTANT
+        EDATE7          = CATENATE (DATETO7,'0630')   CONSTANT
+        SDATE8          = CATENATE (DATEFR8,'0701')   CONSTANT
+        EDATE8          = CATENATE (DATETO8,'0630')   CONSTANT
+        SDATE9          = CATENATE (DATEFR9,'0701')   CONSTANT
+        EDATE9          = CATENATE (DATETO9,'0630')   CONSTANT
+        SDATE10         = CATENATE (DATEFR10,'0701')  CONSTANT
+        EDATE10         = CATENATE (DATETO10,'0630')  CONSTANT
+        SDATE1-9        = NUMERIC  (SDATE1)           CONSTANT
+        EDATE1-9        = NUMERIC  (EDATE1)           CONSTANT
+        SDATE2-9        = NUMERIC  (SDATE2)           CONSTANT
+        EDATE2-9        = NUMERIC  (EDATE2)           CONSTANT
+        SDATE3-9        = NUMERIC  (SDATE3)           CONSTANT
+        EDATE3-9        = NUMERIC  (EDATE3)           CONSTANT
+        SDATE4-9        = NUMERIC  (SDATE4)           CONSTANT
+        EDATE4-9        = NUMERIC  (EDATE4)           CONSTANT
+        SDATE5-9        = NUMERIC  (SDATE5)           CONSTANT
+        EDATE5-9        = NUMERIC  (EDATE5)           CONSTANT
+        SDATE6-9        = NUMERIC  (SDATE6)           CONSTANT
+        EDATE6-9        = NUMERIC  (EDATE6)           CONSTANT
+        SDATE7-9        = NUMERIC  (SDATE7)           CONSTANT
+        EDATE7-9        = NUMERIC  (EDATE7)           CONSTANT
+        SDATE8-9        = NUMERIC  (SDATE8)           CONSTANT
+        EDATE8-9        = NUMERIC  (EDATE8)           CONSTANT
+        SDATE9-9        = NUMERIC  (SDATE9)           CONSTANT
+        EDATE9-9        = NUMERIC  (EDATE9)           CONSTANT
+        SDATE10-9       = NUMERIC  (SDATE10)          CONSTANT
+        EDATE10-9       = NUMERIC  (EDATE10)          CONSTANT
+        RVSDATE1        = CALC     (99999999 - SDATE1-9) CONSTANT I-PIC (9(8))
+        RVEDATE1        = CALC     (99999999 - EDATE1-9) CONSTANT I-PIC (9(8))
+        RVSDATE2        = CALC     (99999999 - SDATE2-9) CONSTANT I-PIC (9(8))
+        RVEDATE2        = CALC     (99999999 - EDATE2-9) CONSTANT I-PIC (9(8))
+        RVSDATE3        = CALC     (99999999 - SDATE3-9) CONSTANT I-PIC (9(8))
+        RVEDATE3        = CALC     (99999999 - EDATE3-9) CONSTANT I-PIC (9(8))
+        RVSDATE4        = CALC     (99999999 - SDATE4-9) CONSTANT I-PIC (9(8))
+        RVEDATE4        = CALC     (99999999 - EDATE4-9) CONSTANT I-PIC (9(8))
+        RVSDATE5        = CALC     (99999999 - SDATE5-9) CONSTANT I-PIC (9(8))
+        RVEDATE5        = CALC     (99999999 - EDATE5-9) CONSTANT I-PIC (9(8))
+        RVSDATE6        = CALC     (99999999 - SDATE6-9) CONSTANT I-PIC (9(8))
+        RVEDATE6        = CALC     (99999999 - EDATE6-9) CONSTANT I-PIC (9(8))
+        RVSDATE7        = CALC     (99999999 - SDATE7-9) CONSTANT I-PIC (9(8))
+        RVEDATE7        = CALC     (99999999 - EDATE7-9) CONSTANT I-PIC (9(8))
+        RVSDATE8        = CALC     (99999999 - SDATE8-9) CONSTANT I-PIC (9(8))
+        RVEDATE8        = CALC     (99999999 - EDATE8-9) CONSTANT I-PIC (9(8))
+        RVSDATE9        = CALC     (99999999 - SDATE9-9) CONSTANT I-PIC (9(8))
+        RVEDATE9        = CALC     (99999999 - EDATE9-9) CONSTANT I-PIC (9(8))
+        RVSDATE10       = CALC     (99999999 - SDATE10-9) CONSTANT I-PIC (9(8))
+        RVEDATE10       = CALC     (99999999 - EDATE10-9) CONSTANT I-PIC (9(8))
+        REVSDATE1       = CHOOSE   (RVSDATE1 IF (RVSDATE1 <> SPACES), -
+                                    RVSDATE1)    CONSTANT I-PIC (X(8))
+        REVEDATE1       = CHOOSE   (RVEDATE1 IF (RVEDATE1 <> SPACES), -
+                                    RVEDATE1)    CONSTANT I-PIC (X(8))
+        REVSDATE2       = CHOOSE   (RVSDATE2 IF (RVSDATE2 <> SPACES), -
+                                    RVSDATE2)    CONSTANT I-PIC (X(8))
+        REVEDATE2       = CHOOSE   (RVEDATE2 IF (RVEDATE2 <> SPACES), -
+                                    RVEDATE2)    CONSTANT I-PIC (X(8))
+        REVSDATE3       = CHOOSE   (RVSDATE3 IF (RVSDATE3 <> SPACES), -
+                                    RVSDATE3)    CONSTANT I-PIC (X(8))
+        REVEDATE3       = CHOOSE   (RVEDATE3 IF (RVEDATE3 <> SPACES), -
+                                    RVEDATE3)    CONSTANT I-PIC (X(8))
+        REVSDATE4       = CHOOSE   (RVSDATE4 IF (RVSDATE4 <> SPACES), -
+                                    RVSDATE4)    CONSTANT I-PIC (X(8))
+        REVEDATE4       = CHOOSE   (RVEDATE4 IF (RVEDATE4 <> SPACES), -
+                                    RVEDATE4)    CONSTANT I-PIC (X(8))
+        REVSDATE5       = CHOOSE   (RVSDATE5 IF (RVSDATE5 <> SPACES), -
+                                    RVSDATE5)    CONSTANT I-PIC (X(8))
+        REVEDATE5       = CHOOSE   (RVEDATE5 IF (RVEDATE5 <> SPACES), -
+                                    RVEDATE5)    CONSTANT I-PIC (X(8))
+        REVSDATE6       = CHOOSE   (RVSDATE6 IF (RVSDATE6 <> SPACES), -
+                                    RVSDATE6)    CONSTANT I-PIC (X(8))
+        REVEDATE6       = CHOOSE   (RVEDATE6 IF (RVEDATE6 <> SPACES), -
+                                    RVEDATE6)    CONSTANT I-PIC (X(8))
+        REVSDATE7       = CHOOSE   (RVSDATE7 IF (RVSDATE7 <> SPACES), -
+                                    RVSDATE7)    CONSTANT I-PIC (X(8))
+        REVEDATE7       = CHOOSE   (RVEDATE7 IF (RVEDATE7 <> SPACES), -
+                                    RVEDATE7)    CONSTANT I-PIC (X(8))
+        REVSDATE8       = CHOOSE   (RVSDATE8 IF (RVSDATE8 <> SPACES), -
+                                    RVSDATE8)    CONSTANT I-PIC (X(8))
+        REVEDATE8       = CHOOSE   (RVEDATE8 IF (RVEDATE8 <> SPACES), -
+                                    RVEDATE8)    CONSTANT I-PIC (X(8))
+        REVSDATE9       = CHOOSE   (RVSDATE9 IF (RVSDATE9 <> SPACES), -
+                                    RVSDATE9)    CONSTANT I-PIC (X(8))
+        REVEDATE9       = CHOOSE   (RVEDATE9 IF (RVEDATE9 <> SPACES), -
+                                    RVEDATE9)    CONSTANT I-PIC (X(8))
+        REVSDATE10      = CHOOSE   (RVSDATE10 IF (RVSDATE10 <> SPACES), -
+                                    RVSDATE10)    CONSTANT I-PIC (X(8))
+        REVEDATE10      = CHOOSE   (RVEDATE10 IF (RVEDATE10 <> SPACES), -
+                                    RVEDATE10)    CONSTANT I-PIC (X(8))
+        DATETO          = CHOOSE   (DATEFR10 IF (DATEFR10 <> SPACES), -
+                                    DATEFR9  IF (DATEFR9  <> SPACES), -
+                                    DATEFR8  IF (DATEFR8  <> SPACES), -
+                                    DATEFR7  IF (DATEFR7  <> SPACES), -
+                                    DATEFR6  IF (DATEFR6  <> SPACES), -
+                                    DATEFR5  IF (DATEFR5  <> SPACES), -
+                                    DATEFR4  IF (DATEFR4  <> SPACES), -
+                                    DATEFR3  IF (DATEFR3  <> SPACES), -
+                                    DATEFR2  IF (DATEFR2  <> SPACES), -
+                                    DATEFR1)               CONSTANT
+        DFYR            = CATENATE (DATEFR1,'/',DATETO)    CONSTANT
+        FINL1           = CATENATE (DATEFR1,'/',DATETO1)   CONSTANT
+        FINL2           = CATENATE (DATEFR2,'/',DATETO2)   CONSTANT
+        FINL3           = CATENATE (DATEFR3,'/',DATETO3)   CONSTANT
+        FINL4           = CATENATE (DATEFR4,'/',DATETO4)   CONSTANT
+        FINL5           = CATENATE (DATEFR5,'/',DATETO5)   CONSTANT
+        FINL6           = CATENATE (DATEFR6,'/',DATETO6)   CONSTANT
+        FINL7           = CATENATE (DATEFR7,'/',DATETO7)   CONSTANT
+        FINL8           = CATENATE (DATEFR8,'/',DATETO8)   CONSTANT
+        FINL9           = CATENATE (DATEFR9,'/',DATETO9)   CONSTANT
+        FINL10          = CATENATE (DATEFR10,'/',DATETO10) CONSTANT
+        RDATE           = REV-OCC-DATE-2
+        FLFRTO          = CHOOSE (FINL1  IF (RDATE >= REVEDATE1,  -
+                                             RDATE <= REVSDATE1), -
+                                  FINL2  IF (RDATE >= REVEDATE2,  -
+                                             RDATE <= REVSDATE2), -
+                                  FINL3  IF (RDATE >= REVEDATE3,  -
+                                             RDATE <= REVSDATE3), -
+                                  FINL4  IF (RDATE >= REVEDATE4,  -
+                                             RDATE <= REVSDATE4), -
+                                  FINL5  IF (RDATE >= REVEDATE5,  -
+                                             RDATE <= REVSDATE5), -
+                                  FINL6  IF (RDATE >= REVEDATE6,  -
+                                             RDATE <= REVSDATE6), -
+                                  FINL7  IF (RDATE >= REVEDATE7,  -
+                                             RDATE <= REVSDATE7), -
+                                  FINL8  IF (RDATE >= REVEDATE8,  -
+                                             RDATE <= REVSDATE8), -
+                                  FINL9  IF (RDATE >= REVEDATE9,  -
+                                             RDATE <= REVSDATE9), -
+                                  FINL10 IF (RDATE >= REVEDATE10, -
+                                             RDATE <= REVSDATE10),-
+                                  '    ')
+        INCNO           = INCIDENT-NO-3
+        CLNO            = CLAIM-NO-3 FROM MSF536B -
+                               WHERE (INCIDENT-NO  = INCNO, -
+                                      CLAIM-NO-3  >= SPACES)
+        CDATE           = DATE-CLOSED-9 VIA (CLNO)
+        RODATE          = DATE-REOPEN-9 VIA (CLNO)
+	ST		= CLAIM-STATUS  VIA (CLNO)
+	P		= WC-PAYMENT    VIA (CLNO)    D-PIC (S9999999999999.99)
+	EST		= WC-ESTIMATE   VIA (CLNO)
+        E               = CHOOSE (P IF (ST     = '06'), -
+                                  P IF (ST     = '04',  -
+                                        EST    =  0),   -
+                                  EST)                D-PIC (S9999999999999.99)
+	R		= RECOVERY-AMT  VIA (CLNO)    D-PIC (S9999999999999.99)
+%*
+%*                              End Of Program
+%*

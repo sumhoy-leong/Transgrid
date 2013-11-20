@@ -1,0 +1,332 @@
+%*REVISION HISTORY
+%**  20/03/13  V002 AIT when excluding ZO category only exclude emps with 
+%**                     ZO category and DUMMY position;
+%*** 21/02/13 AIT IG     Migrated TRR76U into ELlipse 8 environment.
+%***                     Changed heading to be H/C in output header.
+%***                     Changed record length to 160
+%* 14/08/07 E Fredeluces  SC1551833
+%*                     Override the positional security to include Pay Group T15;
+%*                     Remove the 'Date of birth' column;
+%*                     Remove the 'Contributor id' column;
+%*                     Remove the 'Sex' column;
+%*                     Remove the employee's 'Home Address' column;
+%*                     Add a column for the 'PRC Description' before the 'Employee Id';
+%*                     Add a column for the 'physical location' between the 'PRC' and 'Emp Id' columns;
+%*                     Add the column headings into the .csv file.
+%* 24/01/07 E Fredeluces  SC1346682
+%*                     Include the suburb (RES-ADDRESS-3) in the report.
+%* 18/11/05 E Fredeluces  P05110870
+%*                     Fix compilation errors in Ellipse 5.2.3.7. (MSF845)
+%* 09/11/05 E Fredeluces  P05110870
+%*                     Fix compilation errors in Ellipse 5.2.3.7. (MSF878)
+%* 22/11/02 LNee       WCHG009467
+%* .................   Amended the program to only print for certain paygroups
+%* .................   (from table file #EXC) when the paygroup selection
+%* .................   parameter is left blank.
+%* 06/08/02 RKMahajan  WCHG004646 - Added CSV file and making it Cyclic in
+%*                     TRGPAY_HRSun.pl script. Rec Size of CSV file is 196.
+%*                     Getting Previous Pay Period Start/End dates from
+%*                     MSF801 file.  Version is 005.
+%* 01/08/02 RKMahajan  WCHG004646 - Modified the program.
+%* 31/07/02 LNee     - WCHG004646
+%* .................   Modify program to include the contributor number,
+%* .................   first name in full and initial. Remove staff category,
+%* .................   use abbreviated version of type field and only extract
+%* .................   active employees but exclude cats ZA, ZO and WC.
+%* 02/01/01 DDiolaso - W00120598
+%* .................   Option of Pay group or blank for all and
+%* .................   the option of alpha or service number order
+%*
+%PROGRAM-ID
+       TRR76U
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **
+      **  This is a Employee Hire dates Report
+      **  for a requested hire date range.
+      **
+%VERSION
+       002
+%MODULE
+       3760
+%FILES
+        MFILE = MSF760
+        LFILE = MSF010
+        LFILE = MSF808
+        LFILE = MSF810
+        LFILE = MSF820
+        LFILE = MSF870
+        LFILE = MSF878B
+        LFILE = MSF845
+        LFILE = MSF801
+        RFILE = TRR76UA
+        OFILE = TRT76UA
+%ROUTINES
+       MSSDAT
+       MSSCNV 
+%SELECTION
+       WHERE    (EMPLOYEE-ID >= '0000000000', -
+                 EMPLOYEE-ID <= '9999999999')
+       SELECTIF (HIRE-DATE   >= SDAT, -
+                 HIRE-DATE   <= EDAT)
+       REJECTIF (EMP-STATUS  <> 'A')
+       REJECTIF (STAFF-CATEG  = 'ZA')
+       REJECTIF (STAFF-CATEG  = 'WC')
+%*       REJECTIF (STAFF-CATEG  = 'ZO')
+%ORDER
+       DUM TEXT General-Header
+       SORDER
+%REPORT
+       A
+%CONTROL
+       INCLUDE-EMPTY-SUMMARY
+%REPORT-TITLE
+'Employees Hire Date Report'
+%PAGE HEADING
+<IF %ORDER% <> 'A'>
+                                         'Reporting  Period: '{SDAT   }'to'{EDAT   }
+                                          
+                                             '** Sort Order - Service Number **'
+
+'PRC Description /             Phy Loc  Emp-Id      +-------------- Employee Name ---------------+   Hire Date   Emp Type  Gender'
+'Position Title'
+<ELSE>
+                                         'Reporting  Period: '{SDAT   }'to'{EDAT   }
+
+                                             '** Sort Order - Alpha (Surname) **'
+
+'PRC Description /             Phy Loc  Emp-Id      +-------------- Employee Name ---------------+   Hire Date   Emp Type  Gender'
+'Position Title'
+<ENDIF>
+%DETAIL
+<IF FLAG1 = 'Y'>
+{PRCDESC                     }   PPP    {EMP     }  {ENAME                        } {A         } B   {HD       }   TTT       G 
+{TITLE                                 }
+
+<ENDIF>
+%SUMMARY
+
+'                                           Total Number of Employees Reported : ' {TTOT    }
+
+'--------------------------------------------------------   End  of  Report  ------------------------------------------------------'
+%OUTPUT-FILE
+       A
+%BREAK-FIELDS
+    DUM
+%CONTROL
+       RECORD-LENGTH = 160 
+%BREAK DUM HEADER
+'PRC Desc,Phy Loc,Employee Id,Surname,First Name' -
+',Hire Date,Emp Type,Gender,Position Title,'
+%DETAIL
+<IF FLAG1 = 'Y'>
+X{PRCDESC                     }XZPPPZ{EMP     }ZX{ENAME                        }XZX{A         } BXZ{HD       }ZTTTZGZ-
+X{TITLE                                 }XZ
+<ENDIF>
+%REQUEST-PARAMETERS
+       FDATE   PIC (X(8)) FORMAT (DATE) TEXT 'Period Date : From'
+       EDATE   PIC (X(8)) FORMAT (DATE) TEXT '              To'
+       PAYG    PIC (X(3))               TEXT 'Pay Group (blank for all) '
+       ORDER   PIC (X(1))               TEXT '(A)lpha or (E)mployee ID. '
+       PRCP    PIC(X(40))               TEXT 'Primary Reporting Code  : '
+%VARIABLES
+%* Constants and request Parameters.
+       Z       = ',' CONSTANT  
+       DUMMY   = 'Y' CONSTANT
+	   X       = '"' CONSTANT
+       DUM     = choose ('Y' IF (Z = ','), DUMMY)
+       HDG1    = 'PRC Desc,Phy Loc,Employee Id,Surname,First Name,' CONSTANT
+       HDG2    = 'Hire Date,Emp Type, Gender,Position Title,'       CONSTANT
+       HDG     = CATENATE (HDG1,HDG2)                               CONSTANT
+       FDATE   = %FDATE%         FORMAT (DATE) CONSTANT
+       EDATE   = %EDATE%         FORMAT (DATE) CONSTANT
+       PRCI    = %PRCP%                        CONSTANT
+%*
+       PRCI-1  = substr (PRCI,1,4)             CONSTANT
+       PRCI-2  = substr (PRCI,5,4)             CONSTANT
+       PRCI-3  = substr (PRCI,9,4)             CONSTANT
+       PRCI-4  = substr (PRCI,13,4)            CONSTANT  
+       PRCI-5  = substr (PRCI,17,4)            CONSTANT
+       PRCI-6  = substr (PRCI,21,4)            CONSTANT
+       PRCI-7  = substr (PRCI,25,4)            CONSTANT
+       PRCI-8  = substr (PRCI,29,4)            CONSTANT
+       PRCI-9  = substr (PRCI,33,4)            CONSTANT
+       PRCI-10 = substr (PRCI,37,4)            CONSTANT
+%*
+%* Data Extraction from MSF760 Main File.
+       EMP     = EMPLOYEE-ID
+       G       = GENDER 
+       E       = EMP-TYPE
+       HDT     = HIRE-DATE
+       HD      = HDT  FORMAT (DATE)  
+       BD1     = BIRTH-DATE
+       BD      = BD1  FORMAT (DATE)
+%*
+%* Get the previous period start and end dates from MSF801 file
+       M801    = CUR-STR-DT-PG OF MSF801 -
+                 WHERE (CNTL-REC-TYPE  = 'PG', -
+                        CNTL-KEY-REST  = 'T01') -
+                 CONSTANT
+       PRSD    = PRV-STR-DT-PG   VIA (M801) CONSTANT
+       PRED    = PRV-END-DT-PG   VIA (M801) CONSTANT       
+       SDAT    = CHOOSE (FDATE IF (FDATE <> SPACES), -
+                         PRSD)              CONSTANT FORMAT (DATE)
+       EDAT    = CHOOSE (EDATE IF (EDATE <> SPACES), -
+                         PRED)              CONSTANT FORMAT (DATE)
+%*
+%* Get Position info from MSF878
+       POS     = POSITION-ID OF MSF878B           -
+                 WHERE (EMPLOYEE-ID-2     =  EMP, -
+                        INV-STR-DATE-2   >= '0')  -  
+                 MAX (1)
+
+       POSX    = SUBSTR (POS,1,5)				 
+       PRT     = choose ('N' IF (POSX = 'DUMMY'), -
+                         'Y')
+
+%*
+%* Get Primary Reporting Group info from MSF870
+       PRC     = PRIM-RPT-GRP OF MSF870 -
+                 WHERE (POSITION-ID    = POS)
+       TITLE   = POS-TITLE               VIA (PRC)
+%*
+       PRC-1   = substr (PRC,1,4)
+       PRC-2   = substr (PRC,5,4)
+       PRC-3   = substr (PRC,9,4)
+       PRC-4   = substr (PRC,13,4)
+       PRC-5   = substr (PRC,17,4)
+       PRC-6   = substr (PRC,21,4)
+       PRC-7   = substr (PRC,25,4)
+       PRC-8   = substr (PRC,29,4)
+       PRC-9   = substr (PRC,33,4)
+       PRC-10  = substr (PRC,37,4)
+%*
+       PRC-OK1 = choose ('Y' IF (PRCI-1 <> SPACES, PRCI-1 = PRC-1), -
+                         'Y' IF (PRCI-1  = SPACES), -
+                         'N')
+       PRC-OK2 = choose ('Y' IF (PRCI-2 <> SPACES, PRCI-2 = PRC-2), -
+                         'Y' IF (PRCI-2  = SPACES), -
+                         'N')
+       PRC-OK3 = choose ('Y' IF (PRCI-3 <> SPACES, PRCI-3 = PRC-3), -
+                         'Y' IF (PRCI-3  = SPACES), -
+                         'N')
+       PRC-OK4 = choose ('Y' IF (PRCI-4 <> SPACES, PRCI-4 = PRC-4), -
+                         'Y' IF (PRCI-4  = SPACES), -
+                         'N')
+       PRC-OK5 = choose ('Y' IF (PRCI-5 <> SPACES, PRCI-5 = PRC-5), -
+                         'Y' IF (PRCI-5  = SPACES), -
+                         'N')
+       PRC-OK6 = choose ('Y' IF (PRCI-6 <> SPACES, PRCI-6 = PRC-6), -
+                         'Y' IF (PRCI-6  = SPACES), -
+                         'N')
+       PRC-OK7 = choose ('Y' IF (PRCI-7 <> SPACES, PRCI-7 = PRC-7), -
+                         'Y' IF (PRCI-7  = SPACES), -
+                         'N')
+       PRC-OK8 = choose ('Y' IF (PRCI-8 <> SPACES, PRCI-8 = PRC-8), -
+                         'Y' IF (PRCI-8  = SPACES), -
+                         'N')
+       PRC-OK9 = choose ('Y' IF (PRCI-9 <> SPACES, PRCI-9 = PRC-9), -
+                         'Y' IF (PRCI-9  = SPACES), -
+                         'N')
+      PRC-OK10 = choose ('Y' IF (PRCI-10 <> SPACES, PRCI-10 = PRC-10), -
+                         'Y' IF (PRCI-10  = SPACES), -
+                         'N')
+%*
+       PR-SEL  = choose ('Y' IF (PRC-OK1 = 'Y', -
+                                 PRC-OK2 = 'Y', -
+                                 PRC-OK3 = 'Y', -
+                                 PRC-OK4 = 'Y', -
+                                 PRC-OK5 = 'Y', -
+                                 PRC-OK6 = 'Y', -
+                                 PRC-OK7 = 'Y', -
+                                 PRC-OK8 = 'Y', -
+                                 PRC-OK9 = 'Y', -
+                                 PRC-OK10 = 'Y'), -
+                         'N')
+%*
+%* Get Primary Reporting Code description from MSF808
+       PRCDESC = PRC-NAME OF MSF808 -
+                 WHERE (PRIM-RPT-CODES = PRC)
+%*
+%* Get Contributor No from MSF845 file
+       C-ID   = CONTRIB-ID OF MSF845 -
+                WHERE (EMPLOYEE-ID  = EMP, -
+                       BEN-PLAN-ID >= SPACES) -
+                MAX (1)
+%* Get Personal info from MSF810 file.
+       A       = FIRST-NAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = EMP)
+       ENAME   = SURNAME        VIA (A)
+       B       = SECOND-INITIAL VIA (A)
+       D       = RES-ADDRESS-1  VIA (A)
+       Y       = RES-ADDRESS-2  VIA (A)
+       L       = RES-ADDRESS-3  VIA (A)
+       F       = RES-STATE      VIA (A)
+       C       = RES-POSTCODE   VIA (A)
+%*
+       SORDER  = choose (ENAME IF (%ORDER% = 'A'), -
+                         EMP)
+%*
+       ADDR1BL = SUBSTR(D,21,24)     D-PIC (X(4))
+       ADDR1DL = SUBSTR(D,1,20)      D-PIC (X(20))
+       ADDR1EL = SUBSTR(D,1,30)      D-PIC (X(30))
+       ADDR1   = choose(ADDR1DL IF(ADDR1BL = SPACES), ADDR1EL)
+%*
+       ADDR2BL = SUBSTR(Y,11,14)     D-PIC (X(4))
+       ADDR2DL = SUBSTR(Y,1,10)      D-PIC (X(10))
+       ADDR2EL = SUBSTR(Y,1,18)      D-PIC (X(18))
+       ADDRA   = choose(ADDR2DL IF(ADDR2BL = SPACES), ADDR2EL)
+       ADDR23  = catenate (ADDRA,' ',L)
+       ADDR2   = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION      = 'P', -
+                        INP-STRING  = ADDR23)
+%*
+       ADDR    = CATENATE(ADDR1, ',',  ADDR2)
+%*
+       ADDREP  = CATENATE (ADDR1,' ',ADDR2,' ',L,' ',F,' ',G)
+       ADDRSUB = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION      = 'P', -
+                        INP-STRING  = ADDREP)
+%* 
+       T1      = EMPLOYEE-CLASS OF MSF820 -
+                 WHERE (EMPLOYEE-ID = EMP)
+       PGROUP  = PAY-GROUP      VIA (T1)
+       P       = RPT-PHY-LOC    VIA (T1)
+%*
+       T       = choose ('F/T' IF (T1 = 'F'), -
+                         'P/T' IF (T1 = 'P'), -
+                         'CAS' IF (T1 = 'C'), -
+                         'UNK')
+%* EF0807 *** Start ***  This table is no longer required 
+%*       PGS     = ASSOC-REC OF MSF010            -
+%*                 WHERE (TABLE-TYPE    = '#EXC', -
+%*                        TABLE-CODE    = 'TRR76U')
+%*       PG1     = SUBSTR(PGS ,1 ,3)
+%*       PG2     = SUBSTR(PGS ,4 ,3)
+%*       PG3     = SUBSTR(PGS ,7 ,3)
+%*       PG4     = SUBSTR(PGS ,10,3)
+%*       PG5     = SUBSTR(PGS ,13,3)
+%*
+%*       SELPG   = CHOOSE ('Y' IF (PG1 = PGROUP AND PG1 <> SPACES), -
+%*                         'Y' IF (PG2 = PGROUP AND PG2 <> SPACES), -
+%*                         'Y' IF (PG3 = PGROUP AND PG3 <> SPACES), -
+%*                         'Y' IF (PG4 = PGROUP AND PG4 <> SPACES), -
+%*                         'Y' IF (PG5 = PGROUP AND PG5 <> SPACES), -
+%*                         'N')
+%* EF0807 *** End ***
+
+%* Check for Pay Group parameter.
+       PRT2    = choose ('Y' IF (%PAYG% > SPACES AND %PAYG% = PGROUP), -
+                         'Y' IF (%PAYG% = SPACES), -
+                         'N')
+%*
+%* Combine Position Checking, Pay Group Checking and PRC together for printing.
+       FLAG1   = choose ('Y' IF (PRT = 'Y', PRT2 = 'Y', PR-SEL = 'Y'), -
+                         'N')
+%*
+       ET      = choose (1 IF (FLAG1 = 'Y'),-
+                         0)
+       TTOT    = total (ET) D-PIC (Z(5)9)
+%*
+%* ---------------   End  Of  Program   ---------------------------------------

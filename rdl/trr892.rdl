@@ -1,0 +1,315 @@
+%PROGRAM-ID
+       TRR892
+%AUTHOR
+       Ventyx
+%ROUTINES
+       MSSDAT
+%*
+%NARRATIVE
+      **************************************************************************
+      **  This report will produce both a csv output file and report.
+      **  Exception Report - Use of Work Codes.
+      **
+      **  This report will pick up all instances of nominated allowances for
+      **  which Transgrid Payroll can monitor.  The report can be run for a
+      **  current pay period or historical transactions.  Users can run this
+      **  report as required.
+      **
+      **************************************************************************
+      **  Revision History
+      **
+      **  02-May-2013 a9is6175      MO164 (Version 0001)
+      **  ......................... Modified to version 0001 for Ellipse 8 migration.                           
+      **  ......................... Changed SELECTIF into WHERE on %SELECTION,
+      **  ......................... Removed unreference variable 
+      **  ......................... (FILE-HDR,RUNNO,PHY-LOC,PLOC).
+      **  15-Oct-2012 O Santa-Ana   Initial Coding.
+      **
+      **************************************************************************
+%FILES
+       MFILE = MSF820
+       AFILE = MSF891A
+       LFILE = MSF010
+       LFILE = MSF810
+       LFILE = MSF801
+       LFILE = MSF817
+       LFILE = MSF898
+       OFILE = TRT892A
+       RFILE = TRR892A
+%VERSION
+        0001
+%SELECTION
+       WHERE (EMPLOYEE-ID >= SPACES)
+       REJECTIF (PAY-LOCATION <> %PAYLOC% , %PAYLOC% <> SPACES)
+%REPORT
+       A
+%REPORT-TITLE
+       'Exception Report - Use of Work Codes'
+%BREAK-FIELDS
+      DUM
+      GRP-FLD
+      WRKC
+%ORDER
+      GRP-FLD    TEXT 'Pay Location (if requested)'
+      WRKC       TEXT 'Work Code'
+      EMPNAME    TEXT 'Employee Name'
+      TRNDATE    TEXT 'Transaction Date'
+      FR-TIME    TEXT 'Transaction Start Time'
+%PAGE HEADING
+ {DT-FROM} '-' {DT-TO  }
+'Employee         Employee                         Day Date       Rostered   Rostered  Rostered  Work Code  Work Code  Status'
+'ID               Name                                            Work Code  Start Tm  Stop Tm   Start Tm   Stop Tm'
+%BREAK GRP-FLD HEADER
+<IF %GRP% = 'Y'>
+      'Pay Location: '{PAY-LOC}' - '{PLDESC                      }
+
+<ENDIF>
+%BREAK WRKC HEADER
+<IF WRKC <> SPACES>
+  <IF TST-1 = 'Y' OR TST-STAT = 'Y' OR TST-APPR = 'Y'>
+       {WRKC}' - '{WKC-DESC                    }
+  <ENDIF>
+<ENDIF>
+%DETAIL
+<IF WRKC <> SPACES>
+  <IF TST-1 = 'Y' OR TST-STAT = 'Y' OR TST-APPR = 'Y'>
+ {EMP          }  {EMPNAME                       } DDD {TDT     } XXX        MMMMMMM   NNNNNNN   {FR-TIME}  PPPPPPP    {STATUS  }
+  <ENDIF>
+<ENDIF>
+%SUMMARY
+'(end of report)'
+%*
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 880
+%BREAK DUM HEADER
+'Pay Location, Pay Location Description, Employee ID, Surname, First Name, Tran Date, Sequence No, Rostered -
+Work Code, Rostered Work Code Description, Rostered Start Time, Rostered Stop Time, Work Code, Work Code Description, Start Time, -
+Stop Time, Meal Break Start, Meal Break Stop, Units, Pay Period No, Reverse Status, Transaction Status, Batch ID, -
+Trans Location From, Trans Location To, Trans Reason, Worked Thru Meal Break, Paid Thru Meal Break, Adjoins Prev Day, -
+Absence Hours, Leave Reason, Leave Request Start Date, Leave Type, Leave Start Date PIA, Leave End Date PIA, Claim No, -
+Absence Authority, Costing Indicator, Cost Code, Work Order, Transaction Modified, Created Date, Created Time, -
+Created Employee, Approved Date, Approved Time, Approved Employee, Last Change Ref, Last Mod Date, Last Mod Time, -
+Last Mod Employee'
+%DETAIL
+<IF WRKC <> SPACES>
+  <IF TST-1 = 'Y' OR TST-STAT = 'Y' OR TST-APPR = 'Y'>
+{PAY-LOC}C{PLDESC                  }C{EMP     }C{EMPNAME                     }C{TRNDATE }CSSSCXXXC{WKC-DESC2                   }C -
+MMMMMMMCNNNNNNNCWWC{WKC-DESC                    }COOOOOOOCPPPPPPPC{MBST }C{MBED }C{UNITS891 }CTTTCRRRRCAAAACBBBC{LFR}C{LTO}CEEEE -
+CFCGCHC{ABSHRS}CLC{LVRQSTD }CUC{LVSTDT  }C{LVENDDT }C{CLAIM   }C{AAU}CVC{COSTCDE                    }C{WO    }CZC{CREATEDT}C -
+{CRTM }C{CREMPID }C{APPRDT  }C{APTM  }C{APPREMP }C{LCR     }C{LM-DATE }C{LMTM }C{LM-USER }
+  <ENDIF>
+<ENDIF>
+%REQUEST-PARAMETERS
+   PAYLOC    PIC (X(2))  TEXT 'Pay Location          - Blank for All : '
+   CURRENT   PIC (X(1))  TEXT 'Current Period Only (Y)es (N)o        : '
+   PERIODS   PIC (9(3))  TEXT 'Current Pay Periods to Process        : '
+   DATEFR    PIC (X(9))  TEXT 'Transaction Date From                 : '
+   DATETO    PIC (X(9))  TEXT 'Transaction Date To                   : '
+   WCODE1    PIC (X(2))  TEXT 'Work Code 1           - Blank for All : '
+   WCODE2    PIC (X(2))  TEXT 'Work Code 2                           : '
+   WCODE3    PIC (X(2))  TEXT 'Work Code 3                           : '
+   WCODE4    PIC (X(2))  TEXT 'Work Code 4                           : '
+   WCODE5    PIC (X(2))  TEXT 'Work Code 5                           : '
+   WCODE6    PIC (X(2))  TEXT 'Work Code 6                           : '
+   WCODE7    PIC (X(2))  TEXT 'Work Code 7                           : '
+   WCODE8    PIC (X(2))  TEXT 'Work Code 8                           : '
+   WCODE9    PIC (X(2))  TEXT 'Work Code 9                           : '
+   WCODE10   PIC (X(2))  TEXT 'Work Code 10                          : '
+   GRP       PIC (X(1))  TEXT 'Group By Region (Y)es (N)o            : '
+%*
+%VARIABLES
+%*
+%* Parameters
+%*
+   D-FR      = %DATEFR%
+   D-TO      = %DATETO%
+   PDS       = %PERIODS%
+   CURSW     = %CURRENT%
+%*
+%* MSF820
+%*
+   PAY-LOC   = PAY-LOCATION
+   EMP       = EMPLOYEE-ID
+   PG        = PAY-GROUP
+%*
+%* MSF010 - PAYL
+%*
+   PLDESC    = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'PAYL', -
+                         TABLE-CODE = PAY-LOC)
+%*
+%* MSF810
+%*
+   SNAME     = SURNAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = EMP)
+   FNAME     = FIRST-NAME VIA (SNAME)
+%* EMPNAME   = CATENATE (SNAME,' ',FNAME)
+%*
+   EMPGET   = HRGET (EMPLOYEE-ID FROM('MSF810,MSSEMP') KEY(EMPLOYEE-ID = EMP))
+   EMPNAME  = FORMATTED-NAME VIA (EMPGET)
+%*
+%* MSF801-PG
+%* Obtain Current Period End Date for Employee's Pay Group
+%*
+   PP-END    = CUR-END-DT-PG OF MSF801 -
+                  WHERE (CNTL-REC-TYPE = 'PG', -
+                         CNTL-KEY-REST = PG)
+%*
+%*
+%* Use MSSDAT to obtain the Current Pay Period End Date
+%*
+%*
+   DAYSP     = CALC (PDS * -7) D-PIC (S9(6))
+   PP-START  = DATE2 OF MSSDAT -
+                   WHERE (OPTION = '1', -
+                          DATE1 = PP-END ,-
+                          DAYS = DAYSP)
+%*
+%* MSF891
+%* Obtain Allowance Transactions
+%*
+%* Firstly, choose the appropriate date, depending on the Current Period
+%* Parameter
+%*
+   DT-FROM   = CHOOSE (PP-START IF (CURSW = 'Y'), D-FR)
+   DT-TO     = CHOOSE (PP-END   IF (CURSW = 'Y'), D-TO)
+%*
+   WRKC      = WORK-CODE FROM MSF891A -
+                  WHERE (EMPLOYEE-ID-2 = EMP, -
+                         TRN-DATE-2   >= DT-FROM, -
+                         TRN-DATE-2   <= DT-TO) -
+                  REJECTIF (PAY-GROUP <> PG) -
+                  SELECTIF (%WCODE1% <> SPACES, WORK-CODE = %WCODE1%) -
+                  SELECTIF (%WCODE2% <> SPACES, WORK-CODE = %WCODE2%) -
+                  SELECTIF (%WCODE3% <> SPACES, WORK-CODE = %WCODE3%) -
+                  SELECTIF (%WCODE4% <> SPACES, WORK-CODE = %WCODE4%) -
+                  SELECTIF (%WCODE5% <> SPACES, WORK-CODE = %WCODE5%) -
+                  SELECTIF (%WCODE6% <> SPACES, WORK-CODE = %WCODE6%) -
+                  SELECTIF (%WCODE7% <> SPACES, WORK-CODE = %WCODE7%) -
+                  SELECTIF (%WCODE8% <> SPACES, WORK-CODE = %WCODE8%) -
+                  SELECTIF (%WCODE9% <> SPACES, WORK-CODE = %WCODE9%) -
+                  SELECTIF (%WCODE10% <> SPACES, WORK-CODE = %WCODE10%)
+%*
+   TRNDATE   = TRN-DATE VIA (WRKC)
+   SEQNO     = SEQ-NO VIA (WRKC)
+   FR-TIME   = FROM-TIME VIA (WRKC)
+   ED-TIME   = END-TIME VIA (WRKC)
+   TRAPPST   = TRAN-APPR-STATUS VIA (WRKC)
+   TRREVST   = REVERSE-STATUS VIA (WRKC)
+   MBST      = MEAL-BRK-START VIA (WRKC) D-PIC (-(3)9.99)
+   MBED      = MEAL-BRK-STOP VIA (WRKC) D-PIC (-(3)9.99)
+   UNITS891  = UNITS VIA (WRKC) D-PIC (-(8)9.99)
+   PAYPERNO  = PAY-PER-NO VIA (WRKC)
+   BATCHID   = BATCH-ID VIA (WRKC)
+   LFR       = TRAN-LOC-FR VIA (WRKC)
+   LTO       = TRAN-LOC-TO VIA (WRKC)
+   TRREAS    = TRAN-REASON VIA (WRKC)
+   WTMB      = WORKED-THRU-MB VIA (WRKC)
+   PTMB      = WORKED-THRU-PB VIA (WRKC)
+   ADJPD     = ADJOINS-PREV-DAY VIA (WRKC)
+   ABSHRS    = ABSENCE-HOURS VIA (WRKC) D-PIC (-(3)9.99)
+   LVREAS    = LVE-REASON VIA (WRKC)
+   LVRQSTD   = LR-LVE-ST-DATE VIA (WRKC) FORMAT (DATE)
+   LVTYPE    = LR-LEAVE-TYPE VIA (WRKC)
+   LVSTDT    = LVE-ST-DATE VIA (WRKC) FORMAT (DATE)
+   LVENDDT   = LVE-END-DATE VIA (WRKC) FORMAT (DATE)
+   CLAIM     = CLAIM-NO VIA (WRKC)
+   AAU       = ABS-AUTH VIA (WRKC)
+   COSTIND   = COST-IND VIA (WRKC)
+   COSTCDE   = COSTING-CODE VIA (WRKC)
+   WO        = WORK-ORDER VIA (WRKC)
+   TRANMOD   = TRAN-CHANGED VIA (WRKC)
+   CREATEDT  = CREATED-DATE VIA (WRKC) FORMAT (DATE)
+   CRTM      = CREATED-TIME-9 VIA (WRKC) D-PIC (-(3)9.99)
+   CREMPID   = CREATED-EMP-ID VIA (WRKC)
+   APPRDT    = APPROVED-DATE VIA (WRKC) FORMAT (DATE)
+   APTM      = APPROVED-TIME-9 VIA (WRKC) D-PIC (-(3)9.99)
+   APPREMP   = APPROVED-EMP-ID VIA (WRKC)
+   LCR       = LAST-CHANGE-REF VIA (WRKC)
+   LMDT      = LAST-MOD-DATE VIA (WRKC)
+   LM-DATE   = LMDT FORMAT (DATE)
+   LMTM      = LAST-MOD-TIME VIA (WRKC)
+   LM-USER   = LAST-MOD-USER VIA (WRKC)
+%*
+%* MSF801-R1
+%* Obtain Work Code description
+%*
+   PHWK      = CATENATE ('***', WRKC)
+   WKC-DESC  = TNAME-R1 OF MSF801 -
+                 WHERE (CNTL-REC-TYPE = 'R1', -
+                        CNTL-KEY-REST = PHWK)
+%*
+%* MSF898
+%* Rosters
+%*
+   WK898     = WORK-CODE OF MSF898 -
+                  WHERE (EMPLOYEE-ID = EMP, -
+                         TRN-DATE = TRNDATE, -
+                         TRN-STATUS >= SPACES) -
+                         MAX (1)
+%*
+   RSTARTTM  = ROST-STR-TIME VIA (WK898)
+   RENDTM    = ROST-STOP-TIME VIA (WK898)
+%*
+%* MSF801-R1
+%* Obtain Work Code description for the MSF898-WORK-CODE
+%*
+   PHWK898   = CATENATE ('***', WK898)
+   WKC-DESC2 = TNAME-R1 OF MSF801 -
+                 WHERE (CNTL-REC-TYPE = 'R1', -
+                        CNTL-KEY-REST = PHWK898)
+%*
+%*
+%* Misc. calculated fields for printing, totals etc.
+%*
+   D         = DAY-NAME OF MSSDAT -
+                   WHERE (OPTION = '6', -
+                          DATE1 = TRNDATE)
+%*
+   GRP-FLD   = CHOOSE (PAY-LOC IF (%GRP% = 'Y'), SPACES)
+%*
+   RUN-DT    = RUN-DATE OF MSF817 -
+                 WHERE    (PAY-GROUP = PG, -
+                           INV-END-DATE >= SPACES) -
+                 SELECTIF (PAY-RUN-TYPE = 'U') -
+                 MAX (1)
+%*
+   RUN-TM    = RUN-TIME VIA (RUN-DT)
+%*
+   S         = SEQNO
+   W         = WRKC
+   X         = WK898
+   A         = TRAPPST
+   R         = TRREVST
+   M         = RSTARTTM D-PIC (-(3)9.99)
+   N         = RENDTM D-PIC (-(3)9.99)
+   O         = FR-TIME D-PIC (-(3)9.99)
+   P         = ED-TIME D-PIC (-(3)9.99)
+   T         = PAYPERNO
+   B         = BATCHID
+   E         = TRREAS
+   F         = WTMB
+   G         = PTMB
+   H         = ADJPD
+   L         = LVREAS
+   U         = LVTYPE
+   V         = COSTIND
+   Z         = TRANMOD
+   TDT       = TRNDATE FORMAT (DATE)
+%*
+   C         = ',' CONSTANT
+   Q         = '~' CONSTANT
+   STATUS    = CATENATE (TRAPPST,'/',TRREVST)
+   DUMMY     = 'Y'
+   DUM       = choose ('Y' IF (EMP = EMP), DUMMY)
+   TST-APPR  = choose ('Y' IF (TRAPPST = 'APPR'), 'N')
+   TST-1     = choose ('Y' IF (LMDT > RUN-DT AND -
+                               LMTM > RUN-TM AND -
+                               TRAPPST = 'PAID' AND -
+                               TRREVST = 'RVSD'), 'N')
+   TST-STAT  = choose ('Y' IF (TRAPPST = 'PAID' AND -
+                               TRREVST = 'RPLD'), 'N')
+%*
+%* End of Program

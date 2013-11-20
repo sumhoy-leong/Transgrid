@@ -1,0 +1,276 @@
+%PROGRAM-ID
+       TRR89Q
+%AUTHOR
+       Ventyx
+%ROUTINES
+       MSSDAT
+       MSSTIM
+%*
+%NARRATIVE
+      **************************************************************************
+      **
+      **  Exception Report - Overtime Claimed Within Minimum Period
+      **
+      **  This report is to produce all instances of overtime work codes being
+      **  claimed within the minimum payment period after the commencement of
+      **  another overtime work code.  A hardcopy output is required.
+      **
+      **************************************************************************
+      **  Revision History
+      **
+      **  10-Dec-2012 O Santa-Ana   Initial Coding.
+      **
+      **************************************************************************
+%FILES
+       MFILE = MSF820
+       AFILE = MSF891
+       LFILE = MSF010
+       LFILE = MSF810
+       LFILE = MSF801
+       LFILE = MSF817
+       LFILE = MSF891
+       LFILE = MSF8C2
+       RFILE = TRR89QA
+%VERSION
+        001
+%SELECTION
+       SELECTIF (EMPLOYEE-ID >= SPACES)
+       REJECTIF (PAY-LOCATION <> %PAYLOC% , %PAYLOC% <> SPACES)
+%REPORT
+       A
+%REPORT-TITLE
+       'Exception Report - Overtime Claimed Within Minimum Period'
+%BREAK-FIELDS
+      DUM
+      PAY-LOC
+%ORDER
+      PAY-LOC    TEXT 'Pay Location (if requested)'
+      EMPNAME    TEXT 'Employee Name'
+      TRNDATE    TEXT 'Transaction Date'
+      FR-TIME    TEXT 'Transaction Start Time'
+%PAGE HEADING
+'Pay Period:' YYYYYYYY
+'Employee         Employee                         Day Date       Work  Work Code  Work Code  Min Prd  Status'
+'ID               Name                                            Code  Start Tm   Stop Tm    End'
+%BREAK PAY-LOC HEADER
+<IF WRKC <> SPACES>
+      'Pay Location: '{PAY-LOC}' - '{PLDESC                      }
+<ENDIF>
+%DETAIL
+<IF WRKC <> SPACES>
+ <IF ST-PR-F = 'Y' AND MINTST = 'Y'>
+ {EMP          }  {EMPNAME                       } DDD {TDT     } WWW   {FR-TIME}  PPPPPPP    EEEEEEE  {STATUS  }
+ <ENDIF>
+<ENDIF>
+%SUMMARY
+'(end of report)'
+%*
+%REQUEST-PARAMETERS
+   PAYLOC    PIC (X(2))  TEXT 'Pay Location                - Blank for All  : '
+   PERIODS   PIC (9(3))  TEXT 'Current Pay Periods to Process               : '
+   WCODE1    PIC (X(2))  TEXT 'Exclude Travel Time Work Code 1 - Mandatory  : '
+   WCODE2    PIC (X(2))  TEXT 'Exclude Travel Time Work Code 2              : '
+   WCODE3    PIC (X(2))  TEXT 'Exclude Travel Time Work Code 3              : '
+   WCODE4    PIC (X(2))  TEXT 'Exclude Travel Time Work Code 4              : '
+   WCODE5    PIC (X(2))  TEXT 'Exclude Travel Time Work Code 5              : '
+   WCODE6    PIC (X(2))  TEXT 'Exclude Travel Time Work Code 6              : '
+   WCODE7    PIC (X(2))  TEXT 'Exclude Travel Time Work Code 7              : '
+   WCODE8    PIC (X(2))  TEXT 'Exclude Travel Time Work Code 8              : '
+   WCODE9    PIC (X(2))  TEXT 'Exclude Travel Time Work Code 9              : '
+   WCODE10   PIC (X(2))  TEXT 'Exclude Travel Time Work Code 10             : '
+%*
+%VARIABLES
+%*
+%* Parameters
+%*
+   PLOC      = %PAYLOC%
+   PDS       = %PERIODS%
+%*
+%* MSF820
+%*
+   PAY-LOC   = PAY-LOCATION
+   EMP       = EMPLOYEE-ID
+   PG        = PAY-GROUP
+   PHY-LOC   = RPT-PHY-LOC
+   AWARD     = RPT-AWARD-CODE
+%*
+%* MSF010 - PAYL
+%*
+   PLDESC    = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'PAYL', -
+                         TABLE-CODE = PAY-LOC)
+%*
+%* MSF810
+%*
+   SNAME     = SURNAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = EMP)
+   FNAME     = FIRST-NAME VIA (SNAME)
+%* EMPNAME   = CATENATE (SNAME,' ',FNAME)
+%*
+   EMPGET   = HRGET (EMPLOYEE-ID FROM('MSF810,MSSEMP') KEY(EMPLOYEE-ID = EMP))
+   EMPNAME  = FORMATTED-NAME VIA (EMPGET)
+%*
+%* MSF801-PG
+%* Obtain Current Period End Date for Employee's Pay Group
+%*
+   PP-END    = CUR-END-DT-PG OF MSF801 -
+                  WHERE (CNTL-REC-TYPE = 'PG', -
+                         CNTL-KEY-REST = PG)
+%*
+   RUNNO     = CUR-PRD-NO-PG VIA (PP-END)
+%*
+%*
+%* Use MSSDAT to obtain the Current Pay Period End Date
+%*
+%*
+   DAYSP     = CALC (PDS * -7) D-PIC (S9(6))
+   PP-START  = DATE2 OF MSSDAT -
+                   WHERE (OPTION = '1', -
+                          DATE1 = PP-END ,-
+                          DAYS = DAYSP)
+%*
+%* MSF891
+%* Obtain Allowance Transactions
+%*
+   WRKC      = WORK-CODE FROM MSF891 -
+                  WHERE (PAY-GROUP = PG, -
+                         TRN-DATE  >= SPACES) -
+                  REJECTIF (TRN-DATE < PP-START) -
+                  REJECTIF (TRN-DATE > PP-END) -
+                  SELECTIF (EMPLOYEE-ID = EMP) -
+                  REJECTIF (WORK-CODE = %WCODE1%) -
+                  REJECTIF (WORK-CODE = %WCODE2%) -
+                  REJECTIF (WORK-CODE = %WCODE3%) -
+                  REJECTIF (WORK-CODE = %WCODE4%) -
+                  REJECTIF (WORK-CODE = %WCODE5%) -
+                  REJECTIF (WORK-CODE = %WCODE6%) -
+                  REJECTIF (WORK-CODE = %WCODE7%) -
+                  REJECTIF (WORK-CODE = %WCODE8%) -
+                  REJECTIF (WORK-CODE = %WCODE9%) -
+                  REJECTIF (WORK-CODE = %WCODE10%)
+%*
+   TRNDATE   = TRN-DATE VIA (WRKC)
+   FR-TIME   = FROM-TIME VIA (WRKC)
+   ED-TIME   = END-TIME VIA (WRKC)
+   TRAPPST   = TRAN-APPR-STATUS VIA (WRKC)
+   TRREVST   = REVERSE-STATUS VIA (WRKC)
+   PAYPERNO  = PAY-PER-NO VIA (WRKC)
+
+%*
+%* MSF801-R1
+%* Obtain Work Code description
+%* Obtain Shift Type
+%*
+   PHWK      = CATENATE ('***', WRKC)
+   WKC-DESC  = TNAME-R1 OF MSF801 -
+                 WHERE (CNTL-REC-TYPE = 'R1', -
+                        CNTL-KEY-REST = PHWK)
+%*
+   SH-TYPE   = SHIFT-TYPE-R1 VIA (WKC-DESC)
+   ST-F      = CHOOSE ('Y' IF (SH-TYPE = 'C' OR SH-TYPE = 'V'), 'N')
+%*
+%* MSF8C2
+%* Look up this file for the minimum hours for each overtime work code
+%*
+
+   MINHRS    = MIN-HRS-PD-C2 OF MSF8C2 -
+                 WHERE (AWARD-CODE-C2 = AWARD, -
+                        AWARD-DAY-CODE-C2 >= SPACES) -
+                        SELECTIF (WORK-CODE-C2 = WRKC) -
+                        MAX (1)
+%*
+%* MSF891
+%* Look-up again, but get the previous day's overtime codes
+%*
+
+   PREV-DT   = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = TRNDATE ,-
+                       DAYS   = -1)
+
+   WK891-PR  = WORK-CODE OF MSF891 -
+                WHERE (PAY-GROUP = PG, -
+                       TRN-DATE = PREV-DT, -
+                       EMPLOYEE-ID = EMP, -
+                       SEQ-NO >= SPACES) -
+                       MAX (1)
+
+%* I need the Shift Type of the Previous Day's Transaction
+
+%* MSF801-R1
+%* Obtain Work Code description
+%* Obtain Shift Type
+%*
+   PHWK-PR   = CATENATE ('***', WK891-PR)
+   ST-PR     = SHIFT-TYPE-R1 OF MSF801 -
+                 WHERE (CNTL-REC-TYPE = 'R1', -
+                        CNTL-KEY-REST = PHWK-PR)
+
+   ST-PR-F   = CHOOSE ('Y' IF (ST-PR = 'C' OR ST-PR = 'V'), 'N')
+%*
+%* MSF817
+%* Obtain run date and run time from this file
+%* This is only required if the current period is requested
+%*
+%*
+   INV-DT    = CALC (99999999 - PP-END)
+   INV-RUN   = CALC (999 - RUNNO)
+%*
+   RUN-DT    = RUN-DATE OF MSF817 -
+                 WHERE (PAY-GROUP = PG, -
+                        INV-END-DATE = INV-DT, -
+                        PAY-RUN-TYPE = 'U', -
+                        INV-RUN-NO = INV-RUN)
+%*
+   RUN-TM    = RUN-TIME VIA (RUN-DT)
+%*
+%* OK, now you've got a bunch of time calculations
+%* you need to do.
+%*
+   PR-FRTM   = FROM-TIME VIA (WK891-PR)
+   TRAP-PR   = TRAN-APPR-STATUS VIA (WRKC)
+   TRRE-PR   = REVERSE-STATUS VIA (WRKC)
+
+   CALCTM3   = CALC (PR-FRTM + MINHRS)
+   CALCTM2   = CALC (CALCTM - 24)
+
+   CALCTM    = CHOOSE (CALCTM3 IF (CALCTM <= 2400), CALCTM2)
+
+
+%* Perform the minimum hours check.
+%* As per the URS:
+
+%* Select the work code with the earliest start time, and add the minimum
+%* hours onto the start time plus the minimum hours from step 2
+%* onto the start time.
+
+%* If the Start time for any subsequent overtime work codes is before the
+%* end of the minimum period, include both work codes in the report.
+
+   MINTST    =  CHOOSE ('Y' IF (CALCTM < FR-TIME), 'N')
+   
+%*
+%* Misc. calculated fields for printing, totals etc.
+%*
+   D         = DAY-NAME OF MSSDAT -
+                   WHERE (OPTION = '6', -
+                          DATE1 = TRNDATE)
+%*
+   W         = WRKC
+   A         = TRAPPST
+   R         = TRREVST
+   O         = FR-TIME D-PIC (-(3)9.99)
+   P         = ED-TIME D-PIC (-(3)9.99)
+   E         = CALCTM D-PIC (-(3)9.99)
+   T         = PAYPERNO
+   Y         = PP-END FORMAT (DATE)
+   TDT       = TRNDATE FORMAT (DATE)
+%*
+   C         = ',' CONSTANT
+   Q         = '~' CONSTANT
+   STATUS    = CATENATE (TRAPPST,'/',TRREVST)
+   DUMMY     = 'Y'
+   DUM       = choose ('Y' IF (EMP = EMP), DUMMY)
+%*
+%* End of Program
+

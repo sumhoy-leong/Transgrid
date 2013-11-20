@@ -1,0 +1,151 @@
+%*** TRR23F.RDL
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%*** 
+%*** Revision History ***
+%*** 16-Aug-12  a9ir6369     MO164 (Version 0001)
+%***                         Reset version number to 0001 for E8 upgrade.
+%*** 20-MAR-02  D Diolaso    WCHG001706
+%***                         Initial coding.
+%***
+%*** 22-MAR-02  D Diolaso    WCHG001706
+%***                         Requested by Stuart to include 
+%***                         option to delete        
+%***                        
+%PROGRAM-ID
+       TRR23F
+%AUTHOR
+       DANNY DIOLASO
+%NARRATIVE
+       This program generates lists of Purch Requisitions with   
+       existing header record but nonexistent items  
+%VERSION
+        0001 
+%FILES
+        MFILE = MSF230
+        AFILE = MSF231
+        LFILE = MSF810
+        RFILE = TRR23FA
+        OFILE = TRO23FB
+%SELECTION
+        WHERE    (DSTRCT-CODE >= SPACES)
+        REJECTIF (REQUESTED-BY = SPACES)
+%ROUTINES
+        MSSDAT
+        MSSCNV
+%ORDER
+        DSTRCT-CODE      
+%BREAK-FIELDS
+        DSTRCT-CODE   
+%REPORT
+        A
+%CONTROL
+       PAGE-WIDTH = 132
+       COPY-REQUEST = TRB23F
+%REPORT-TITLE
+'Created Purch Requisitions With No Items'                  
+%BREAK DSTRCT-CODE HEADER                
+<IF %RUNOPTION% <> 'U'>
+'** District Code : '  {DS}
+
+<ENDIF>
+%PAGE HEADING           
+<IF %RUNOPTION% <> 'U'>
+                                 'PreqNo  Requested by                           Authorised by                        Creation Date'
+
+<ENDIF>
+%DETAIL
+<IF PREQ-I = SPACES AND %RUNOPTION% <> 'U'>
+                                  {PREQ}   EEEEE  {ENAME                       }  FFFFF  {PNAME                       }  {CDATE    }
+<ENDIF>
+%BREAK DSTRCT-CODE FOOTING
+<IF %RUNOPTION% <> 'U'>
+
+'>> Records extracted from ' {DS} ':' {TCOUNT}
+{UNDERLINE                                                                                                                         }
+
+<ENDIF>
+%SUMMARY
+<IF %RUNOPTION% <> 'U'>
+                                                  '>>>>> END OF REPORT <<<<<'
+<ENDIF>
+<IF %RUNOPTION% = 'U'>
+
+
+
+
+                                       'Option is Update - Please refer to report TRB23F'
+
+                                                  '>>>>> END OF REPORT <<<<<'
+<ENDIF>
+%OUTPUT-FILE
+       B
+%CONTROL
+       RECORD-LENGTH = 96
+%DETAIL
+<IF PREQ-I = SPACES AND %RUNOPTION% = 'U'>
+{DS}{PREQ}EEEEE{ENAME                       }FFFFF{PNAME                       }{CDATE    }BBBBB
+<ENDIF>
+%* I have to include a summary here to force at least a minimum of 1 record
+%* to the file regardless of whether a record has been extracted or not
+%SUMMARY
+{A }BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB{CT }
+%REQUEST-PARAMETERS
+       RUNOPTION     PIC (X(1))   TEXT '(R)eport or (U)pdate '
+%VARIABLES
+       A       = 'ZZZZ'    CONSTANT
+       B       = ' '       CONSTANT
+       PREQ    = PREQ-NO  
+       DS      = DSTRCT-CODE                 
+       REQBY   = REQUESTED-BY  
+       E       = SUBSTR (REQBY,6,5)
+       AUTHSD  = AUTHSD-BY         
+       F       = SUBSTR (AUTHSD,6,5)
+
+%*     Format creation date into DD/MM/YYYY format
+
+       CDATE-Y = SUBSTR (CREATION-DATE,1,4)
+       CDATE-M = SUBSTR (CREATION-DATE,5,2)
+       CDATE-D = SUBSTR (CREATION-DATE,7,2)
+       CDATE1  = CATENATE (CDATE-D, '/', CDATE-M, '/', CDATE-Y)
+       CDATE   = CHOOSE (CDATE1 IF (CDATE-Y > SPACES), SPACES)
+   
+%*     Browse through the item file
+
+       PREQ-I  = PREQ-ITEM-NO FROM MSF231         -
+                 WHERE   (DSTRCT-CODE   = DS,     -
+                          PREQ-NO       = PREQ,   -
+                          PREQ-ITEM-NO >= SPACES) -
+                 MAX (1)
+
+%*     Count the header records wikth no items
+
+       CTR     = CHOOSE (1 IF (PREQ-I = SPACES), 0)
+       TCOUNT  = TOTAL (CTR)        D-PIC (Z,ZZ9)
+       CT      = TOTAL (CTR)        D-PIC (9(5)) 
+
+%*     Get the name of the requestor
+
+       SSNAME  = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = REQBY)
+       SFNAME  = FIRST-NAME VIA (SSNAME)
+       SFSNAME = catenate (SSNAME,' ',SFNAME)
+       ENAME   = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION      = 'P', -
+                        INP-STRING  = SFSNAME)
+
+%*     Get the name of the authorising officer
+
+       ASNAME  = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = AUTHSD) IF AUTHSD > SPACES
+       AFNAME  = FIRST-NAME VIA (ASNAME)
+       AFSNAME = catenate (ASNAME,' ',AFNAME)
+       ANAME   = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION      = 'P', -
+                        INP-STRING  = AFSNAME) IF AUTHSD > SPACES
+
+      PNAME    = CHOOSE (ANAME IF (AUTHSD > SPACES), SPACES)
+%*
+%*                   *****  End of Program  *****
+%*

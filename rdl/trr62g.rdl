@@ -1,0 +1,73 @@
+%PROGRAM-ID
+    TRR62G
+%AUTHOR
+    MINCOM PTY LTD
+%MODULE
+    3001
+%VERSION
+    0001
+%* REVISION HISTORY
+%* 02-Aug-12   a9nh4814  MO164 (Version 0001)
+%* ..................... Reset version number to 0001 for E8 upgrade.
+%* 03-Mar-03   RYeung    WCHG014794
+%* ..................... Extract MSF622 work order details in MSF622 to CSV file
+%*
+%*
+%FILES
+    MFILE = MSF622
+    LFILE = MSF620
+    OFILE = TRT62GA
+%SELECTION
+    WHERE    (DSTRCT-CODE   =  %DISTRICT-CODE% , -
+              WORK-ORDER    >= SPACES)
+    SELECTIF (JOB-DUR-DATE  >= %IFRDTE%)
+    REJECTIF (JOB-DUR-CODE   <> %IDECODE% )
+    REJECTIF   (%ITODTE% <> SPACES, -
+              JOB-DUR-DATE > %ITODTE%)
+%*
+%ORDER
+     WORK-ORDER
+%*
+%OUTPUT-FILE
+     A
+%CONTROL
+       RECORD-LENGTH = 62 
+%BREAK-FIELDS
+    DUM
+    WORK-ORDER
+%BREAK DUM HEADER
+{PRTH1                                               }
+{PRTH2                                               }
+%DETAIL
+{WO    }S{WODESC                                }S{DH     }SCC
+%*
+%*
+%*
+%REQUEST-PARAMETERS
+       IDECODE  PIC (X(3))    TEXT 'Delay Code             :'
+       IFRDTE   PIC (X(8))    TEXT 'From date              : '
+       ITODTE   PIC (X(8))    TEXT 'To date                : '
+%*
+%VARIABLES
+%*
+%*  Constants
+%*
+       S         = ','                          CONSTANT
+       DUMMY     = 'Y'                          CONSTANT
+       WO       = WORK-ORDER
+       DUM       = choose ('Y' IF ( WO = WO ), DUMMY)
+       PRTH1     = 'Work Order,Work Order,Hours (From,Work Order Schedule'   CONSTANT
+       PRTH2     = 'Number,Description,Duration Hours),Completion Code'      CONSTANT
+%*
+%*  Main File MSF622 data
+%*
+       DH       = JOB-DUR-HOURS
+%*
+%* MSF620 file
+%*
+        C    = COMPLETED-CODE OF MSF620  -
+                         WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                                WORK-ORDER = WO)
+        WODESC = WO-DESC      VIA (C)
+
+

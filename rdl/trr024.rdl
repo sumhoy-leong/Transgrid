@@ -1,0 +1,131 @@
+%***  $Id: trr024.rdl,v 1.0 2008/01/21 13:05:00 elldev Exp $
+%***
+%*** Revision History
+%*** 01-Aug-12 a9nh4814       MO164  (Version 0001)
+%***                          Refined report to pass Transgrid RDL compiler:
+%***                          - Modified all RDL keywords to uppercase
+%***                          - Reset version number to 0001 for E8 upgrade
+%*** 21-Jan-08 E Fredeluces   SC1748452
+%***                          Initial Coding.
+%PROGRAM-ID
+    TRR024
+%AUTHOR
+    MINCOM PTY LTD
+%NARRATIVE
+    The program provides information on the last 
+    date that all positions in the hierarchy have
+    logged on to Ellipse.
+%VERSION
+     0001
+%FILES
+    MFILE = MSF020
+    LFILE = MSF760
+    LFILE = MSF810
+    LFILE = MSF870
+    LFILE = MSF878A
+    RFILE = TRR024A
+    OFILE = TRT024B
+%SELECTION
+    WHERE    (ENTRY-TYPE    = 'S', -
+              ENTITY       >= SPACES)
+    REJECTIF (DEFAULT-FLAG <> 'Y')
+
+    <IF %SIGNON1% <> SPACES>
+    SELECTIF (ENTITY        = %SIGNON1%, %SIGNON1% <> SPACES)
+    SELECTIF (ENTITY        = %SIGNON2%, %SIGNON2% <> SPACES)
+    SELECTIF (ENTITY        = %SIGNON3%, %SIGNON3% <> SPACES)
+    SELECTIF (ENTITY        = %SIGNON4%, %SIGNON4% <> SPACES)
+    SELECTIF (ENTITY        = %SIGNON5%, %SIGNON5% <> SPACES)
+    <ENDIF>
+%BREAK-FIELDS
+    DUM
+    EMPLOYEE-ID
+    EMP
+%ORDER
+%*  Sorted by Position-Id & Employee-Id
+    SORTKEY1
+    SORTKEY2
+%REPORT
+    A
+%TITLE
+'List of Positions Last Logged On Date'
+%PAGE HEADING
+'                                                      Last Logged  Primary'
+'Position     Position Title                             On Date      Pos   Sign-On  First-Name   Surname'     
+%DETAIL
+%BREAK EMPLOYEE-ID FOOTING
+<IF P-FLAG = 'Y'>
+ {POS     }   {POSTITLE                              }   {LOGDTE}      P    SSSSSS   {FNAME     } {SNAME                       }  
+<ENDIF>
+%SUMMARY
+
+{UNDERLINE                                                                                                                         }
+%*
+%* CSV File
+%OUTPUT-FILE
+    B
+%CONTROL
+    RECORD-LENGTH = 114
+%BREAK DUM HEADER
+{HDG                                                                                                             }
+%DETAIL
+%BREAK EMP FOOTING
+<IF P-FLAG = 'Y'>
+{POS     }C{POSTITLE                              }C{LOGDTE}CPCSSSSSSC{FNAME     }C{SNAME                       }C
+<ENDIF>
+%REQUEST-PARAMETERS
+      SIGNON1       PIC (X(10)) TEXT Sign-On Profile 1  (Blank for All)             : 
+      SIGNON2       PIC (X(10)) TEXT Sign-On Profile 2                              : 
+      SIGNON3       PIC (X(10)) TEXT Sign-On Profile 3                              :
+      SIGNON4       PIC (X(10)) TEXT Sign-On Profile 4                              :
+      SIGNON5       PIC (X(10)) TEXT Sign-On Profile 5                              :
+      SORTOPT       PIC (X(1))  TEXT Sort Option (1) By Position (2) By Employee-Id :
+%VARIABLES
+    C        = ','                                                        CONSTANT
+    HDG1     = 'Position,Position Title,Last Logged On Date,Primary Pos,' CONSTANT
+    HDG2     = 'Sign-On,First-Name,Surname'                               CONSTANT
+    HDG      = CATENATE (HDG1,HDG2)                                       CONSTANT
+    DUMMY    = 'Y'                                                        CONSTANT
+    DUM      = CHOOSE ('Y' IF (C = C), DUMMY)
+    S        = ENTITY
+    EMP      = EMPLOYEE-ID
+    LOGDTE   = LAST-ACC-DATE FORMAT (DATE)
+    S1       = SUBSTR (S,1,1)
+    SIG      = CHOOSE ('Y' IF (S1 = 'P'), -
+                       'Y' IF (S1 = 'C'), -
+                       'N')
+%*
+%*  MSF760
+    STAT     = EMP-STATUS OF MSF760 -
+               WHERE (EMPLOYEE-ID = EMP)
+%*
+%*  MSF810
+    FNAME    = FIRST-NAME OF MSF810 -
+               WHERE (EMPLOYEE-ID = EMP)
+    SNAME    = SURNAME VIA (FNAME)
+%*
+%*  MSF878
+    POS      = POSITION-ID OF MSF878A                   -
+               WHERE    (EMPLOYEE-ID-1    = EMP,        -
+                         PRIMARY-POS-1    = '0',        -
+                         INV-STR-DATE-1  >= SPACES)     -
+               REJECTIF (POS-STOP-DATE-1 <> '00000000') -
+               MAX   (1) 
+    P        = PRIMARY-POS VIA (POS)
+
+    SORTKEY1 = CHOOSE (POS IF (%SORTOPT% = '1'),-
+                       EMP)
+    SORTKEY2 = CHOOSE (EMP IF (%SORTOPT% = '2'),-
+                       POS)
+%*
+%*  MSF870
+    POSTITLE = POS-TITLE OF MSF870 -
+               WHERE (POSITION-ID = POS)
+%*
+    P-FLAG   = CHOOSE ('Y' IF (STAT  = 'A',    -
+                               SIG   = 'Y',    -
+                               POS  <> SPACE), -
+                       'N')
+%*
+%*           End Of Program
+%*

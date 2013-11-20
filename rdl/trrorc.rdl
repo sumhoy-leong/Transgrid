@@ -1,0 +1,304 @@
+%*
+%PROGRAM-ID
+   TRRORC
+%*
+%*
+%* WorkForce Planning extract for ORCA Eyes
+%*
+%* Processes all personnel
+%*     excluding staff categories of
+%*         ZA - Board of Directors
+%*         ZO - Dummy Employees
+%*         WC - Workers Comp purposes
+%*         WE - Industrial Work Experience
+%*
+%* Only interested in Primary Positions
+%* and higher duties positions
+%* (not secondary positions)
+%*
+%VERSION
+   003
+%*
+%FILES
+   MFILE = MSF760
+   AFILE = MSF878B
+   LFILE = MSF010
+   LFILE = MSF795
+   LFILE = MSF801
+   LFILE = MSF820
+   LFILE = MSF870
+   LFILE = MSF871
+   LFILE = MSF880
+   OFILE = TRTORCA
+%*
+%SELECTION
+   WHERE    (EMPLOYEE-ID >= SPACES)
+   REJECTIF (STAFF-CATEG = 'ZA')
+   REJECTIF (STAFF-CATEG = 'ZO')
+   REJECTIF (STAFF-CATEG = 'WC')
+   REJECTIF (STAFF-CATEG = 'WE')
+%*
+%ORDER
+   EMPLOYEE-ID  TEXT 'Employee'
+%*
+%BREAK-FIELDS
+   EMPLOYEE-ID
+%*
+%OUTPUT-FILE
+   A
+%*
+%BREAK EMPLOYEE-ID HEADING
+{EMP760  }VVVEVVV-
+{STATD             }VVV-
+LLLVVV{PHYLD                       }VVV-
+{BDAT  }VVV-
+{HDAT  }VVV-
+{RDAT  }VVV-
+{TDAT  }VVV-
+{ECLASSD}VVV-
+{FTE }VVV-
+{PAYRATE       }VVV-
+{PREF}VVV-
+{OTEXMPT }VVV-
+{SCOR}VVV{SCORD                  }VVV-
+{GENDD}VVV-
+SSVVV{STFCD                       }VVV-
+{ETHND               }VVV-
+{INDIGD                         }VVV-
+UVVV{UCODED                      }VVV-
+{BAL-A    }VVV-
+{BAL-L    }
+%*...............................................................................................................................132
+%DETAIL
+<IF POS878 <> SPACES>
+{EMP760  }VVVHVVVPVVV{POS870  }VVV{POSTITLE                              }VVV-
+{NSTRD }VVV{NENDD }VVVNNVVV{NREASD                      }VVV-
+{TSTRD }VVV{TENDD }VVVTTVVV{TREASD                      }VVV-
+{P2}VVV{PRC02D                      }VVV-
+{P3}VVV{PRC03D                      }VVV-
+{P4}VVV{PRC04D                      }VVV-
+QVVV-
+{PC05}VVV{PCLS05D                     }VVV-
+{PC06}VVV{PCLS06D                     }VVV-
+{RMIN}VVV-
+{RMAX}
+<ENDIF>
+%*
+%*  %CONTROL
+%*     RECORD-LENGTH = ???
+%*
+%VARIABLES
+   H         = 'H'
+   C         = 'C'
+   E         = 'E'
+   BLANK     = '                                                                                                    '
+   V         = ' | '
+   TODAY     = DATE()                                  CONSTANT
+   TODAY9    = CHOOSE (TODAY)            I-PIC (9(8))  CONSTANT
+   ITODAY9   = CALC (99999999 - TODAY9)  I-PIC (9(8))  CONSTANT
+   ITODAY    = CHOOSE (ITODAY9)          I-PIC (X(8))  CONSTANT
+%*
+   EMP760    = EMPLOYEE-ID
+   STAT760   = EMP-STATUS
+   STATD     = CHOOSE ('Active'              IF (STAT760 = 'A'), -
+                       'Inactive'            IF (STAT760 = 'I'), -
+                       'Terminated'          IF (STAT760 = 'Z'), -
+                       'Terminated this Pay' IF (STAT760 = 'X'), -
+                       SPACES) 
+   GEND      = GENDER
+   GENDD     = CHOOSE ('Male'                IF (GEND = 'M'), -
+                       'Female'              IF (GEND = 'F'), -
+                       'Unknown') 
+   ETYP760   = EMP-TYPE
+   ETYPD     = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'EMTY', -
+                      TABLE-CODE = ETYP760)
+   STFC      = STAFF-CATEG
+   S         = STFC
+   STFCD     = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'STFC', -
+                      TABLE-CODE = STFC)
+   BDAT      = BIRTH-DATE 
+   HDAT      = HIRE-DATE 
+   RDAT      = RETIRE-DATE 
+   TDAT      = TERM-DATE 
+   UCODE     = UNION-CODE
+   U         = UCODE
+   UCODED    = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'UN', -
+                      TABLE-CODE = UCODE)
+   PERS      = PERS-USER-FLD 
+   PERS05X   = SINGLE (PERS (5)) 
+   PERS05    = SUBSTR(PERS05X, 1, 1) 
+   ETHND     = CHOOSE ('Racial/Ethnic Minority'  IF (PERS05 = '1'), -
+                       SPACES) 
+   PERS06X   = SINGLE (PERS (6)) 
+   PERS06    = SUBSTR(PERS06X, 1, 1) 
+   INDIGD    = CHOOSE ('Aboriginal'                        IF (PERS06 = '1'), -
+                       'Torres Strait Islander'            IF (PERS06 = '2'), -
+                       'Aboriginal/Torres Strait Islander' IF (PERS06 = '3'), -
+                       'No'                                IF (PERS06 = '4'), -
+                       'Unknown') 
+%*
+   EMP820    = EMPLOYEE-ID OF MSF820 -
+               WHERE (EMPLOYEE-ID = EMP760)
+   PHYL      = RPT-PHY-LOC      VIA (EMP820)
+   L         = PHYL
+   PHYLD     = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'PHYL', -
+                      TABLE-CODE = PHYL)
+   ECLASS    = EMPLOYEE-CLASS   VIA (EMP820)
+   ECLASSD   = CHOOSE ('Full-Time'  IF (ECLASS = 'F'), -
+                       'Part-Time'  IF (ECLASS = 'P'), -
+                       'Casual'     IF (ECLASS = 'C'), -
+                       SPACES) 
+   CHOURS    = CONTRACT-HOURS   VIA (EMP820)
+   FTEC      = CALC (CHOURS / 35)         I-PIC (S9(3)V9(2))
+   FTE       = CHOOSE (1            IF (ECLASS = 'F'), -
+                       FTEC         IF (ECLASS = 'P'), -
+                       0)                 I-PIC (S9(3)V9(2))  D-PIC (ZZ9.99)
+   PAYRATE   = RPT-ANN-RATE     VIA (EMP820)                  D-PIC (Z(10)9.9999)
+   PREF      = RPT-RATE-REF     VIA (EMP820)
+   AWRD      = RPT-AWARD-CODE   VIA (EMP820)
+   AWRD801   = AWARD-CODE-C1 OF MSF801 -
+               WHERE (CNTL-REC-TYPE = 'C1', -
+                      CNTL-KEY-REST = AWRD)
+   PAIDOT    = PAID-OT-C1       VIA (AWRD801)
+   OTEXMPT   = CHOOSE ('Not Exempt' IF (PAIDOT = 'Y'), -
+                       'Exempt'     IF (PAIDOT = 'N'), -
+                       SPACES) 
+%*
+   E880-A    = EMPLOYEE-ID OF MSF880 -
+               WHERE (EMPLOYEE-ID = EMP760, -
+                      LEAVE-TYPE  = 'A')
+   STB-A     = LVE-ST-BALANCE   VIA (E880-A)
+   MAN-A     = LVE-MAN-ADJ      VIA (E880-A)
+   TAK-A     = LEAVE-TAKEN      VIA (E880-A)
+   ACC-A     = LVE-ACCRUED      VIA (E880-A)
+   ENB-A     = CALC (STB-A + MAN-A - TAK-A + ACC-A)   I-PIC (S9(5)V9(4))
+   BAL-A     = ENB-A                                  D-PIC (-(5)9.9999)
+%*
+   E880-L    = EMPLOYEE-ID OF MSF880 -
+               WHERE (EMPLOYEE-ID = EMP760, -
+                      LEAVE-TYPE  = 'L')
+   STB-L     = LVE-ST-BALANCE   VIA (E880-L)
+   MAN-L     = LVE-MAN-ADJ      VIA (E880-L)
+   TAK-L     = LEAVE-TAKEN      VIA (E880-L)
+   ACC-L     = LVE-ACCRUED      VIA (E880-L)
+   ENB-L     = CALC (STB-L + MAN-L - TAK-L + ACC-L)   I-PIC (S9(5)V9(4))
+   BAL-L     = ENB-L                                  D-PIC (-(5)9.9999)
+%*
+   E795      = EMPLOYEE-ID OF MSF795 - 
+               WHERE (EMPLOYEE-ID   = EMP760, -
+                      INV-EFF-DATE >= SPACES) -
+               MAX (1)
+   SCOR      = SUMM-RESULT      VIA (E795)
+   SCORD     = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'PA00', -
+                      TABLE-CODE = SCOR)
+%*
+%*
+%* Look through all position history.
+%* (ignore any secondary positions)
+%*
+   POS878    = POSITION-ID FROM MSF878B -
+               WHERE    (EMPLOYEE-ID-2 = EMP760, -
+                         INV-STR-DATE-2 >= SPACES) -
+               REJECTIF (PRIMARY-POS-2 = '1')
+   P         = PRIMARY-POS      VIA (POS878)
+   INVSD9    = INV-STR-DATE-9   VIA (POS878)
+   SD9       = CALC (99999999 - INVSD9)               I-PIC (9(8))
+   STRD      = CHOOSE (SD9)                           I-PIC (X(8))
+   ENDDX     = POS-STOP-DATE    VIA (POS878)
+   ENDD      = CHOOSE ('        ' IF (ENDDX = '00000000'), ENDDX) I-PIC (X(8))
+   REAS      = CHANGE-REASON    VIA (POS878)
+   R         = REAS
+   REASD     = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'TFRR', -
+                      TABLE-CODE = REAS)
+%*
+%*             DC - Deceased
+%*             DM - Dismissed
+%*             DS - Discharged
+%*             RG - Resigned
+%*             RI - Retired Ill Health
+%*             RT - Retired
+%*             RY - Redundancy
+%*             TE - Terminated
+%*             TW - Terminated W/Comp Pensioner
+%*             VR - Approved Early Retirement Sch
+%*
+   TERMREAS  = CHOOSE ('Y' IF (REAS = 'DC'), -
+                       'Y' IF (REAS = 'DM'), -
+                       'Y' IF (REAS = 'DS'), -
+                       'Y' IF (REAS = 'RG'), -
+                       'Y' IF (REAS = 'RI'), -
+                       'Y' IF (REAS = 'RT'), -
+                       'Y' IF (REAS = 'RY'), -
+                       'Y' IF (REAS = 'TE'), -
+                       'Y' IF (REAS = 'TW'), -
+                       'Y' IF (REAS = 'VR'), -
+                       'N')
+   TSTRD     = CHOOSE (STRD   IF (TERMREAS = 'Y'), '        ')
+   TENDD     = CHOOSE (ENDD   IF (TERMREAS = 'Y'), '        ')
+   T         = CHOOSE (REAS   IF (TERMREAS = 'Y'), '  ')
+   TREASD    = CHOOSE (REASD  IF (TERMREAS = 'Y'), '                              ')
+   NSTRD     = CHOOSE (STRD   IF (TERMREAS <> 'Y'), '        ')
+   NENDD     = CHOOSE (ENDD   IF (TERMREAS <> 'Y'), '        ')
+   N         = CHOOSE (REAS   IF (TERMREAS <> 'Y'), '  ')
+   NREASD    = CHOOSE (REASD  IF (TERMREAS <> 'Y'), '                              ')
+%*
+   POS870    = POSITION-ID OF MSF870 -
+               WHERE (POSITION-ID = POS878)
+   POSTITLE  = POS-TITLE        VIA (POS870)
+   PRC       = PRIM-RPT-GRP     VIA (POS870)
+   PRC01     = SUBSTR(PRC,1,4) I-PIC (X(4))
+   PRC01D    = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'PC01', -
+                      TABLE-CODE = PRC01)
+   PRC02     = SUBSTR(PRC,5,4) I-PIC (X(4))
+   PRC02D    = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'PC02', -
+                      TABLE-CODE = PRC02)
+   PRC03     = SUBSTR(PRC,9,4) I-PIC (X(4))
+   PRC03D    = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'PC03', -
+                      TABLE-CODE = PRC03)
+   PRC04     = SUBSTR(PRC,13,4) I-PIC (X(4))
+   PRC04D    = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'PC04', -
+                      TABLE-CODE = PRC04)
+   P2        = PRC02
+   P3        = PRC03
+   P4        = PRC04
+%*
+   POS871    = POSITION-ID OF MSF871 -
+               WHERE (POSITION-ID = POS878)
+%*             Leadership Role
+   PCLS04    = POS-CLASSIF-4    VIA (POS871)
+   Q         = CHOOSE ('Y'  IF (PCLS04 = 'BM    '), - 
+                       'Y'  IF (PCLS04 = 'BSM   '), -  
+                       'Y'  IF (PCLS04 = 'EGM   '), -  
+                       'Y'  IF (PCLS04 = 'GEM   '), -  
+                       'Y'  IF (PCLS04 = 'GRM   '), -  
+                       'Y'  IF (PCLS04 = 'MD    '), -  
+                       'Y'  IF (PCLS04 = 'TL    '), -
+                       'N') 
+%*             Work Stream
+   PCLS05    = POS-CLASSIF-5    VIA (POS871)
+   PCLS05D   = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'H4', -
+                      TABLE-CODE = PCLS05)
+%*             Job Family
+   PCLS06    = POS-CLASSIF-6    VIA (POS871)
+   PCLS06D   = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = 'H5', -
+                      TABLE-CODE = PCLS06)
+   PC05      = PCLS05
+   PC06      = PCLS06
+   SALMIN    = SALARY-MIN       VIA (POS871) D-PIC (Z(12)9.99)
+   SALMAX    = SALARY-MAX       VIA (POS871) D-PIC (Z(12)9.99)
+   RMIN      = RATE-REF-MIN     VIA (POS871) 
+   RMAX      = RATE-REF-MAX     VIA (POS871) 
+%*
+%* end

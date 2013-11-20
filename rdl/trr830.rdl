@@ -1,0 +1,254 @@
+%***  $Id: trr830.rdl,v 1.0 2008/04/08 15:06:00 elldev Exp $
+%*** TRR830                                                                 
+%***                         
+%*** Revision History ***
+%*** --------------------
+%*** 04/06/13 AIT IG     PayLocaiton Parameter size changed from 3 to 2.
+%*** 07/03/13 AIT IG     Fixed award code (>= 830date instead of =).
+%*** .................   Also replaced occurence of pay group in parameters and 
+%*** .................   reports to pay location.
+%*** 21/02/13 AIT IG     Migrated TRR830 into ELlipse 8 environment.
+%*** .................   Changed TFRR assoc value for 'Include on SP change report'
+%*** .................   to instead be read from position 25,1 instead of 18,1
+%*** 08/04/08 L Nee      SC1681438
+%*** .................   Initial coding.                          
+%PROGRAM-ID
+       TRR830
+%NARRATIVE
+      ** Salary Point Changes Report. 
+      ** This program produces output file TRT830A and report TRR830A.  
+%VERSION
+       003
+%MODULE
+       3760
+%FILES
+       MFILE = MSF760
+       AFILE = MSF830
+       LFILE = MSF878A
+       LFILE = MSF870
+       LFILE = MSF871
+       LFILE = MSF810
+       LFILE = MSF820
+       LFILE = MSF828
+       LFILE = MSF827
+       LFILE = MSF010
+       RFILE = TRR830A
+       OFILE = TRT830A
+%ROUTINES
+       MSSCNV
+       MSSDAT
+%SELECTION
+       WHERE    (EMPLOYEE-ID >= '0000000000', -
+                 EMPLOYEE-ID <= '9999999999')
+       REJECTIF (EMP-STATUS  <> 'A')
+       REJECTIF (STAFF-CATEG  = 'SCO')
+       SELECTIF (EMPLOYEE-ID = IEMP1, IEMP1 NE SPACES)
+       SELECTIF (EMPLOYEE-ID = IEMP2, IEMP2 NE SPACES)
+       SELECTIF (EMPLOYEE-ID = IEMP3, IEMP3 NE SPACES)
+       SELECTIF (EMPLOYEE-ID = IEMP4, IEMP4 NE SPACES)
+       SELECTIF (EMPLOYEE-ID = IEMP5, IEMP5 NE SPACES)
+       SELECTIF (EMPLOYEE-ID = IEMP6, IEMP6 NE SPACES)
+       SELECTIF (EMPLOYEE-ID = IEMP7, IEMP7 NE SPACES)
+       SELECTIF (EMPLOYEE-ID = IEMP8, IEMP8 NE SPACES)
+       SELECTIF (EMPLOYEE-ID = IEMP9, IEMP9 NE SPACES)
+       SELECTIF (EMPLOYEE-ID = IEMP10, IEMP10 NE SPACES)
+       SELECTIF (EMP-BLK     = 'Y')
+%ORDER
+       EMP760
+       ORDDTE
+%REPORT
+       A
+%REPORT-TITLE
+'Salary Point Changes Report'
+%PAGE HEADING
+                                         'Reporting  Period: '{REPFD  }'to'{REPTD  }
+
+'Primary Reporting   Employee   Surname             Init Date  Award Rate  Reason Position                       Min    Max    Pay'
+'Code                ID                                  Eff    Code Ref   Code   ID/Title                       RRef   RRef   Loc'
+%DETAIL
+<IF PRFLAG = 'Y'>
+{PRC               } {EMP     } {SNAME            } I {EFFDTE} {AC} {RREF} RR {POSID   } {POSTITLE             } {MINR} {MAXR} PP
+<ENDIF>
+%REPORT-SUMMARY
+
+'                                                   ***  End Of Report  ***'  
+%OUTPUT-FILE
+       A
+%BREAK-FIELDS
+    DUM
+%CONTROL
+       RECORD-LENGTH = 160
+%BREAK DUM HEADER
+%*{HDG                                                                                                                 -
+%*                             }
+'PRC,Employee ID,Surname,Initial,Effective Date' -
+',Award Code,Rate Reference,Reason Code,Position ID' -
+',Position Title,Min Rate Ref,Max Rate Ref,Pay Location'
+%DETAIL
+<IF PRFLAG = 'Y'>
+{PRC               }Z{EMP     }Z{SNAME                       }ZIZ{EFFDTE}Z{AC}Z{RREF}Z-
+RRZ{POSID   }Z{POSTITLE                              }Z{MINR}Z{MAXR}ZPP
+<ENDIF>
+%REQUEST-PARAMETERS
+      IFDATE     PIC (9(8))  FORMAT (DATE) TEXT 'Date : From'
+      ITDATE     PIC (9(8))  FORMAT (DATE) TEXT '       To'
+      IPLOC      PIC (X(2))  TEXT 'Pay Location    - Blank for all'              
+      IPRC       PIC (X(20)) TEXT 'Primary Reporting Code - Blank for all'
+      IEMP1      PIC (X(10)) TEXT 'Employee 1   - Blank for All '
+      IEMP2      PIC (X(10)) TEXT 'Employee 2'
+      IEMP3      PIC (X(10)) TEXT 'Employee 3'
+      IEMP4      PIC (X(10)) TEXT 'Employee 4'
+      IEMP5      PIC (X(10)) TEXT 'Employee 5'
+      IEMP6      PIC (X(10)) TEXT 'Employee 6'
+      IEMP7      PIC (X(10)) TEXT 'Employee 7'
+      IEMP8      PIC (X(10)) TEXT 'Employee 8'
+      IEMP9      PIC (X(10)) TEXT 'Employee 9'
+      IEMP10     PIC (X(10)) TEXT 'Employee 10'
+%VARIABLES
+%*       HDG1 = 'PRC,Employee ID,Surname,Initial,Effective Date,'    CONSTANT
+%*       HDG2 = 'Award Code,Rate Reference,Reason Code,Position ID,' CONSTANT
+%*       HDG3 = 'Position Title,Min Rate Ref,Max Rate Ref,Pay Location' CONSTANT
+%*       HDG  = CATENATE (HDG1,HDG2,HDG3)                            CONSTANT
+       Z    = ',' CONSTANT
+       DUMMY   = 'Y' CONSTANT
+       DUM     = choose ('Y' IF (Z = Z), DUMMY)
+
+       REPFD     = %IFDATE% FORMAT (DATE) CONSTANT
+       REPTD     = %ITDATE% FORMAT (DATE) CONSTANT
+
+       IFDATE    = %IFDATE%                       CONSTANT
+       ITDATE    = %ITDATE%                       CONSTANT
+       REV-FD    = CALC ( 99999999 - IFDATE)  I-PIC (9(8))
+       REV-TD    = CALC ( 99999999 - ITDATE)  I-PIC (9(8)) 
+
+       IPLOC     = %IPLOC%                      CONSTANT        
+       PRCI      = %IPRC%                         CONSTANT
+       IEMP1     = %IEMP1%                        CONSTANT
+       IEMP2     = %IEMP2%                        CONSTANT
+       IEMP3     = %IEMP3%                        CONSTANT
+       IEMP4     = %IEMP4%                        CONSTANT
+       IEMP5     = %IEMP5%                        CONSTANT
+       IEMP6     = %IEMP6%                        CONSTANT
+       IEMP7     = %IEMP7%                        CONSTANT
+       IEMP8     = %IEMP8%                        CONSTANT
+       IEMP9     = %IEMP9%                        CONSTANT
+       IEMP10    = %IEMP10%                       CONSTANT
+
+       EMP-BLK = choose ('N' IF (IEMP1 NE SPACES), -
+                         'N' IF (IEMP2 NE SPACES), -
+                         'N' IF (IEMP3 NE SPACES), -
+                         'N' IF (IEMP4 NE SPACES), -
+                         'N' IF (IEMP5 NE SPACES), -
+                         'N' IF (IEMP6 NE SPACES), -
+                         'N' IF (IEMP7 NE SPACES), -
+                         'N' IF (IEMP8 NE SPACES), -
+                         'N' IF (IEMP9 NE SPACES), -
+                         'N' IF (IEMP10 NE SPACES), -
+                         'Y')                    CONSTANT
+
+       PRCI-1    = substr (PRCI,1,4)             CONSTANT
+       PRCI-2    = substr (PRCI,5,4)             CONSTANT
+       PRCI-3    = substr (PRCI,9,4)             CONSTANT
+       PRCI-4    = substr (PRCI,13,4)            CONSTANT
+       PRCI-5    = substr (PRCI,17,4)            CONSTANT
+%*
+%*     Employee Pay Rates File (MSF830)
+%*
+       EMP760    = EMPLOYEE-ID
+
+       R         = CHANGE-REASON FROM MSF830         -
+                   WHERE    (EMPLOYEE-ID   = EMP760, - 
+                             INV-STR-DATE >= REV-TD, -
+                             INV-STR-DATE <= REV-FD) 
+       EMP       = EMPLOYEE-ID    VIA (R)
+       INVDATE   = INV-STR-DATE   VIA (R)
+       EFFDTE   = INVDATE  FORMAT (REVERSE-DATE) 
+       RREF      = RATE-REF-CODE  VIA (R)
+
+       ORDDTE    = choose (INVDATE IF (INVDATE <> SPACES), -
+                           INVDATE)
+%*
+%*     Table File (MSF010) 
+%*
+       ASSOCREC  = ASSOC-REC  OF MSF010 -
+                   WHERE (TABLE-TYPE = 'TFRR', -
+                          TABLE-CODE = R)
+       INCLUDE    = substr(ASSOCREC,25,1)   I-PIC (X(1))
+       INC-FLG    = choose ('Y' IF (INCLUDE = 'Y'), 'N') 
+%*
+%*      Employee Position File (MSF878A)
+%*
+       POSID       = POSITION-ID OF MSF878A           -
+                     WHERE (EMPLOYEE-ID-1   = EMP,    -
+                            PRIMARY-POS-1   = '0',    -
+                            INV-STR-DATE-1 >= INVDATE) -
+                     MAX (1)
+%*
+%*      Positions File (MSF870)
+%*
+        PRC-GRP     = PRIM-RPT-GRP OF MSF870   -
+                      WHERE (POSITION-ID = POSID)
+        POSTITLE    = POS-TITLE       VIA (PRC-GRP)
+%*
+        PRC-1       = substr (PRC-GRP,1,4)
+        PRC-2       = substr (PRC-GRP,5,4)
+        PRC-3       = substr (PRC-GRP,9,4)
+        PRC-4       = substr (PRC-GRP,13,4)
+        PRC-5       = substr (PRC-GRP,17,4)
+        PRC         = catenate (PRC-1,PRC-2,PRC-3,PRC-4,PRC-5)
+%*
+        PRC-OK1     = choose ('N' IF (PRCI-1 <> SPACES, PRCI-1 <> PRC-1), 'Y')
+        PRC-OK2     = choose ('N' IF (PRCI-2 <> SPACES, PRCI-2 <> PRC-2), 'Y')
+        PRC-OK3     = choose ('N' IF (PRCI-3 <> SPACES, PRCI-3 <> PRC-3), 'Y')
+        PRC-OK4     = choose ('N' IF (PRCI-4 <> SPACES, PRCI-4 <> PRC-4), 'Y')
+        PRC-OK5     = choose ('N' IF (PRCI-5 <> SPACES, PRCI-5 <> PRC-5), 'Y')
+%*
+        PR-SEL      = choose ('Y' IF (PRC-OK1 = 'Y', -
+                                      PRC-OK2 = 'Y', -
+                                      PRC-OK3 = 'Y', -
+                                      PRC-OK4 = 'Y', -
+                                      PRC-OK5 = 'Y'), -
+                              'N') 
+							  
+%* IG 8-3-13 replace pay group with pay location
+%*     Employee Pay Group History File (MSF827)
+%*
+%**       P           = PAY-GROUP OF MSF827  -
+%**                     WHERE    (EMPLOYEE-ID  = EMP,          -
+%**                               INV-STR-DATE >= SPACES)      -
+%**                     SELECTIF (END-DATE      = '00000000')  -
+%**       
+%**              MAX (1)  
+                                         
+%*
+%*     Employee Payroll  File (MSF820)
+%*
+       P           = PAY-LOCATION OF MSF820  -
+                     WHERE    (EMPLOYEE-ID  = EMP)
+       PGFLAG      = choose ('Y' IF(IPLOC <> SPACES, P = IPLOC), -        
+                             'Y' IF(IPLOC = SPACES), -
+                             'N')              
+%*
+%*     Employee File (MSF810)
+%*
+       SNAME   = SURNAME    OF MSF810 -
+                 WHERE (EMPLOYEE-ID = EMP)
+       I       = FIRST-INITIAL  VIA (SNAME)
+%*
+%*     Position Details File (MSF871)
+%*
+       MINR    = RATE-REF-MIN OF MSF871 -
+                 WHERE        (POSITION-ID = POSID)
+       MAXR    = RATE-REF-MAX  VIA (MINR)
+%*
+%*     Employee Award History File (MSF828)
+%*
+        AC       = AWARD-CODE OF MSF828 -
+                   WHERE (EMPLOYEE-ID   = EMP, -
+                          INV-STR-DATE  >= INVDATE) MAX(1)
+%*
+       PRFLAG      = choose ('Y' IF (PGFLAG  = 'Y', -
+                                     PR-SEL  = 'Y', -
+                                     INC-FLG = 'Y'), 'N')     
+%*
+%* ---------   End  of  the  Program   ---------------------------------

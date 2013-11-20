@@ -1,0 +1,90 @@
+%*** TRR897.RDL
+%***
+%*** Copyright (c) 2012, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%* 27/11/12 a9nh4814   MO164 (Version 0001)
+%*                     Initial Coding
+
+%PROGRAM-ID
+       TRR897
+%AUTHOR
+       a9nh4814
+%NARRATIVE
+      **  This report will pick up all approved instances of travel time
+      **  adjoining non merged overtime in the timesheet so that Payroll
+      **  can make a correction to the employee's pay prior to payment. 
+      **  This report will be run once per pay period after the ESS
+      **  lockout to identify all instances to be processed for the pay.
+      **  The report will produce data in a format that allows for the
+      **  uploading of correction allowances to MSO832 (Create Employee
+      **  Exception Transactions).
+%VERSION
+       0001
+%MODULE
+       3820
+%FILES
+       MFILE = MSF820       
+       RFILE = TRR897A
+%ORDER
+       PAY-LOCATION
+%SELECTION
+       WHERE    (EMPLOYEE-ID  >= SPACES) 
+       REJECTIF (PAY-LOCATION   <> %RPAYLOC%, %RPAYLOC% <> SPACES)
+%ROUTINES
+       MSSDAT
+%REPORT
+       A
+%REPORT-TITLE 
+'Workers Compensation Monthly Performance Indicators'
+%PAGE HEADING
+{STDT  } {ENDT  }
+%REQUEST-PARAMETERS
+     RPAYLOC    PIC(X(2))   TEXT 'Pay Location (Blank For All)'
+     RPAYPRD    PIC(X(3))   TEXT 'Pay Periods to Process'
+     RTTWC1     PIC(X(2))   TEXT 'Travel Time Work Codes 1'
+     RTTWC2     PIC(X(2))   TEXT 'Travel Time Work Codes 2'
+     RTTWC3     PIC(X(2))   TEXT 'Travel Time Work Codes 3'
+     RTTWC4     PIC(X(2))   TEXT 'Travel Time Work Codes 4'
+     RTTWC5     PIC(X(2))   TEXT 'Travel Time Work Codes 5'
+     ROTWC1     PIC(X(2))   TEXT 'Non-Merged OT Work Codes 1'
+     ROTWC2     PIC(X(2))   TEXT 'Non-Merged OT Work Codes 2'
+     ROTWC3     PIC(X(2))   TEXT 'Non-Merged OT Work Codes 3'
+     ROTWC4     PIC(X(2))   TEXT 'Non-Merged OT Work Codes 4'
+     ROTWC5     PIC(X(2))   TEXT 'Non-Merged OT Work Codes 5'
+     ROTWC6     PIC(X(2))   TEXT 'Non-Merged OT Work Codes 6'
+     ROTWC7     PIC(X(2))   TEXT 'Non-Merged OT Work Codes 7'
+     ROTWC8     PIC(X(2))   TEXT 'Non-Merged OT Work Codes 8'
+     ROTWC9     PIC(X(2))   TEXT 'Non-Merged OT Work Codes 9'
+     ROTWC10    PIC(X(2))   TEXT 'Non-Merged OT Work Codes 10'
+     ROTWC11    PIC(X(2))   TEXT 'Non-Merged OT Work Codes 11'
+     ROTWC12    PIC(X(2))   TEXT 'Non-Merged OT Work Codes 12'
+     ROTWC13    PIC(X(2))   TEXT 'Non-Merged OT Work Codes 13'
+     ROTWC14    PIC(X(2))   TEXT 'Non-Merged OT Work Codes 14'
+     ROTWC15    PIC(X(2))   TEXT 'Non-Merged OT Work Codes 15'
+     RGMEC      PIC(X(3))   TEXT 'Generated Minimum Earnings Code'
+     RTTEC1     PIC(X(3))   TEXT 'Travel Time Earning Codes 1'
+     RTTEC2     PIC(X(3))   TEXT 'Travel Time Earning Codes 2'
+     RTTEC3     PIC(X(3))   TEXT 'Travel Time Earning Codes 3'
+     RTTEC4     PIC(X(3))   TEXT 'Travel Time Earning Codes 4'
+     RTTEC5     PIC(X(3))   TEXT 'Travel Time Earning Codes 5'
+%*
+%VARIABLES
+%*
+  PAYLOC    = %RPAYLOC%                     CONSTANT
+  PAYPRD    = %RPAYPRD%                     CONSTANT
+
+%* Selection logic
+
+        PG     = HRGET ( CNTL-REC-TYPE from('MSF801') type('PG') DEFAULT KEY(KEY1 = 'TG1' ) ) CONSTANT
+        CUENDT = CUR-END-DT-PG VIA (PG) CONSTANT
+        DAY    = CALC ( PAYPRD * -7 )
+        STDT   = DISPLAY-DATE OF MSSDAT -
+                 WHERE (OPTION                 = '1', -
+                        DATE1                  = CUENDT, -
+                        DAYS                   = DAY)
+        ENDT   = CUENDT FORMAT (DATE)
+
+
+%*END PROGRAM       

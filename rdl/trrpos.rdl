@@ -1,0 +1,152 @@
+%***  $Id: trrpos.rdl,v1.0 04/03/2013 14:04:00 Exp $
+%*** Copyright (c) 1990, Ventyx Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** TRRPOS.RDL
+%***
+%*** Revision History ***
+%***
+%*** 26-Mar-13 Mark Cole     Version 6.
+%*** ....................... Amended to add MSF870 global profile between
+%*** ....................... Type and Access Rule
+%*** .......................
+%*** 18-Mar-13 Mark Cole     Version 5.
+%*** ....................... Amended to fix up date parameter
+%*** .......................   
+%*** 15-Mar-13 Mark Cole     Version 4.
+%*** ....................... Amended to use different selection criteria, 
+%*** ....................... as it was not picking up any records with
+%*** ....................... POS-STOP-DATE = 000000  
+%*** ....................... And also added %BREAK-FIELDS to try and get
+%*** ....................... column headings record out onto file
+%*** 14-Mar-13 Mark Cole     Version 3.
+%*** ....................... Amended to use POS-TITLE, 
+%*** ....................... not POSITION-TITLE
+%*** 13-Mar-13 Mark Cole     Version 2.
+%*** ....................... Amended to do the following;
+%*** ....................... Include Headings for the columns,
+%*** ....................... Remove the Global Profile Column,
+%*** ....................... Make MSF870 and MSF810 Afiles - not Lfiles
+%*** ....................... Make record length 192 chars
+%*** 04-Mar-13 Mark Cole      
+%*** ....................... Initial Version as part of
+%*** ....................... Transgrid Project Symphony
+%*** ....................... for Ellipse 8.
+%*** ....................... (Replaces TRTPOS - a Perl
+%*** ....................... Script that runs SQL - in 
+%*** ....................... Ellipse 5.)
+%***
+%PROGRAM-ID
+       TRRPOS
+%AUTHOR
+      Ventyx Pty Ltd. 
+%NARRATIVE
+      **
+      ** Employee incumbency within position.
+      **
+      ** This RDL is purely to produce a CSV file 
+      ** as its output. No report is required.
+      ** 
+      ** User will enter a mandatory date param in 
+      ** CCYYMMDD format.
+      ** 
+      ** RDL will then run, read the MSF878 (main) table 
+      ** of employee incumbency in positions, 
+      ** rejecting any records for incumbency in
+      ** position "TERM1" (the position Transgrid
+      ** use for terminated employees) and also rejecting
+      ** any records where the MSF878-POS-DATE is greater than
+      ** zeroes but also not greater than the date entered in the parameter.
+      ** 
+      ** The MSF870 "position" table is used as an "A" auxiliary file.
+      ** The MSF810 "employee" table is used as an "A" auxiliary file
+      ** 
+      ** A CSV file is output with records in the same sequence as 
+      ** they have been picked up from the MSF878 main file.
+      **
+%VERSION
+       006
+%MODULE
+       3870
+%FILES
+        MFILE = MSF878
+        AFILE = MSF870
+        AFILE = MSF810
+        OFILE = TRTPOSA
+%ROUTINES
+       MSSCNV
+%SELECTION
+%***
+%*** These next 3 lines select all records from MSF878 that have a position id of anything except'TERM1', 
+%*** and then rejects those
+%*** have a position-stop-date that is not zeroes, but is earlier than or equal to the stop date parameter 
+%***
+       WHERE    (POSITION-ID  >= SPACES)
+       SELECTIF (POSITION-ID <> 'TERM1     ') 
+       REJECTIF (POS-STOP-DATE <> '00000000', POS-STOP-DATE-9 LE %PSTOPDATE%)
+       REJECTIF (POS-STOP-DATE <> '00000000', POS-STOP-DATE LE %PSTOPDATE%)
+%ORDER
+     POSID
+     EMPID
+
+%OUTPUT-FILE
+        A
+%CONTROL
+        RECORD-LENGTH = 203 
+%BREAK PARAMDT HEADING
+{H1     }C{H2    }C{H3      }C{H4                                    }C{H5       }C{H6        }C{H7                          }C{H8}C-
+{H11         }C{H9       }C{H10        }
+%BREAK-FIELDS 
+       PARAMDT  
+%DETAIL 
+OC{DTE   }C{POSID   }C{POSTIT                                }C{EMPID   }C{FNAME     }C{SNAME                       }CPC{GLOBPROF}CAC-
+{AVG                                                                 } 
+%REQUEST-PARAMETERS
+       PSTOPDATE PIC (X(8))           TEXT 'Position Stop Date'
+%*
+%VARIABLES
+%*
+       PARAMDT  = %PSTOPDATE%     
+%*
+%*     Relating to main file
+%*
+
+       POSID    = POSITION-ID
+       EMPID    = EMPLOYEE-ID
+       P        = PRIMARY-POS
+       DTE      = POS-STOP-DATE
+%*
+%*     Relating to first A file
+%*
+       O        = OCCUP-STATUS FROM MSF870 -
+                            WHERE (POSITION-ID = POSID) 
+       POSTIT   = POS-TITLE VIA (O)
+       A        =  ACCESS-RULE VIA (O) 
+       AVG      =  ACCESS-VAL-GRP VIA (O)
+       GLOBPROF =  GLOBAL-PROFILE VIA (O)       
+%*
+%*     Relating to second A file
+%*
+
+       FNAME    = FIRST-NAME FROM MSF810 -
+                            WHERE (EMPLOYEE-ID = EMPID) 
+       SNAME    = SURNAME VIA (FNAME)
+%*
+%*     General variable to create CSV file
+%*
+       C       = ',' 
+%*  
+%*     Variables for file heading row
+%*
+       H1  = 'Occupancy'
+       H2  = 'End Date'
+       H3  = 'Position'
+       H4  = 'Position Title'
+       H5  = 'Employee ID'
+       H6  = 'First Name'
+       H7  = 'Surname'
+       H8  = 'Type'
+       H9  = 'Access Rule'
+       H10 = 'Access Value'
+       H11 = 'Global Profile'
+%* End Of program.

@@ -1,0 +1,526 @@
+%*** TRR26N.rdl
+%***
+%*** Revision History ***
+%*** 11-Feb-13 a9is6175   MO164 (Version 0002)
+%*** .................... Changed variables for fix
+%*** .................... Tax Code and Item printed correctly.
+%*** 15-Aug-12 a9nh4814   MO164 (Version 0001)
+%*** .................... Ellipse 8 RDL Migration:
+%*** .................... - Renamed report from ESR263 to TRR26N
+%*** .................... - Fixed the OR condition in report layout
+%*** .................... - Changed all PIC to D-PIC
+%*** 27-Jun-05 AIesho     P05060270
+%*** .................... Modified program to cope with district consolidation
+%*** .................... into GRID. Append Warehouse id to purchase order
+%*** .................... Added WHOUSE-ID to Sort after Dstrct Code
+%*** .................... Added WHOUSE-ID to request parameters
+%*** 17-Nov-03 RYeung        WCHG039315
+%***                         Additional changes by adding price ref, due date and 3 lines between record.
+%*** 13-Nov-03 RYeung        WCHG039315
+%***                         Initial Coding
+%***                         This program is based on esr261 by excluded the from and to date
+%***
+%PROGRAM-ID
+       TRR26N
+%AUTHOR
+       Richard Yeung
+%NARRATIVE
+      **  Invoices for nominated Invoice header status with no nominated date ranges report.
+%VERSION
+       0002
+%MODULE
+       3260
+%ROUTINES
+        MSS232
+        MSSCNV
+        MSSDAT
+%FILES
+        MFILE = MSF260A
+        AFILE = MSF26A
+        AFILE = MSF263
+        LFILE = MSF000
+        LFILE = MSF010
+        LFILE = MSF100
+        LFILE = MSF200
+        LFILE = MSF210
+        LFILE = MSF220
+        LFILE = MSF221
+        LFILE = MSF230
+        LFILE = MSF231
+        LFILE = MSF261
+        LFILE = MSF810
+        RFILE = TRR26NA
+        RFILE = TRR26NB
+%* MW Changed Afile to read thru header details rather than item as status's required
+%* by this report show at the header level. ( ie 07, 09, 10, 11, 12, 35)
+%* (Only status's at item level are 18, 19 and are not required on this report.)
+%* MSF260 afile Invoice Header Details
+%SELECTION
+ <IF %DISTCD% = SPACES>
+        WHERE    (INV-REC-TYPE   = 'H', -
+                  DSTRCT-CODE-2 >= SPACES)
+        SELECTIF (PMT-STATUS = %STAT1%)
+        SELECTIF (PMT-STATUS = %STAT2%)
+        SELECTIF (PMT-STATUS = %STAT3%)
+        SELECTIF (PMT-STATUS = %STAT4%)
+        SELECTIF (PMT-STATUS = %STAT5%)
+        SELECTIF (PMT-STATUS = %STAT6%)
+        REJECTIF (%PAID% <> 'Y', APPR-STATUS > '49')
+ <ELSE>
+        WHERE    (INV-REC-TYPE  = 'H', -
+                  DSTRCT-CODE-2 = %DISTCD%, -
+                  APPR-STATUS  >= SPACES)
+        SELECTIF (PMT-STATUS = %STAT1%)
+        SELECTIF (PMT-STATUS = %STAT2%)
+        SELECTIF (PMT-STATUS = %STAT3%)
+        SELECTIF (PMT-STATUS = %STAT4%)
+        SELECTIF (PMT-STATUS = %STAT5%)
+        SELECTIF (PMT-STATUS = %STAT6%)
+        STOPIF   (%PAID% <> 'Y', APPR-STATUS > '49')
+ <ENDIF>
+%*As we are using the Alternate Key (INV-REC-TYPE, DSTRCT-CODE, APPR-STATUS...)
+%*we will stop the program when PAID flag = 'N'(<>'Y') and APPR-STATUS > '49')
+%ORDER
+           PMT-STATUS 
+ ASCENDING DSTRCT-CODE 
+           WHOUSE-ID    VIA (H)
+           SUPPLIER-NO 
+           PO-NO 
+           PO-ITEM-NO VIA (O)
+           INV-NO 
+           INV-ITEM-NO VIA (O)
+           PURCH-REQ VIA (H)
+%CONTROL-BREAKS
+           PMT-STATUS 
+           DSTRCT-CODE 
+           SUPPLIER-NO 
+           PO-NO 
+           PO-ITEM-NO VIA (O)
+           INV-NO 
+           PURCH-REQ VIA (H)
+%REPORT
+       A
+%REPORT-TITLE
+   'INVOICES FOR HEADER STATUS WITH NO NOMINATED DATE RANGE REPORT'
+%PAGE HEADING
+'District Code:'{DC}  'Selected Invoice Header Status Codes:'{S1} {S2} {S3} {S4} {S5} {S6} 
+{UNDERLINE                                                                                                                         }
+'<------------------- ORDER INFORMATION ---------------------->   <--------------------- INVOICE INFORMATION --------------------->'
+'Number/Item        Qty      Qty       Purch.     Stkcode/          Number    /Itm   Loaded  Quantity UOP  Tax    Value    Pmt  App'
+              'Prev App Received UOP   Officer    DCPR No.                           Due                   Code             Status'
+'              FPA/Price Reference                                                 Date'
+{UNDERLINE                                                                                                                         }
+%BREAK PMT-STATUS  HEADING ON NEW-PAGE RESET-PAGE-COUNT
+%BREAK DSTRCT-CODE  HEADING ON NEW-PAGE 
+%BREAK INV-NO 
+%BREAK PURCH-REQ VIA (H) TEST-PAGE (4)
+<IF %REGONLY% <> 'Y'>
+<IF PRINT = 'Y'>
+<IF PRNT = 'Y'>
+%*'Supplier:'EEEEEE    {SUPP-ORD-NAME                 }       
+<IF POT = 'O'>
+{PON    } GGG {QAP    }{QRP    } {UOP} {PO      } {SC     }   JJJJJJJJJJJJJJJJ KKK {INVDTE}SSSSSSSSS {IUOP}{AT}{VAL-INVD } {PS}{AS}
+                     {FPA   }        {POFF                                  }    {DDAT  }  
+<ELSE>
+{PON    } GGG {QAP    }{QRP    } {UOP} {PO      } {PREQ} {PI} JJJJJJJJJJJJJJJJ KKK {INVDTE}SSSSSSSSS {IUOP}{AT}{VAL-INVD } {PS}{AS}
+                     {FPA   }       {POFF                                  }     {DDAT  } 
+<ENDIF>
+<IF SETA > 0>
+'Settlement Disc:'{SETVAL}  {ST} {SETDUE}
+<ELSE>
+<ENDIF>
+<IF ACCTNO1 <> SPACES>
+'Account :'{ACCTNO1               }'Alloc %'{T1   } {WOP-LIT  }{WO1   } {EQP-LIT }{EQUIP1    }
+<ENDIF>
+<IF ACCTNO2 <> SPACES>
+           {ACCTNO2               }'Alloc %'{T2   } {WOP-LIT  }{WO2   } {EQP-LIT }{EQUIP2    }
+<ENDIF>
+<IF ACCTNO3 <> SPACES>
+           {ACCTNO3               }'Alloc %'{T3   } {WOP-LIT  }{WO3   } {EQP-LIT }{EQUIP3    }
+<ENDIF>
+<IF ACCTNO4 <> SPACES>
+           {ACCTNO4               }'Alloc %'{T4   } {WOP-LIT  }{WO4   } {EQP-LIT }{EQUIP4    }
+<ENDIF>
+<IF ACCTNO5 <> SPACES>
+           {ACCTNO5               }'Alloc %'{T5   } {WOP-LIT  }{WO5   } {EQP-LIT }{EQUIP5    }
+<ENDIF>
+<IF ACCTNO6 <> SPACES>
+           {ACCTNO6               }'Alloc %'{T6   } {WOP-LIT  }{WO6   } {EQP-LIT }{EQUIP6    }
+<ENDIF>
+<IF ACCTNO7 <> SPACES>
+           {ACCTNO7               }'Alloc %'{T7   } {WOP-LIT  }{WO7   } {EQP-LIT }{EQUIP7    }
+<ENDIF>
+'Order Description:' {DESC1                                     }  
+<IF %FULLDESC% = 'Y'>
+<SUPPRESS>
+                     {DESC2                                     }  
+<SUPPRESS>
+                     {DESC3                                     }  
+<SUPPRESS>
+                     {DESC4                                     }  
+<SUPPRESS>
+                     {DESC5                                     }  
+<ENDIF>
+'Supplier:'EEEEEE    {SUPP-ORD-NAME                 }       
+
+<ENDIF>
+<ENDIF>
+<ENDIF>
+
+
+
+%REPORT-SUMMARY
+
+'                                                        *** END of REPORT ***'
+%*CONTROL
+%*        DYNAMIC-PRINTER
+%*        INCLUDE-EMPTY-SUMMARY
+%*==================================================================================================================================
+%* The B report is the register which prints at site if siteprin <> N
+%REPORT
+       B
+%REPORT-TITLE
+    'INVOICES FOR HEADER STATUS(S) REGISTER WITH NO NOMINATED DATE RANGE'
+%PAGE HEADING
+'District Code:'{DC}  'Selected Invoice Header Status Codes:'{S1} {S2} {S3} {S4} {S5} {S6} 
+{UNDERLINE                                                                                                                         }
+'Order    Itm Supplier Name                          Invoice              Itm  T/Code   $ Value  Status  Purchase Officer'
+{UNDERLINE                                                                                                                         }
+%BREAK DSTRCT-CODE  HEADING ON NEW-PAGE RESET-PAGE-COUNT
+%DETAIL
+<IF PRINT = 'Y'>
+<IF PRNT = 'Y'>
+{PON1   } YYY EEEEEE {SUPP-ORD-NAME                } JJJJJJJJJJJJJJJJJJJJ {IN}  {TX}{VAL-INVD1 }  {PS} {POFF                       } 
+{LINE                                                            }{LINE                                                            }
+<ENDIF>
+<ENDIF>
+%BREAK DSTRCT-CODE  FOOTING 
+<IF DC <> SPACES>
+
+'Total Number/Value of Service Invoice items reported :'{CNT    } {VAL            }
+
+<ENDIF>
+%REPORT-SUMMARY
+
+'                                                        *** END of REPORT ***'
+%*CONTROL
+%*        DYNAMIC-PRINTER
+%*        INCLUDE-EMPTY-SUMMARY
+%*==================================================================================================================================
+%REQUEST-PARAMETERS
+    DISTCD    PIC (X(4))  TEXT 'District Code (blank for all) :'
+    STAT1     PIC (X(2))  TEXT 'Up to 6 status Codes          :'
+    STAT2     PIC (X(2))  TEXT 
+    STAT3     PIC (X(2))  TEXT 
+    STAT4     PIC (X(2))  TEXT 
+    STAT5     PIC (X(2))  TEXT 
+    STAT6     PIC (X(2))  TEXT 
+    PAID      PIC (X(1))  TEXT 'Search Paid invoices also?    Y/N :'
+    SDONLY    PIC (X(1))  TEXT 'Search Settlement Disc. Only? Y/N :'
+    FULLDESC  PIC (X(1))  TEXT 'Print 5 line description?     Y/N :'
+    REGONLY   PIC (X(1))  TEXT 'Print Register Only?          Y/N :'
+    SITEPRIN  PIC (X(1))  TEXT 'Print at site? Y/N/B (B=both)     :'
+    WHOUSE    PIC (X(2))  TEXT 'Warehouse ID                  :'
+%*
+    DEFPRIN   LIKE PRINTER1 OF MSF080
+%*
+%VARIABLES
+    DISTCD    = %DISTCD%                         CONSTANT
+    S1 = %STAT1% CONSTANT
+    S2 = %STAT2% CONSTANT
+    S3 = %STAT3% CONSTANT
+    S4 = %STAT4% CONSTANT
+    S5 = %STAT5% CONSTANT
+    S6 = %STAT6% CONSTANT
+    WHOUSE = %WHOUSE% CONSTANT
+    LINE = '__________________________________________________________________'-
+            CONSTANT
+    Z = '|' CONSTANT
+%*
+%* No. of repeats for ext desc 6 cos don't want to flow over 1 page 
+    REPNO = NUMERIC (6) CONSTANT I-PIC (9)
+%*
+%* Get fields from Master file MSF260 
+    B       = ACCOUNTANT
+    AS      = APPR-STATUS  
+    PS      = PMT-STATUS  
+    DC      = DSTRCT-CODE  
+%*    DSTNAME = GET (DISTRICT-NAME FROM ('MSS002') DISTRICT (DC)
+    LD      = LOADED-DATE     FORMAT (DATE)
+    E       = SUPPLIER-NO 
+    F       = PO-NO 
+    ININV   = INV-NO 
+    EXTINV  = EXT-INV-NO 
+    J       = CHOOSE (EXTINV IF (EXTINV <> SPACES), ININV)
+    INVTYPE = INV-TYPE  
+    INVDTE  = INV-DATE        FORMAT (DATE)
+    SIN     = SUP-INV-NO   
+    DDAT    = DUE-DATE        FORMAT (DATE)
+    OIN     = ORIG-INV-NO  
+%*
+%* get fields from MSF26A file (Invoice Items Details)
+    O       = ACCOUNT-CODE FROM MSF26A -
+              WHERE (DSTRCT-CODE  = DC,-
+                     SUPPLIER-NO  = E,-
+                     INV-NO       = ININV,-
+                     INV-ITEM-NO >= '001') -
+              MAX (100)
+    A = AUTHSD-BY                              VIA (O)
+    C = MSB265-RUN-NO                          VIA (O)
+    K = INV-ITEM-NO                            VIA (O)
+    IN = K
+    G = PO-ITEM-NO                             VIA (O)
+    Y = G I-PIC (X(3))
+    U = LAST-AMEND-NO-9                        VIA (O)
+    M = FRT-DOCKET                             VIA (O)
+    N = RECEIVED-BY                            VIA (O)
+    P = PROJECT-NO                             VIA (O)
+    Q = EQUIP-NO                               VIA (O)
+    SS = QTY-INVOICED                          VIA (O) D-PIC (-(6)9.99)
+    IUOP = UNIT-OF-PURCH                       VIA (O)
+    ORG-VAL = LOC-VAL-INVD                     VIA (O)
+    ORG-DISC = LOC-DISC-INVD                   VIA (O)
+    ORG-STAX = LOC-STAX-INVD                   VIA (O)
+    ORG-ATAX = ATAX-AMT-LOC                    VIA (O)
+%* Added ORG-ATAX to the D calculation
+    D = CALC(ORG-VAL + ORG-DISC + ORG-STAX + ORG-ATAX)
+%*   
+%* get fields from MSF261 file (Invoice Amendment Details)
+    AMD-VAL = FOR-AMD-VAL OF MSF261 -
+              WHERE (DSTRCT-CODE  = DC,-
+                     SUPPLIER-NO  = E,-
+                     INV-NO       = ININV,-
+                     INV-ITEM-NO  = K,-
+                     AMENDMENT-NO = U)
+    R = AMEND-QTY                        VIA (AMD-VAL) 
+    S = CHOOSE (R IF (R <> 0), SS)
+    AMD-DISC = LOC-AMD-DISC              VIA (AMD-VAL)
+    AMD-STAX = LOC-AMD-STAX              VIA (AMD-VAL)
+%*  Added ORG-ATAX to the L calculation
+    L = CALC (AMD-VAL + AMD-DISC + AMD-STAX + ORG-ATAX)
+    VAL-INVD = CHOOSE (L IF (U > 0),D) D-PIC ($(7)9.99-)
+    VAL-INVD1 = VAL-INVD D-PIC (Z(7)9.99-)
+%*
+%* Get fields from MSF200 file (Supplier Details)
+    SUPP-ORD-NAME = SUPPLIER-NAME OF MSF200 -
+                    WHERE (SUPPLIER-NO = E)
+    SUPP-PMT-NAME = PAYMENT-NAME VIA (SUPP-ORD-NAME)
+%*
+%* Get fields from MSF221 file (Order Item Details)
+    H         = GROSS-PRICE-P OF MSF221 -
+                WHERE (PO-NO      = F,-
+                       PO-ITEM-NO = G) D-PIC ($(10)9.9999-)
+    I         = VAL-APPR      VIA (H) D-PIC ($(12)9.99-)
+    PREQ1     = PURCH-REQ     VIA (H)
+    WHOUSEI   = WHOUSE-ID     VIA (H)
+    W         = WHOUSE-ID     VIA (H)
+    PO221     = PO-NO         VIA (H)
+    WHOUSEP   = CHOOSE('N' IF(WHOUSEI <> WHOUSE, WHOUSE <> SPACES), 'Y')
+    PO1       = CATENATE(PO221,'-',W) I-PIC (X(9))
+    PO2       = CATENATE(F,'   ')I-PIC (X(9))
+    PON       = CHOOSE(PO1 IF(DSTRCT-CODE = 'GRID', PO221 <> SPACES), -
+                       PO2)
+    PON1      = PON I-PIC (X(9))
+%* dg Use function variable for sort field.
+    PREQ = CHOOSE (PREQ1 IF (PREQ1 <> SPACES), PREQ1)
+    PI   = PREQ-ITEM          VIA (H)
+    SC   = STOCK-CODE         VIA (H)
+    POT  = PO-ITEM-TYPE       VIA (H)
+    QRI  = QTY-RCV-DIR-I      VIA (H)
+    UOP  = UNIT-OF-PURCH      VIA (H)
+    CF   = CONV-FACTOR        VIA (H)
+    QRP  = CALC (QRI * CF)
+    QAP  = APPR-QTY-UOP       VIA (H)
+    PC   = PRICE-CODE         VIA (H)
+%*
+%* Get fields from MSF220 file (Order Header Details)
+    PO = PURCH-OFFICER OF MSF220 WHERE (PO-NO = F)    
+%*
+%* Get FPA/Price Reference
+    FPAID = FPA-ID OF MSF210 -
+            WHERE (DSTRCT-CODE = DC, -
+                   STOCK-CODE  = SC, -
+                   SUPPLIER-NO = E, -
+                   PRICE-CODE  = PC)
+    PRREF = PRICE-UPD-REF VIA (FPAID)
+    FPART = FPA-REC-TYPE  VIA (FPAID)
+
+    FPA   = CHOOSE (FPAID  IF (FPART = 'F'), -
+                    FPAID  IF (FPART = 'R'), -
+                    PRREF)
+%*
+%* Settlement Discount
+    SETA = SETTLE-PC-A VIA (H)
+    SETDAYSA = SETTLE-DAYS-A VIA (H)
+%*
+%* Get field from MSF810
+      LNAME   = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = PO)                    
+       FNAME   = FIRST-NAME VIA (LNAME)                    
+       ENAME   = CATENATE (LNAME,' , ',FNAME)             
+       POFF    = OUT-STRING OF MSSCNV      -
+                 WHERE (OPTION = 'P',      -
+                        INP-STRING = ENAME)             
+
+    SETVAL = CALC (SETA / 100 * VAL-INVD) FORMAT (BWZ)
+    PRNT   = CHOOSE('Y' IF (SETVAL <> 0), -
+                    'Y' IF (%SDONLY% = 'N'), -
+                    'N')
+    SETDUE1 = DATE2 OF MSSDAT -
+              WHERE (OPTION = '1', -
+                     DATE1  = INVDTE, -
+                     DAYS   = SETDAYSA) FORMAT (DATE)
+    SETDUE = CHOOSE (SETDUE1 IF (SETA > 0), SPACES) FORMAT (DATE)
+    SETDISCTXT = CHOOSE ('Settlement Discount: $' IF (SETA > 0), SPACES)
+    ST = CHOOSE ('due' IF (SETA > 0), SPACES)
+%*
+%* Get fields from stock code file MSF100 (Stock code details)
+    SCINAME = ITEM-NAME OF MSF100 -
+              WHERE (STOCK-CODE = SC)
+    SCDESC1 = DESC-LINE-1 VIA (SCINAME)
+    SCDESC2 = DESC-LINE-2 VIA (SCINAME)
+    SCDESC3 = DESC-LINE-3 VIA (SCINAME)
+    SCDESC4 = DESC-LINE-4 VIA (SCINAME)
+    SCEXT-DESC = GET (READ-TEXT FROM ('MSF096') CODE ('SC') -
+                 KEY (SC)) MAX (99)
+%*
+%* Get fields from MSf231 file (Purchase Req Item Details)
+    PRDESC1 = ITEM-DESC1 OF MSF231 WHERE (DSTRCT-CODE = DC,-
+                                           PREQ-NO = PREQ,-
+                                           PREQ-ITEM-NO = PI)
+    PRDESC2  = ITEM-DESC2 VIA (PRDESC1) 
+    PRDESC3  = ITEM-DESC3 VIA (PRDESC1) 
+    PRDESC4  = ITEM-DESC4 VIA (PRDESC1) 
+    PREXT-DESC = GET (READ-TEXT FROM ('MSF096') CODE ('PR') -
+                 KEY (DC,PREQ,PI)) MAX (99)
+%* description
+    DESC1 = CHOOSE (SCINAME IF (SCINAME <> SPACES),PRDESC1)
+    DESC2 = CHOOSE (SCDESC1 IF (SCDESC1 <> SPACES),PRDESC2)
+    DESC3 = CHOOSE (SCDESC2 IF (SCDESC2 <> SPACES),PRDESC3)
+    DESC4 = CHOOSE (SCDESC3 IF (SCDESC3 <> SPACES),PRDESC4)
+    DESC5 = CHOOSE (SCDESC4 IF (SCDESC4 <> SPACES),SPACES)
+%*
+%* Get fields from MSF230 file (Purchase Req Header Details)
+    REQBY1 = REQUESTED-BY OF MSF230 -
+             WHERE (DSTRCT-CODE = DC,-
+                    PREQ-NO     = PREQ)
+    REQBY = CHOOSE (REQBY1 IF (REQBY1 <> SPACES),REQBY1)
+%*
+%* Table file descriptions
+    ANAME1X = HRGET  (EMPLOYEE-ID -
+                      from ('MSSEMP,MSF810') -
+                      key  (EMPLOYEE-ID = A)
+    ANAME1  = FORMATTED-NAME via (ANAME1X)
+%*
+    ANAME = SUBSTR (ANAME1,3,48)
+    ACNAME1X = HRGET  (EMPLOYEE-ID -
+                       from ('MSSEMP,MSF810') -
+                       key  (EMPLOYEE-ID = B)
+    ACNAME1  = FORMATTED-NAME via (ACNAME1X)
+%*
+    ACNAME = SUBSTR (ACNAME1,3,48)
+    RNAME1X = HRGET  (EMPLOYEE-ID -
+                      from ('MSSEMP,MSF810') -
+                      key  (EMPLOYEE-ID = REQBY)
+    RNAME1  = FORMATTED-NAME via (RNAME1X)
+
+    RNAME = SUBSTR (RNAME1,3,48)
+%*
+%* Invoice Commentary
+    INV-COMM  = GET (READ-TEXT FROM ('MSF096') CODE ('II') -
+                KEY (DC,E,ININV)) MAX (99)
+    INVCOM    = SIZE (INV-COMM)
+%*
+%* Get fields from MSF232 file (Accounts)
+    ACCTNO1    = GL-ACCOUNT-1 OF MSS232 -
+                 WHERE (OPTION       = 'R',-
+                        DSTRCT-CODE  = DC,-
+                        REQ-TYPE-IND = 'P',-
+                        REQ-NO       = PREQ,-
+                        PREQ-ITEM    = PI) 
+    SI-WO     = WORK-ORDER   VIA (ACCTNO1)
+    SI-PNO    = PROJECT-NO   VIA (ACCTNO1)
+    SI-ENO    = EQUIP-NO     VIA (ACCTNO1)
+    SI-APC    = ALLOC-PC     VIA (ACCTNO1)
+    T         = ALLOC-PC     VIA (ACCTNO1) D-PIC (ZZ9.99)
+    SIWOP     = CHOOSE(SI-WO IF (SI-WO <> SPACES),SI-PNO)
+    WOP-LIT   = CHOOSE('Work Order:' IF (SI-WO <> SPACES),-
+                       'Project No:' IF (SI-PNO <> SPACES), SPACES)
+    EQP-LIT   = CHOOSE('Equip. No:'  IF (SI-ENO <> SPACES), SPACES)
+    ACCTNO2   = GL-ACCOUNT-2 VIA (ACCTNO1)
+    ACCTNO3   = GL-ACCOUNT-3 VIA (ACCTNO1)
+    ACCTNO4   = GL-ACCOUNT-4 VIA (ACCTNO1)
+    ACCTNO5   = GL-ACCOUNT-5 VIA (ACCTNO1)
+    ACCTNO6   = GL-ACCOUNT-6 VIA (ACCTNO1)
+    ACCTNO7   = GL-ACCOUNT-7 VIA (ACCTNO1)
+    WO1       = WORK-ORDER-1 VIA (ACCTNO1)
+    WO2       = WORK-ORDER-2 VIA (ACCTNO1)
+    WO3       = WORK-ORDER-3 VIA (ACCTNO1)
+    WO4       = WORK-ORDER-4 VIA (ACCTNO1)
+    WO5       = WORK-ORDER-5 VIA (ACCTNO1)
+    WO6       = WORK-ORDER-6 VIA (ACCTNO1)
+    WO7       = WORK-ORDER-7 VIA (ACCTNO1)
+    EQUIP1    = EQUIP-NO-1   VIA (ACCTNO1)
+    EQUIP2    = EQUIP-NO-2   VIA (ACCTNO1)
+    EQUIP3    = EQUIP-NO-3   VIA (ACCTNO1)
+    EQUIP4    = EQUIP-NO-4   VIA (ACCTNO1)
+    EQUIP5    = EQUIP-NO-5   VIA (ACCTNO1)
+    EQUIP6    = EQUIP-NO-6   VIA (ACCTNO1)
+    EQUIP7    = EQUIP-NO-7   VIA (ACCTNO1)
+    T1        = ALLOC-PC-1   VIA (ACCTNO1)
+    T2        = ALLOC-PC-2   VIA (ACCTNO1)
+    T3        = ALLOC-PC-3   VIA (ACCTNO1)
+    T4        = ALLOC-PC-4   VIA (ACCTNO1)
+    T5        = ALLOC-PC-5   VIA (ACCTNO1)
+    T6        = ALLOC-PC-6   VIA (ACCTNO1)
+    T7        = ALLOC-PC-7   VIA (ACCTNO1)
+%*
+%* Get fields from MSF263 file (Tax Code)
+    M263      = INV-DSTRCT-CODE FROM MSF263      -
+                WHERE (INV-DSTRCT-CODE = DC,     -
+                       INV-SUPPLIER-NO = E,      -
+                       INV-NO          = ININV,  -
+                       INV-ITEM-NO     = K,      -
+                       DEFAULTED-IND  >= SPACES) -
+                MAX (1)
+    AT        = ATAX-CODE              VIA (M263)
+    TX        = AT
+%*------------------------------------------------------------------------------
+%* *** Dynamic printing functionality has been disabled ***
+%* Dynamic Printing
+%* ================
+%*   'A'- MAIN APPROVAL  REPORT- Report only prints if %regonly% <> 'Y'
+%*   'B'- REGISTER       REPORT- Report always prints
+%*   'C'- (H/O) REGISTER REPORT- Report only prints if %siteprin% = 'B'
+%*                             - ('B'= both site & head office)
+%*                             - Only prints at request-printer(NO DYNAMIC PRTR)
+%*    Note: Request printer should always be DISB (ie. H/O disb printer)
+%* 2. Requested Online 
+%*       Note: A report will not print if %regonly% = 'Y'
+%*    2a.Normal    (%CUTOFF-DTE% = spaces)   :     
+%*       (Prints at site               (A,B) if %SITEPRIN% = 'Y') 
+%*       (Prints at request printer    (A,B) if %SITEPRIN% = 'N') 
+%*       (Prints at request printer    (C)   if %SITEPRIN% = 'B') 
+%*    2b.Exemption (%CUTOFF-DTE% <> spaces)  :     
+%*       (Prints at site               (A,B) if %SITEPRIN% = 'Y') 
+%*       (Prints at request printer    (A,B) if %SITEPRIN% = 'N') 
+%*       (Prints at request printer    (C)   if %SITEPRIN% = 'B') 
+%*   
+%*    DSTFIN  = CATENATE (DC, 'FINANCE')
+%*    PRINFIN = PRINTER OF MSF010 ==
+%*              WHERE (TABLE-TYPE = 'PR',==
+%*                     TABLE-CODE = DSTFIN)
+%*    PRIN = CHOOSE (PRINFIN IF (%SITEPRIN% <> 'N'),== 
+%*                   PRINFIN IF (%DEFPRIN% = SPACES),== 
+%*                   %DEFPRIN%)
+%*    PRINX = PRINTER (PRIN)
+%*------------------------------------------------------------------------------
+%* Totals:
+%* DG Was printing blank invoices in 'b' report so ensure J (Invoice) <> spaces.
+    PRINT = CHOOSE ('Y' IF (ININV <> SPACES, SETVAL <> 0, WHOUSEP = 'Y'), -
+                    'Y' IF (ININV <> SPACES, %SDONLY% = 'N', WHOUSEP = 'Y'), -
+                    'N')
+    CNT1 = CHOOSE (1 IF (PRINT = 'Y'),0)
+    VAL1 = CHOOSE (VAL-INVD IF (PRINT = 'Y'),0)
+    CNT = TOTAL (CNT1)
+    VAL = TOTAL (VAL1) D-PIC ($(12)9.99-)

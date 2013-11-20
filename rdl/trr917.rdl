@@ -1,0 +1,161 @@
+%*** Revision History:
+%*** 06-Aug-12    a9jw6280       MO164 (Version 0001)
+%*** .........................  Added quote for words after TEXT.
+%*** .........................  Reset version number to 0001 for E8 upgrade.
+%*** 24-jAN-06    Amanda N.     Ellipse Upgrade.
+%***                            Continue modified to Ellipse 5.2.3.7.
+%*** 17-Nov-2005  E Fredeluces  P05110870
+%***                            Fix compilation errors in Ellipse 5.2.3.7.
+%*** 30-Oct-2003  Lubanovic     WCHG037668
+%***                            Added a new parameter to provide an 
+%***                            option to output the data as a CSV file
+%***                            to the requestor's H Drive.
+%*** 22-Aug-2000  E Fredeluces  W00080588
+%***                            Include parameter Date From/To.
+%*** 21-Jun-2000  E Fredeluces  
+%***                            Re-install the testing for
+%***                            Accountants.
+%*** 16-Jun-2000  E Fredeluces  W00060389
+%***                            Not picking-up modified Atax-Code.
+%***                            It is also picking-up other Manual
+%***                            Journals without Tax Code.  The
+%***                            program will be split to do extract
+%***                            and reporting separatedly.
+%PROGRAM-ID
+       TRR917
+%AUTHOR
+       Elizabeth Fredeluces
+%NARRATIVE
+      **  This will extract Tax Journals from MSF900.  It will
+      **  generate the List of Tax Journals via TRR918.
+%VERSION
+       0001
+%MODULE
+       3140
+%FILES
+        MFILE = MSFX90
+        LFILE = MSF900
+        OFILE = TRT917A
+%SELECTION
+<IF %DIST% <> SPACES>
+       WHERE    (DSTRCT-CODE  = %DIST%,- 
+                 JOURNAL-NO  >= SPACES)
+<ELSE>
+       WHERE    (DSTRCT-CODE >= SPACES)
+<ENDIF>
+       REJECTIF (FULL-PERIOD <> PERD, -
+                 DATEFR       = SPACES)
+       REJECTIF (PROCESS-DATE < DATEFR, -
+                 DATEFR      <> SPACES)
+       REJECTIF (PROCESS-DATE > DATETO, -
+                 DATETO      <> SPACES)
+       REJECTIF (REC900-TYPE <> 'I')
+%CONTROL
+       COPY-REQUEST = TRR918
+%ORDER
+       TRGRP
+%ROUTINES
+       MSSDAT
+%BREAK-FIELDS
+       TRGRP 
+%OUTPUT-FILE
+       A
+%BREAK TRGRP FOOTING
+<IF PRFLG = 'Y'>
+{DC}{FP  }{TRGRP                     }{JRNO    }{PR}{DUMMY                                                    }-
+{DUMMY                                                          }
+<ENDIF>
+%REQUEST-PARAMETERS
+       DIST   PIC (X(4))   TEXT 'District Code - defaults to ALL if blank       :'
+       PERD   PIC (X(4))   TEXT 'Period        - defaults to Previous if blank  :' 
+       DATEFR PIC (9(8))   TEXT 'Date From     - defaults to Period if blank    :'
+       DATETO PIC (9(8))   TEXT 'Date To       - defaults to Period if blank    :'
+       ACC    PIC (X(10))  TEXT 'Accountant    - defaults to ALL if blank       :'
+       FSW    PIC (X(1))   TEXT 'Create CSV File (Y/N)                          :'
+%VARIABLES
+       DUMMY   = '  ' CONSTANT
+       DATEFR  = %DATEFR%                                  CONSTANT
+       DATETO  = %DATETO%                                  CONSTANT
+       CP      = WX-STORES-CP                              CONSTANT
+%*  Determine the Previous Accounting Period
+       LP      = PERIOD-YRMN OF MSSDAT     -
+                 WHERE (OPTION      = 'I', -
+                        PERIOD-YRMN = CP,  -
+                        DAYS        = -1)                  CONSTANT
+%*
+%*  Choose the Previous Accounting Period if the Period Parameter is spaces
+       PRD     = choose (%PERD% IF (%PERD% <> SPACES), LP) CONSTANT
+       YR      = substr (PRD,1,2)                          CONSTANT
+       CY      = choose ('20' IF (YR < '25'), '19')        CONSTANT
+       PERD    = catenate (CY,PRD)                         CONSTANT
+%*
+%*  Determine the Accounting Period of the Parameter Date From/To
+       APFR    = PERIOD-YRMN OF MSSDAT -
+                 WHERE (OPTION = 'B',  -
+                        DATE1  =  DATEFR)                  CONSTANT
+       APTO    = PERIOD-YRMN OF MSSDAT -
+                 WHERE (OPTION = 'B',  -
+                        DATE1  =  DATETO)                  CONSTANT
+       APFRY   = substr (APFR,1,2)                         CONSTANT
+       APTOY   = substr (APTO,1,2)                         CONSTANT
+       APFRC   = choose ('20' IF (APFRY < '25'), '19')     CONSTANT
+       APTOC   = choose ('20' IF (APTOY < '25'), '19')     CONSTANT
+       AP1     = catenate (APFRC,APFR)                     CONSTANT
+       AP2     = catenate (APTOC,APTO)                     CONSTANT
+%*
+%*     Determine Period From/To
+       PERD1   = CHOOSE (AP1 IF (DATEFR <> SPACES), PERD)  CONSTANT
+       PERD2   = CHOOSE (AP2 IF (DATEFR <> SPACES), PERD)  CONSTANT
+%*
+%*  Determine the Process Date of the Parameter Date From & To
+       PROCFR = DAYS OF MSSDAT -
+                WHERE (OPTION  = '8', -
+                       DATE1-X = DATEFR)        CONSTANT
+       PROCTO = DAYS OF MSSDAT -
+                WHERE (OPTION  = '8', -
+                       DATE1-X = DATETO)        CONSTANT
+       PROC1  = calc (PROCFR * 1)  I-PIC (9(6)) CONSTANT
+       PROC2  = calc (PROCTO * 1)  I-PIC (9(6)) CONSTANT
+       P1     = substr (PROC1,3,4)              CONSTANT
+       P2     = substr (PROC2,3,4)              CONSTANT
+%*
+       DC      = DSTRCT-CODE
+       PR      = PROCESS-DATE
+       FP      = FULL-PERIOD
+       PRCFLG  = CHOOSE ('Y' IF (DATEFR <> SPACES, -
+                                 PR     >= DATEFR, -
+                                 PR     <= DATETO), -
+                         'Y' IF (DATEFR  = SPACES, -
+                                 %PERD%  = SPACES),-
+                         'Y' IF (DATEFR  = SPACES, -
+                                 %PERD% <> SPACES),-
+                         'N') 
+       TR      = TRANSACTION-NO
+       USRNO   = USERNO
+       TY      = REC900-TYPE
+       JRNO    = JOURNAL-NO
+       MSF900  = ACCOUNT-CODE OF MSF900            -
+                 WHERE    (DSTRCT-CODE    = DC,    -
+                           PROCESS-DATE   = PR,    -
+                           TRANSACTION-NO = TR,    -
+                           USERNO         = USRNO, -
+                           REC900-TYPE    = TY)
+       TRNGRP  = TRAN-GROUP-KEY VIA (MSF900)
+       ACCTNT  = ACCOUNTANT-I VIA (MSF900)
+       ACCFLG  = choose ('Y' IF (%ACC%  = SPACES), -
+                         'Y' IF (ACCTNT = %ACC%,   -
+                                 %ACC% <> SPACES), -
+                         'N')
+       TRGRP   = choose (TRNGRP IF (TRNGRP <> SPACES), TRNGRP)
+       ATAX    = ATAX-CODE-I    VIA (MSF900)
+       CTAX    = CTAX-CODE-I    VIA (MSF900)
+       TAXFLG  = choose ('Y' IF (ATAX <> SPACES), -
+                         'Y' IF (CTAX <> SPACES), -
+                         'N')
+       PRFLG   = choose ('Y' IF (ACCFLG = 'Y',  -
+                                 TAXFLG = 'Y',  -
+                                 PRCFLG = 'Y'), -
+                         'N')
+%*
+%*     End of Program
+%*

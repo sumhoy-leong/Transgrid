@@ -1,0 +1,96 @@
+%*** TRR22D.rdl
+%***
+%*** Revision History ***
+%*** 07-Aug-12 a9jw6280   MO164 (Version 0001)
+%*** .................... Added quote for words after TEXT.
+%*** .................... Reset version number to 0001 for E8 upgrade.
+%*** 02-Feb-05 AIesho     WCHG084530
+%**  ....................Ignore Purchase orders staring with X
+%*** 05-Jan-05 AIesho     WCHG081741
+%**  ....................Initial Coding. 
+%PROGRAM-ID
+       TRR22D
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      This program will send e mail notifications for 
+      all purchase orders created for a day and that have 
+      a qualifier code that is in the #QI table
+%FILES
+        MFILE = MSF220C
+        AFILE = MSF221
+        LFILE = MSF170
+        LFILE = MSF010
+        OFILE = TRT22DA
+%ROUTINES
+        MSSDAT
+%VERSION
+        0001
+%SELECTION
+         SELECTIF (STATUS-220-2 >= '0', -
+                   STATUS-220-2 <= '2') 
+         REJECTIF (CREATION-DATE <> SELD,  ODATE = SPACES)
+         REJECTIF (ORDER-DATE    <> ODATE, ODATE <> SPACES)
+         REJECTIF (SERV-ITEM-IND = 'S')
+         REJECTIF (PREQ-ITEM-IND = 'P')
+         REJECTIF (FREL-ITEM-IND = 'F')
+%CONTROL
+      COPY-REQUEST = TRR22E
+%OUTPUT-FILE
+      A
+%CONTROL
+      RECORD-LENGTH = 54
+%ORDER
+      BRKF
+%BREAK-FIELDS
+      BRKF
+%*BREAK BRKF NOTIFY ASSIGNEE REPORT TRR22DA
+%BREAK BRKF HEADING
+<IF QINS <> SPACES, QINS = QIN, X <> 'X'>
+{PO  }III{SNO }{STK    }{DC}{EMP     }{OD    }{CD    }
+<ENDIF>
+%REQUEST-PARAMETERS
+       DATECR PIC (X(8))  FORMAT (DATE) TEXT 'Select Orders Created on        :'
+       DATEOR PIC (X(8))  FORMAT (DATE) TEXT 'Select Orders with Order Date   :'
+%VARIABLES
+       TDATE     = date()                              CONSTANT
+       TTIME     = time()                              CONSTANT
+       SDATE     = %DATECR%                            CONSTANT
+       ODATE     = %DATEOR%                            CONSTANT
+       HR        = substr(TTIME,1,2)                   CONSTANT
+       HRN       = numeric(HR)  I-PIC (9(2))           CONSTANT
+       YESTD     = DATE2-X OF MSSDAT -
+                   WHERE (OPTION = '1', -
+                          DATE1  = TDATE, -
+                          DAYS   = -1)                 CONSTANT
+       SELC      = choose(YESTD IF(HRN >= 0, HRN < 18),-
+                          TDATE)   I-PIC (X(8))        CONSTANT
+       SELD      = choose(SDATE IF(SDATE <> SPACES),-
+                          SELC)                        CONSTANT
+       PNO       = PO-NO
+       X         = substr(PO-NO,1,1)  
+       SNO       = SUPPLIER-NO
+       DST       = DSTRCT-CODE
+       OD        = ORDER-DATE
+       CD        = CREATION-DATE
+%*get MSF221 details
+       I         = PO-ITEM-NO from MSF221 -
+                        where (PO-NO       = PNO ,-
+                               PO-ITEM-NO >= SPACES) -
+                   REJECTIF (STOCK-CODE = SPACES)
+  
+       S         = STATUS-221       VIA (I)
+       PO        = PO-NO            VIA (I)
+       DC        = DSTRCT-CODE      VIA (I)
+       STK       = STOCK-CODE       VIA (I)
+%* Get MSF100 Details
+       BRKF      = catenate(PO,I)
+       QINS      = QUAL-INSP OF MSF170 -
+                   WHERE (DSTRCT-CODE  = DC, -
+                          STOCK-CODE = STK)
+       QIN       = TABLE-CODE OF MSF010 -
+                   WHERE (TABLE-TYPE = '#QI', -
+                          TABLE-CODE = QINS)
+       ASSOCV    = ASSOC-REC   VIA (QIN)
+       EMP       = SUBSTR (ASSOCV,1,10)
+%* End Program

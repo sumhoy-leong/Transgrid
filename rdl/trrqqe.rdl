@@ -1,0 +1,511 @@
+%***  $Id: trrqqe.rdl,v1.0 2009/02/03 09:50:00 Exp $
+%***  Revision History:
+%***
+%***  09-Apr-13  M Cole        Version 003
+%***                           Change medium from "E" to "M". 
+%***                           Replaced FDEE with FDEM
+%***                           for line 3 of TCOG header.
+%***  26-Mar-13  M Cole        Version 002
+%***                           As requested from Molly Finney, 
+%***                           during the Ellipse 8 Project Symphony
+%***                           I removed the lines that were being 
+%***                           output on the report that were 
+%***                           showing the Purchasing Officers
+%***                           address details and postcode from
+%***                           from MSF810 
+%***  13-Feb-13  M Cole        Add the FUSR line to the report file
+%***                           output, immediately before the FHDR
+%***                           line
+%***  11-Jan-13  O Santa-Ana   Inser TEST-PAGE in %DETAIL and
+%***                           Break footer for item
+%***  14-Aug-12  a9tl3060      Convert from ellipse 6 to ellipse 8
+%***                           (Version 001).
+%***  03-Feb-09  E Fredeluces  SC2217463
+%***                           Initial Coding.  Based on TRRQQF.
+%***
+%PROGRAM-ID
+    TRRQQE
+%AUTHOR
+    Mincom PTY LTD
+%NARRATIVE
+    Request for Quotation - Quote - Email  Print a Request for Quote
+    for a Quote for a selected supplier or all suppliers.
+    If a district level breakdown is required details for all
+    districts are printed, otherwise only the global details appear.
+    Details are only printed when the RFQ medium is one of those
+    requested and the status is either 'P' 'R' or 'Q'.
+%MODULE
+    3250
+%VERSION
+    003 
+%FILES
+    MFILE = MSF000
+    LFILE = MSF250
+    AFILE = MSF251
+    AFILE = MSF253
+    LFILE = MSF100
+    LFILE = MSF200
+    LFILE = MSF20A
+    LFILE = MSF203
+    LFILE = MSF231
+    LFILE = MSF251
+    LFILE = MSF810
+    RFILE = TRRQQEA
+%ROUTINES
+    MSS110
+    MSSCNV
+%SELECTION
+<IF %DISTRICT-CODE% = SPACES>
+    WHERE (DSTRCT-CODE            = SPACES, -
+           CONTROL-REC-TYPE       = 'AD', -
+           CONTROL-REC-NO        >= SPACES)
+<ELSE>
+    WHERE (DSTRCT-CODE            = SPACES, -
+           CONTROL-REC-TYPE       = 'AD', -
+           CONTROL-REC-NO        >= %DISTRICT-CODE%, -
+           CONTROL-REC-NO        <= %DISTRICT-CODE%)
+<ENDIF>
+%ORDER
+    ASCENDING   A00 TEXT SUPPLIER-253
+    ASCENDING   FPA-ITEM-NO VIA (A25) TEXT fpa-item-no
+%BREAK-FIELDS
+    A00
+    A02                   
+    FPA-ITEM-NO VIA (A25)
+%CONTROL
+    PAGE-WIDTH = 80
+    TRIM-REPORT
+    NO-STD-HEADINGS
+%TITLE
+'Request For Quotation'
+%BREAK A02 HEADING
+{FNOR      } 
+{FDEF}{A01           }
+<IF %NMIMS-SUP-NAME% = SPACES>
+{FDEM}{EMAIL                                 }
+{FDEM}M
+<ELSE>
+{FDEM}{EML                              }
+{FDEM}K
+<ENDIF>
+{FUSR }{AQ        }
+{FHDR                }
+
+
+
+<IF %NMIMS-SUP-NAME% = SPACES>
+ {A06      }{A07                           } 'Facsimile  :'{A01           }
+<SUPPRESS>
+            {A08                           } 'Email Addr :'{EMAIL                                 }
+<SUPPRESS>
+            {A09                           }
+<SUPPRESS>
+            {A10                           }
+<SUPPRESS>
+                                 {A11     }
+ {A06A     }{A11A                          } 'Date        :'{A04A    }   
+<ELSE>
+ {A06      }{A12                           } 'Phone       :'{A13           }
+<SUPPRESS>
+            {A14                           } 'Contact Name:'{A15                 }
+<SUPPRESS>
+            {A16                           } 'Facsimile   :'{A01           }
+<SUPPRESS>
+            {A18                           } 'Email Addr  :'{EML                                   } 
+<SUPPRESS>
+                                 {A19     }
+
+<ENDIF>
+
+ {A06B     }{A05                                  } 'Fax No. :'{AFAX                 }  
+
+ {A06C     }{A02} {A03                                   }
+
+'Dear Sir/Madam:'
+
+'TransGrid is currently seeking quotes  with a view to  placing an  order for'
+'goods and/or services.'
+
+'On the attached form you will find listed specific details for the  proposed'
+'quotations which should be completed and returned to TransGrid.'
+
+'TransGrid Terms and Conditions of Order  are attached  and are the  basis of'
+'all our commercial dealings.'
+
+'Quotes showing delivery time, price (GST exclusive) - free into store (FIS),'
+'discounts and any other information that  affects  the  price  of the  goods'
+'or services, are to be forwarded to the nominated  Purchasing Officer at the'
+'above fax number.'
+
+{FPAGE}
+'Quote Closing Date:'{A04    }
+
+
+ {UNDERLINE                                                                 }
+'|Item Stock Code/   Item Name/                           Quantity          |'
+'| No. Purch Req     Description                 UOI      Tendered          |' 
+ {UNDERLINE                                                                 }
+%BREAK FPA-ITEM-NO VIA (A25) HEADING TEST-PAGE (1)
+<IF A24 = 'P'>
+  {A1} {A25 }B{C}    {A26                                   }
+   <IF A27 <> SPACES>
+                     {A27                                   }
+   <ENDIF>
+   <IF A28 <> SPACES>
+                     {A28                                   }
+   <ENDIF>
+   <IF A29 <> SPACES>
+                     {A29                                   }
+   <ENDIF>
+<REPEAT>
+<SUPPRESS>
+                     {A30                                                      }
+<ENDREPEAT>
+
+
+    'Dist Mnemonic Part Number'
+%* <IF A24 = 'P'>
+%*   {A2} {A39   } {A40                         } {A3} {A41     }
+%* <ELSE>
+%*  <IF %DBD% = 'Y'>
+%*     {A2} {A43   } {A44                        }GG{A5} {A45     }
+%*  <ENDIF>
+%* <ENDIF>
+<ELSE>
+   <IF %DBD% = 'Y'>
+  {A1} {A32    }D{E} {A33                                   }
+      <IF A34 <> SPACES>
+                     {A34                                   }
+      <ENDIF>
+      <IF A35 <> SPACES>
+                     {A35                                   }
+      <ENDIF>
+      <IF A36 <> SPACES>
+                     {A36                                   }
+      <ENDIF>
+      <IF A37 <> SPACES>
+                     {A37                                   }
+      <ENDIF>
+<REPEAT>
+<SUPPRESS>
+                     {A38                                   }
+<ENDREPEAT>
+
+
+   'Dist Mnemonic Part Number'                 'Pref'
+   <ENDIF>
+<ENDIF>
+%DETAIL TEST-PAGE (1)
+<IF A12 =  SPACES>
+ <IF A24 = 'P'>
+     {A2} {A39   } {A40                         } {A3} {A41     }
+ <ELSE>
+  <IF %DBD% = 'Y'>
+     {A2} {A43   } {A44                        }GG{A5} {A45     }
+<REPEAT>
+<SUPPRESS>
+          {A43   } {A44                        }HH
+<ENDREPEAT>
+
+  <ENDIF>
+ <ENDIF>
+<ENDIF>
+%BREAK FPA-ITEM-NO VIA (A25) FOOTING TEST-PAGE (1)
+<IF %DBD% = 'N'>
+   <IF A24 = 'S'>
+  {A1} {A32    }D{E} {A33                                   }
+                                                  {A5} {A46     }
+      <IF A34 <> SPACES>
+                     {A34                                   }
+      <ENDIF>
+      <IF A35 <> SPACES>
+                     {A35                                   }
+      <ENDIF>
+      <IF A36 <> SPACES>
+                     {A36                                   }
+      <ENDIF>
+      <IF A37 <> SPACES>
+                     {A37                                   }
+      <ENDIF>
+<REPEAT>
+<SUPPRESS>
+                     {A38                                   }
+<ENDREPEAT>
+
+        'Mnemonic Part Number'                 'Pref'
+<REPEAT>
+<SUPPRESS>
+          {A48   } {A49                         } JJ
+<ENDREPEAT>
+
+   <ENDIF>
+
+      {UNDERLINE                                                            }
+'     | Gross Unit |  Trade    | Settlement|  Lead Time|   Std    |         |'
+'     |   Price    | %Discount | %Discount |   (Days)  |   Pack   |   UOP   |'
+      {UNDERLINE                                                            }
+   <IF A12 <> SPACES>
+ {A2}'|            |           |           |           |          |         |'
+      {UNDERLINE                                                            }
+   <ENDIF>
+<ELSE>
+      {UNDERLINE                                                            }
+'     | Gross Unit |  Trade    | Settlement|  Lead Time|   Std    |         |'
+'     |   Price    | %Discount | %Discount |   (Days)  |   Pack   |   UOP   |'
+      {UNDERLINE                                                            }
+   <IF A12 <> SPACES>
+ {A2}'|            |           |           |           |          |         |'
+      {UNDERLINE                                                            }
+   <ELSE>
+    <IF A51 <> SPACES>
+ {A7}'|            |           |           |           |          |         |'
+    <ENDIF>
+    <IF A52 <> SPACES>
+ {A8}'|            |           |           |           |          |         |'
+    <ENDIF>
+    <IF A53 <> SPACES>
+ {A9}'|            |           |           |           |          |         |'
+    <ENDIF>
+    <IF A54 <> SPACES>
+ {B0}'|            |           |           |           |          |         |'
+    <ENDIF>
+    <IF A55 <> SPACES>
+ {B1}'|            |           |           |           |          |         |'
+    <ENDIF>
+      {UNDERLINE                                                            }
+   <ENDIF>
+
+<ENDIF>
+%BREAK A02 FOOTING
+
+'Total Number of Items on this RFQ is ' {A56}
+
+<IF A4 <> SPACES>
+'Delivery Location :'
+<ENDIF>
+<REPEAT>
+<SUPPRESS>
+                     {DELOC                                                    }
+<ENDREPEAT>
+
+<REPEAT>
+<SUPPRESS>
+      {A31                                                       }
+<ENDREPEAT>
+
+'Terms and conditions ...'
+{COND1             }
+{FPAGE}
+{COND2             }
+{FPAGE}
+{FEND   }
+{FSTOP  }
+%BREAK A00 FOOTING
+%REQUEST-PARAMETERS
+    TYPE            PIC (X(1))                   TEXT 'FPA Type'
+    QTE             PIC (X(5))                   TEXT 'Quote Number'
+    SUP             PIC (X(6))                   TEXT 'Supplier               '
+    MED1            PIC (X(1))                   TEXT 'RFQ Medium             '
+    MED2            PIC (X(1))                   TEXT
+    MED3            PIC (X(1))                   TEXT
+    MED4            PIC (X(1))                   TEXT
+    DBD             PIC (X(1))                   TEXT 'District breakdown reqd'
+    BLANK           PIC (X(1))                   TEXT 'Blank RFQ required'
+    NMIMS-SUP-NAME  LIKE SUPPLIER-NAME OF MSF200 TEXT 'Non MIMS Supplier Name'
+    NMIMS-SUP-ADD1  LIKE ORDER-ADDR-1 OF MSF200  TEXT 'Non MIMS Supplier Address 1'
+    NMIMS-SUP-ADD2  LIKE ORDER-ADDR-2 OF MSF200  TEXT 'Non MIMS Supplier Address 2'
+    NMIMS-SUP-ADD3  LIKE ORDER-ADDR-2 OF MSF200  TEXT 'Non MIMS Supplier Address 3'
+    NMIMS-S-PCODE   LIKE ORDER-ZIP OF MSF200     TEXT 'Non MIMS Supplier Post Code'
+    NMIMS-S-CNAME   LIKE ORDER-CONTACT OF MSF200 TEXT 'Non MIMS Supplier Contact Name'
+    NMIMS-S-PHONE   PIC (X(10))                  TEXT 'Non MIMS Supplier Phone'
+    NMIMS-S-EML-NO  PIC (X(34))                  TEXT 'Non MIMS Supplier Email Address'
+%VARIABLES
+    FNOR  =  '*/GO /NOR'         CONSTANT
+    FDE   =  '*/DE='             CONSTANT
+    FDEF  =  '*/DE=F'            CONSTANT
+    FDEE  =  '*/DE=E'            CONSTANT
+    FDEM  =  '*/DE=M'            CONSTANT
+    FUSR  =  '*/USER='           CONSTANT
+    FPAGE =  '!'                 CONSTANT
+    GCON  =  '#CONDNS.FAX,S'     CONSTANT
+%*  SCON  =  '#L-SCON.FAX,S'     CONSTANT
+    COND1 = '#QUOTE1.FAX,S'      CONSTANT
+    COND2 = '#QUOTE2.FAX,S'      CONSTANT
+    CD1   = '#CODE1.FAX,S'       CONSTANT
+    CD2   = '#CODE2.FAX,S'       CONSTANT
+    FEND  =  '*/END'             CONSTANT
+    FSTOP =  '*/STOP'            CONSTANT
+    FHDR  =  '#TRANSRFQ.FAX,S'   CONSTANT
+    K     =  'M'                 CONSTANT
+    A22   = 'Norma'
+    A0    = 'Item'
+    A06   = 'To       :'
+    A06A  = 'Attention:'
+    A06B  = 'From     :'
+    A06C  = 'Reference:'
+    A06D  = 'Address  :'
+    B     = '/'
+    A     = '*/F'
+    A19   = %NMIMS-S-PCODE%
+    A18   = %NMIMS-SUP-ADD3%
+    EML   = %NMIMS-S-EML-NO%
+    A16   = %NMIMS-SUP-ADD2%
+    A15   = %NMIMS-S-CNAME%
+    A14   = %NMIMS-SUP-ADD1%
+    A13   = %NMIMS-S-PHONE%
+    A12   = %NMIMS-SUP-NAME%
+    A02   = %QTE%  CONSTANT
+    A20   = GET (READ-TEXT FROM ('MSF096') CODE ('FH' ) KEY('Q' ,%QTE% )) MAX(50 ) TEXT-WIDTH(60 )
+    A57   = PURCH-OFFICER OF MSF250 -
+    WHERE (FPA-REC-TYPE           = 'Q', -
+           FPA-GROUP              = %QTE%) -
+    CONSTANT
+    A03   = FPA-DESC VIA (A57) CONSTANT
+    A04   = QUOTE-CLS-DATE VIA (A57) CONSTANT FORMAT (DATE)
+    A04B  = DATE ()                 CONSTANT FORMAT (DATE)
+    A04C  = RFQ-PRTD-DATE VIA (A57) CONSTANT FORMAT (DATE)
+    A04A  = choose (A04C IF (A04C <> SPACES), A04B)  CONSTANT FORMAT (DATE)
+    TOTA  = AUTHSD-TOT-AMT   VIA (A57)
+    A05N  = EMPLOYEE-ID OF MSF810 -
+           WHERE (EMPLOYEE-ID = A57)
+    AFAX  = FAX-NO            VIA (A05N)
+    A67   = SURNAME           VIA (A05N)
+    AFNM  = FIRST-NAME        VIA (A05N)
+    ANME  = CATENATE (AFNM,' ',A67)
+    A05   = OUT-STRING OF MSSCNV -
+            WHERE (OPTION     = 'P', -
+                   INP-STRING = ANME)
+    A59 = SUPPLIER-NO FROM MSF253 -
+    WHERE (FPA-REC-TYPE           = 'Q', -
+           FPA-GROUP              = %QTE%, -
+           FPA-AGREEMENT          = SPACES, -
+           SUPPLIER-NO           >= SPACES) -
+    REJECTIF (SUPPLIER-OFFER <> SPACES)
+
+    A58 = SUPPLIER-NO FROM MSF253 -
+    WHERE (FPA-REC-TYPE           = 'Q', -
+           FPA-GROUP              = %QTE%, -
+           FPA-AGREEMENT          = SPACES, -
+           SUPPLIER-NO           >= SPACES) -
+    SELECTIF (%MED1% <> SPACES AND RFQ-MEDIUM = %MED1%) -
+    SELECTIF (%MED2% <> SPACES AND RFQ-MEDIUM = %MED2%) -
+    SELECTIF (%MED3% <> SPACES AND RFQ-MEDIUM = %MED3%) -
+    SELECTIF (%MED4% <> SPACES AND RFQ-MEDIUM = %MED4%) -
+    REJECTIF (SUPPLIER-OFFER <> SPACES) -
+    REJECTIF (STATUS-253 <> 'P' AND STATUS-253 <> 'R' AND STATUS-253 <> 'Q')
+
+    A25 = PURCH-REQ FROM MSF251 -
+    WHERE (FPA-REC-TYPE           = 'Q', -
+           FPA-GROUP              = %QTE%, -
+           FPA-ITEM-NO           >= SPACES) -
+    REJECTIF (DSTRCT-CODE = SPACES)
+
+    AQ  = CATENATE (%QTE%,'-',A58) I-PIC (X(12))
+ 
+    A2  = DSTRCT-CODE    VIA (A25)
+    C   = PREQ-ITEM      VIA (A25)
+    A41 = QTY-TEND-UOI   VIA (A25) D-PIC ( ZZZZZZ9.99 )
+    F   = FREIGHT-CODE   VIA (A25)
+    A32 = STOCK-CODE     VIA (A25) 
+    A32A= STK-ACTIV-CTR  VIA (A25)
+    A45 = QTY-TEND-UOI   VIA (A25) D-PIC ( ZZZZZZZZZ9 )
+    A61 = ACTIVITY-CTR   VIA (A25)
+    A1  = FPA-ITEM-NO    VIA (A25)
+    A24 = ITEM-TYPE      VIA (A25)
+    A42 = NORM-ORD-QTY-I VIA (A25)
+    PRQ = PREQ-STK-CODE  VIA (A25) 
+    PR  = SUBSTR (PRQ,1,6)
+    PREQ= CATENATE (PR,'001')
+    STPR= CHOOSE (PREQ IF (A24 = 'P'), A32A)
+%*
+%*  Obtain Delivery Location from Item 001 of the FPA
+%*
+    A4  = DELIV-LOCATION OF MSF251           -
+          WHERE    (FPA-REC-TYPE   = 'Q',    -
+                    FPA-GROUP      = %QTE%,  -
+                    FPA-ITEM-NO   >= '0001', -
+                    FPA-ITEM-NO   <= '0001') -
+          REJECTIF (DSTRCT-CODE    = SPACES) -
+          MAX      (1) CONSTANT
+%*
+	DELOC=GET (READ-TEXT FROM ('MSF096') CODE ('TT') KEY ('DN  ',A4)) MAX (10) TEXT-WIDTH(40) CONSTANT 
+ A00 = CHOOSE(SPACES IF (A12 <> SPACES), A58 IF (A58 <> SPACES), A59 IF (A59 <> SPACES), SPACES) I-PIC (X(32))
+    A30 = GET (READ-TEXT FROM ('MSF096') CODE ('PR' ) KEY(A2 ,A25 ,'001' )) MAX(20 ) TEXT-WIDTH(60 )
+    A31 = GET (READ-TEXT FROM ('MSF096') CODE ('FI' ) KEY('Q' ,%QTE% ,'0001',STPR)) MAX(50 ) TEXT-WIDTH(60 )
+    A50 = PUT(A2 ) MAX (5 )
+    A60 = NUMERIC(A61 ) I-PIC (9(3))
+    D   = CHOOSE('/'  IF (A24 = 'S' AND A60 <> ZERO AND A61 <> SPACES ) , ' ' )
+    A66 = AVG(A42 )
+    A63 = QTY-TEND-UOI VIA (A25)
+    A64 = TOTAL(A63 )
+    A9  = SINGLE(A50 (3 ))
+    A53 = SINGLE(A50 (3 ))
+    A38 = GET (READ-TEXT FROM ('MSF096') CODE ('SC' ) KEY(A32 )) MAX(20 ) TEXT-WIDTH(40 )
+    A51 = SINGLE(A50 (1 ))
+    A7  = SINGLE(A50 (1 ))
+    A8  = SINGLE(A50 (2 ))
+    A52 = SINGLE(A50 (2 ))
+    B1  = SINGLE(A50 (5 ))
+    A55 = SINGLE(A50 (5 ))
+    A21 = GET (READ-TEXT FROM ('MSF096') CODE ('FS' ) KEY('Q' ,%QTE% ,A00 )) MAX(50 ) TEXT-WIDTH(60 )
+    A56 = COUNT(A1 )
+    B0  = SINGLE(A50 (4 ))
+    A54 = SINGLE(A50 (4 ))
+    E   = CHOOSE(A61  IF (A24 = 'S' AND A60 <> ZERO AND A61 <> SPACES ) , SPACES )
+    A01 = ORDER-FAX-NO OF MSF200 -
+    WHERE (SUPPLIER-NO            = A00)
+    A07 = SUPPLIER-NAME VIA (A01)
+    A08 = ORDER-ADDR-1 VIA (A01)
+    A09 = ORDER-ADDR-2 VIA (A01)
+    A10 = ORDER-ADDR-3 VIA (A01)
+    A11 = ORDER-ZIP VIA (A01)
+    A11A = ORDER-CONTACT VIA (A01)
+%* Email Address
+    EMAIL = ORDER-EMAIL-ADDR OF MSF20A -
+            WHERE (SUPPLIER-NO = A00)
+%* Medium Ind
+    MSF203     = REMIT-MEDIUM-IND OF MSF203 -
+                 WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                        SUPPLIER-NO = A00)
+    M          = RFQ-MEDIUM-IND VIA (MSF203)
+%*
+    A49 = PART-NO OF MSS110 -
+    WHERE (DSTRCT-CODE            = SPACES, -
+           STOCK-CODE             = A32, -
+           NO-REQUIRED-9          = 10)
+    J   = PREF-PART-IND-9 VIA (A49) D-PIC ( Z9 BLANK WHEN ZERO )
+    A48 = MNEMONIC VIA (A49)
+    A29 = ITEM-DESC4 OF MSF231 -
+    WHERE (DSTRCT-CODE            = A2, -
+           PREQ-NO                = A25, -
+           PREQ-ITEM-NO           = C)
+    A26 = ITEM-DESC1 VIA (A29)
+    A40 = PART-NO VIA (A29)
+    A27 = ITEM-DESC2 VIA (A29)
+    A3  = UNIT-OF-MEAS VIA (A29)
+    A28 = ITEM-DESC3 VIA (A29)
+    A39 = MNEMONIC VIA (A29)
+    A43 = MNEMONIC OF MSS110 -
+    WHERE (DSTRCT-CODE            = A2, -
+           STOCK-CODE             = A32, -
+           NO-REQUIRED-9          = 10)
+    H   = PREF-PART-IND-9 VIA (A43) FORMAT (BLANK-WHEN-ZERO)
+    A44 = PART-NO VIA (A43)
+    G   = PREF-PART-IND-9 VIA (A43)
+    A62 = QTY-TEND-UOI OF MSF251 -
+    WHERE (FPA-REC-TYPE           = 'Q', -
+           FPA-GROUP              = %QTE%, -
+           FPA-ITEM-NO            = A1, -
+           DSTRCT-CODE            = SPACES)
+    A65 = NORM-ORD-QTY-I VIA (A62)
+    I   = FREIGHT-CODE VIA (A62)
+    A6  = DELIV-LOCATION VIA (A62)
+    A34 = DESC-LINE-1 OF MSF100 -
+    WHERE (STOCK-CODE             = A32)
+    A35 = DESC-LINE-2 VIA (A34)
+    A5  = UNIT-OF-ISSUE VIA (A34)
+    A33 = ITEM-NAME VIA (A34)
+    A36 = DESC-LINE-3 VIA (A34)
+    A37 = DESC-LINE-4 VIA (A34)
+    A47 = CHOOSE(A65  IF (A65 <> 0 ) , A66 )
+    A46 = CHOOSE(A62  IF (A62 <> 0 ) , A64 ) D-PIC ( ZZZZZZZZZ9 )

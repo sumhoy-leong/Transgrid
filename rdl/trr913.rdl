@@ -1,0 +1,207 @@
+%***TRR913.RDL
+%***
+%*** Revision History
+%*** 08-Aug-12 N Perry         MO164 (Version 0001)
+%*** ......................... Removed Forward reference error. 
+%*** ......................... Replaced ESR90A with TRR913      
+%*** ......................... Replace PIC Statements with D-PIC.    
+%*** ......................... Convert to Ellipse 8 format.
+%*** ......................... Reset version number to 0001 for E8 upgrade.
+%*** 24-Feb-06  AIesho         P05110872 Ellipse Upgrade 5.2.3.7.
+%*** ......................... MSF900-PROCESS-DATE is now just a normal date 
+%*** ......................... so I have changed DATE1 and DATE2 in the
+%*** ......................... choose to pick up the date not the julian date
+%*** 12-07-05 Lubanovic        P05060270
+%*** ......................... added new code so that we append the whouse id
+%*** ......................... to the purchase req number if the district
+%*** ......................... is 'GRID'.
+%*** 28-05-99 G Presser        W99051070       (Version 003)
+%*** ......................... Calculate Start & End Dates correctly 
+%*** 08-09-92 Mary Wachman.... fixed stockcode. Changed from 8 to 9 char
+%*** ......................... fixed up selection. Was selecting "s" record
+%*** .........................       price instead of "p" record price.
+%*** ......................... aligned desc under s/code.
+%*** ......................... realigned desc under s/code.
+%*** 28-02-92 David Gatward... add transaction date to detail
+%*** ......................... default to last month or enter date range 
+%*** .........................                   instead of process date 
+%*** ......................... allow requestor to nominate cut off Value OR Price
+%*** ......................... allow requestor to nominate tran. types
+%***
+%PROGRAM-ID
+   TRR913
+%AUTHOR
+    K.J.ELLIS
+%NARRATIVE
+    *** DATE-WRITTEN: 21-1-91
+    *** THIS PROGRAM PRODUCES A REPORT LISTING 
+    *** NOMINATED TRANSACTIONS OVER A NOMINATED VALUE FOR 
+    *** A NOMINATED PERIOD SORTED BY ACCOUNT CODE.
+    *** IT WAS INITIALLY WRITTEN FOR INTERNAL AUDIT BUT HAS BEEN
+    *** CHANGED TO TO BE MORE FLEXIBLE.
+%VERSION
+    0001
+%FILES
+    MFILE = MSF900
+    LFILE = MSF100
+    LFILE = MSF230
+    LFILE = MSF231
+    RFILE = TRR913A
+%ROUTINES
+    MSSDAT
+%SELECTION
+%* dg note: (P)rice is only allowed for 'ISS' & 'PRD' trans
+<IF %PRICE% = 'P'>
+    WHERE (DSTRCT-CODE = %DISTRICT-CODE%, PROCESS-DATE >= DATE1) 
+    SELECTIF (%TRAN1% = 'ISS',TRAN-TYPE = %TRAN1%, AVERAGE-PR-S >= %VALUE%)
+    SELECTIF (%TRAN1% = 'ISS',TRAN-TYPE = %TRAN1%, AVERAGE-PR-S <= NEG-VALUE)
+    SELECTIF (%TRAN2% = 'ISS',TRAN-TYPE = %TRAN2%, AVERAGE-PR-S >= %VALUE%)
+    SELECTIF (%TRAN2% = 'ISS',TRAN-TYPE = %TRAN2%, AVERAGE-PR-S <= NEG-VALUE)
+    SELECTIF (%TRAN1% = 'PRD',TRAN-TYPE = %TRAN1%, NET-PRICE-P >= %VALUE%)
+    SELECTIF (%TRAN1% = 'PRD',TRAN-TYPE = %TRAN1%, NET-PRICE-P <= NEG-VALUE)
+    SELECTIF (%TRAN2% = 'PRD',TRAN-TYPE = %TRAN2%, NET-PRICE-P >= %VALUE%)
+    SELECTIF (%TRAN2% = 'PRD',TRAN-TYPE = %TRAN2%, NET-PRICE-P <= NEG-VALUE)
+    STOPIF (PROCESS-DATE > DATE2)
+<ELSE>
+    WHERE (DSTRCT-CODE = %DISTRICT-CODE%, PROCESS-DATE >= DATE1) 
+    SELECTIF (TRAN-TYPE = %TRAN1%, TRAN-AMOUNT >= %VALUE%)
+    SELECTIF (TRAN-TYPE = %TRAN1%, TRAN-AMOUNT <= NEG-VALUE)
+    SELECTIF (TRAN-TYPE = %TRAN2%, TRAN-AMOUNT >= %VALUE%)
+    SELECTIF (TRAN-TYPE = %TRAN2%, TRAN-AMOUNT <= NEG-VALUE)
+    SELECTIF (TRAN-TYPE = %TRAN3%, TRAN-AMOUNT >= %VALUE%)
+    SELECTIF (TRAN-TYPE = %TRAN3%, TRAN-AMOUNT <= NEG-VALUE)
+    SELECTIF (TRAN-TYPE = %TRAN4%, TRAN-AMOUNT >= %VALUE%)
+    SELECTIF (TRAN-TYPE = %TRAN4%, TRAN-AMOUNT <= NEG-VALUE)
+    SELECTIF (TRAN-TYPE = %TRAN5%, TRAN-AMOUNT >= %VALUE%)
+    SELECTIF (TRAN-TYPE = %TRAN5%, TRAN-AMOUNT <= NEG-VALUE)
+    STOPIF (PROCESS-DATE > DATE2)
+<ENDIF>
+%ORDER
+    DSTRCT-CODE
+    ACCOUNT-CODE
+    TRAN-TYPE
+    PROCESS-DATE
+%REPORT-TITLE
+    'Nominated Transactions by Account for a period-(with cutoff value)'
+%PAGE HEADING
+'Note: (P)rice cutoff option can ONLY be used for Issues (ISS) or Purchase req. receipts (PRD) transactions.'
+      'If the date range is left blank report will default to the previous month.'
+{UNDERLINE                                                                                                                         }
+'  Account  Tran     Tran        Transaction   Authorised    Stock       Req          Quantity         Price    UOI/UOP'
+'    Code   Type     Date/no.         Amount      By          Code       No/Item'
+%DETAIL
+    <IF REC900-TYPE = 'S'>
+%*BBBBBBBBBBBB CCC {TRDTE } AAAAAAAAAAAAAAAAAA DDDDDDDDDD  FFFFFFFFF   HHHHHH    JJJJ KKKKKKK.KK    MMMMMMM.MM     QQQQ
+%*                 {TRNO       }                           OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+BBBBBBBBBBBB CCC {TRDTE } AAAAAAAAAAAAAAAAAA DDDDDDDDDD  FFFFFFFFF   HHHHHH    JJJJ KKKKKKKKKK    MMMMMMMMMM     QQQQ
+                 {TRNO       }                           OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+    <ENDIF>
+    <IF REC900-TYPE = 'A'>
+BBBBBBBBBBBB CCC {TRDTE } AAAAAAAAAAAAAAAAAA {D1      }  {F1     }   {H1  }    {J1} {K1      }    {M1      }     {Q1}
+                 {TRNO       }                           {O1                                    }
+    <ENDIF>
+    <IF REC900-TYPE = 'B'>
+BBBBBBBBBBBB CCC {TRDTE } AAAAAAAAAAAAAAAAAA {D2      }  {F2     }   {H2  }    {J2} {K2      }    {M2      }     {Q2}
+                 {TRNO       }                           {O2                                    }
+    <ENDIF>
+    <IF REC900-TYPE = 'R'>
+BBBBBBBBBBBB CCC {TRDTE } AAAAAAAAAAAAAAAAAA {D3      }  {F3     }   {H3  }    {J3} {K3      }    {M3      }     {Q3}
+                 {TRNO       }                           {O3                                    }
+    <ENDIF>
+    <IF REC900-TYPE = 'P'>
+%*BBBBBBBBBBBB CCC {TRDTE } AAAAAAAAAAAAAAAAAA EEEEEEEEEE  GGGGGGGGG   TTTTTTTTT ZZZZ LLLLLLL.LL    NNNNNNN.NN     RRRR
+%*                 {TRNO       }                           PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
+BBBBBBBBBBBB CCC {TRDTE } AAAAAAAAAAAAAAAAAA EEEEEEEEEE  GGGGGGGGG   TTTTTTTTT ZZZZ LLLLLLLLLL    NNNNNNNNNN     RRRR
+                 {TRNO       }                           PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
+    <ENDIF>
+    <IF REC900-TYPE <> 'S' AND REC900-TYPE <> 'A' AND REC900-TYPE <> 'B' AND REC900-TYPE <> 'R' AND REC900-TYPE <> 'P'>
+BBBBBBBBBBBB CCC {TRDTE } AAAAAAAAAAAAAAAAAA   
+                 {TRNO       }                     
+    <ENDIF>
+%CONTROL
+%REQUEST-PARAMETERS
+    DATE1 D-PIC (9(8)) TEXT 'From date          :'
+    DATE2 D-PIC (9(8)) TEXT 'To   date          :'
+    VALUE D-PIC (9(8)) TEXT 'Cutoff Amount      :'
+    PRICE D-PIC (X)    TEXT ' (P)rice or (V)alue:'
+    TRAN1 D-PIC (X(3)) TEXT 'Transaction Type(s):'
+    TRAN2 D-PIC (X(3)) TEXT
+    TRAN3 D-PIC (X(3)) TEXT
+    TRAN4 D-PIC (X(3)) TEXT
+    TRAN5 D-PIC (X(3)) TEXT
+%VARIABLES
+%* DG CONSTANTS
+    CP1 = WX-STORES-CP CONSTANT
+    LP = PERIOD-YRMN OF MSSDAT WHERE (OPTION = 'J', PERIOD-YRMN = CP1, DAYS = -1) CONSTANT
+    ST-DATE = STARTING-DATE-1-9 VIA (LP) CONSTANT FORMAT (DATE)
+    END-DATE = ENDING-DATE-1-9 VIA (LP) CONSTANT FORMAT (DATE)
+    STDATEJUL = DAYS OF MSSDAT WHERE (OPTION = '8', DATE1 = ST-DATE) CONSTANT
+    ENDDATEJUL = DAYS OF MSSDAT WHERE (OPTION = '8', DATE1 = END-DATE) CONSTANT
+    DATE1JUL = DAYS OF MSSDAT WHERE (OPTION = '8', DATE1 = %DATE1%) CONSTANT
+    DATE2JUL = DAYS OF MSSDAT WHERE (OPTION = '8', DATE1 = %DATE2%) CONSTANT
+%*  DATE1 = CHOOSE (DATE1JUL IF (%DATE1% <> SPACES),STDATEJUL) I-PIC (S9(4)) CONSTANT
+    DATE1 = CHOOSE (%DATE1% IF (%DATE1% <> SPACES),ST-DATE) I-PIC (X(8)) CONSTANT
+%*    DATE2 = CHOOSE (DATE2JUL IF (%DATE2% <> SPACES),ENDDATEJUL) I-PIC (S9(4)) CONSTANT
+    DATE2 = CHOOSE (%DATE2% IF (%DATE2% <> SPACES),END-DATE) I-PIC (X(8)) CONSTANT
+    DATE1D = CHOOSE (%DATE1% IF (%DATE1% <> SPACES),ST-DATE) I-PIC (9(8)) CONSTANT FORMAT (DATE)
+    DATE2D = CHOOSE (%DATE2% IF (%DATE2% <> SPACES),END-DATE) I-PIC (9(8)) CONSTANT FORMAT (DATE)
+    VALUE = %VALUE% CONSTANT 
+    NEG-VALUE = CALC (0 - %VALUE%) I-PIC (S9(8)) CONSTANT D-PIC (-(8)9)
+%*
+    A = TRAN-AMOUNT D-PIC (Z(12)9.99-)
+    B = ACCOUNT-CODE D-PIC (X(12))
+    TRDTE = CREATION-DATE FORMAT (DATE)
+    TRNO = SUBSTR (KEY-900,5,13)
+    C = TRAN-TYPE
+%*
+    D = AUTH-BY-S 
+    D1 = AUTH-BY-A
+    D2 = RESPONS-CODE-B
+    D3 = STOREMAN-ID-R
+    E = AUTHSD-BY OF MSF230 -
+           WHERE (DSTRCT-CODE = DSTRCT-CODE, PREQ-NO = PREQ-NO-P)
+    F = STOCK-CODE-S
+    F1 = STOCK-CODE-A
+    F2 = STOCK-CODE-B
+    F3 = STOCK-CODE-R
+    G = STOCK-CODE OF MSF231 -
+           WHERE (DSTRCT-CODE = DSTRCT-CODE, PREQ-NO = PREQ-NO-P, PREQ-ITEM-NO = PREQ-ITEM-NO-P)
+    WH = WHOUSE-ID via (G)
+    W  = substr (WH,1,2)
+    H = ISSUE-REQ-NO-S
+    H1 = '    '
+    H2 = PO-NO-B
+    H3 = PO-NO-R
+    I = PREQ-NO-P
+    J = IREQ-ITEM-NO-S
+    J1 = '   '
+    J2 = PO-ITEM-B
+    J3 = PO-ITEM-R
+    Z = PREQ-ITEM-NO-P
+    K = QUANTITY-ISS-S D-PIC (Z(4)9.99)
+    K1 = QTY-ADJ-UOI-A D-PIC (Z(4)9.99)
+    K2 = QTY-ADJ-UOI-B D-PIC (Z(4)9.99)
+    K3 = QTY-RCV-UOI-R D-PIC (Z(4)9.99)
+    L = QTY-RCV-UOI-P  D-PIC (Z(4)9.99)
+    M = AVERAGE-PR-S
+    M1 = PRICE-CHANGE-A
+    M2 = NET-PR-ADJ-I-B
+    M3 = NET-PR-UOI-R
+    N = NET-PRICE-P
+    O = ITEM-NAME OF MSF100 -
+           WHERE (STOCK-CODE = STOCK-CODE-S)
+    O1 = ITEM-NAME OF MSF100 -
+           WHERE (STOCK-CODE = STOCK-CODE-A)
+    O2 = ITEM-NAME OF MSF100 -
+           WHERE (STOCK-CODE = STOCK-CODE-B)
+    O3 = ITEM-NAME OF MSF100 -
+           WHERE (STOCK-CODE = STOCK-CODE-R)
+    P = ITEM-DESC1 VIA (G)
+    Q = UNIT-OF-ISSUE VIA (O)
+    Q1 = UNIT-OF-ISSUE VIA (O1)
+    Q2 = UNIT-OF-ISSUE VIA (O2)
+    Q3 = UNIT-OF-ISSUE VIA (O3)
+    R = UNIT-OF-PURCH-P 
+    T = catenate (I,'-',W)    D-PIC (X(9))
+    U = choose (T IF (DSTRCT-CODE = 'GRID'), -
+                I)            D-PIC (X(9))

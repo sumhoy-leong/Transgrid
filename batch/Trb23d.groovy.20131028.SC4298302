@@ -1,0 +1,429 @@
+/**
+ * @Ventyx 2012
+ * This program send an email notifications when a Purchase Order has been created from a purchase requisition.
+ *** Revision History ***
+ ***
+ *** 17-Oct-13 Yeemun     SC4298302 (Version 0005)
+ ***                       Enhance groovy TRB23D, to read the Purchase Order (MSF220) records from the beginning
+ ***                       of the day. Add a checking at send email function, if the record exists in
+ ***                       Reference Code Details (MSF071) with Flag Y. If the record does not exist or
+ ***                       flag not equal to ‘Y’ then send e-mail to user and create a new reference record
+ ***                       with Flag Y.
+ ***                       Enhance groovy TRB23D, to include the sending status message into report TRB23DA.txt
+ */
+package com.mincom.ellipse.script.custom;
+
+import java.text.SimpleDateFormat;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.mincom.batch.request.Request;
+import com.mincom.batch.script.*;
+import com.mincom.ellipse.reporting.source.ReportSource;
+import com.mincom.ellipse.script.util.*;
+import com.mincom.ellipse.eroi.linkage.mssdat.*;
+import com.mincom.ellipse.edoi.ejb.msf220.*;
+import com.mincom.ellipse.edoi.ejb.msf230.*;
+import com.mincom.ellipse.edoi.ejb.msf231.*;
+import com.mincom.ellipse.edoi.ejb.msf810.*;
+import com.mincom.ellipse.edoi.ejb.msf071.*;
+import com.mincom.ellipse.edoi.ejb.msf070.*;
+
+
+import groovy.lang.Binding;
+import groovy.sql.Sql;
+import com.mincom.eql.impl.*;
+import com.mincom.eql.*;
+
+/**
+ * Main Process of Trb23d.
+ */
+public class ProcessTrb23d extends SuperBatch {
+	/*
+	 * IMPORTANT!
+	 * Update this Version number EVERY push to GIT
+	 */
+	private version = 5
+	private String browseDate, browseTimeFrom, browseTimeTo
+	private def reportA
+	private ArrayList<String> errorMessages
+
+	//SC4298301 - Start
+	private String sTodaysDate = " ";
+	private String sTime = " ";
+	private String sUserId = " ";
+	//SC4298301 - End
+	/**
+	 * Run the main batch.
+	 * @param b a <code>Binding</code> object passed from <code>ScriptRunner</code>
+	 */
+	public void runBatch(Binding b){
+		init(b)
+		printSuperBatchVersion()
+		info("runBatch Version : " + version)
+		//PrintRequest Parameters
+		info("No Request Param for this Batch")
+		try {
+			processBatch()
+		}
+		finally {
+			printBatchReport()
+		}
+	}
+
+	/**
+	 * Process the main batch.
+	 */
+	private void processBatch(){
+		info("processBatch")
+		initialise()
+		mainProcess()
+	}
+
+	//additional method - start from here.
+	/**
+	 * Initialize the browsed date.
+	 */
+	private void initialise(){
+		info("initialise")
+		errorMessages = new ArrayList<String>()
+		String wxTime = commarea.Time
+		info("wx time : "+wxTime)
+		Calendar todayDate = Calendar.getInstance()
+		//hhmmss
+		todayDate.set(Calendar.HOUR_OF_DAY, wxTime.substring(0,2) as int);
+		todayDate.set(Calendar.MINUTE, wxTime.substring(2,4) as int);
+		todayDate.set(Calendar.SECOND, wxTime.substring(4) as int);
+
+		browseTimeTo = new SimpleDateFormat("HHmmss").format(todayDate.getTime())
+		todayDate.add(Calendar.HOUR_OF_DAY,-1)
+		browseDate = new SimpleDateFormat("yyyyMMdd").format(todayDate.getTime())
+		browseTimeFrom = new SimpleDateFormat("HHmmss").format(todayDate.getTime())
+		// info("browseDate is ${browseDate}")
+		//info("browseTime From is ${browseTimeFrom}")
+		//info("browseTime To is ${browseTimeTo}")
+		//SC4298302 - Start
+		Calendar cal = Calendar.getInstance();
+		sTodaysDate = new SimpleDateFormat("yyyyMMdd").format(cal.getTime());
+		sTime = new SimpleDateFormat("HHmmss").format(cal.getTime());
+		sUserId = commarea.userId;
+		//SC4298302 - End
+		browseDate="20130809"
+		info("browseDate is ${browseDate}")
+	}
+
+
+	/**
+	 * Main Process, browse Purchase Requisition Item.
+	 */
+	private void mainProcess(){
+		info ("mainProcess")
+		Constraint c1 = MSF220Rec.creationDate.greaterThanEqualTo(browseDate)
+
+		//SC4298302 - Start -Comment The browseTimeFrom and browseTimeTo
+		// because the program read the PO records from the beginning of the day
+		//Constraint c2 = MSF220Rec.creationTime.greaterThanEqualTo(browseTimeFrom)
+		//Constraint c3 = MSF220Rec.creationTime.lessThanEqualTo(browseTimeTo)
+		//def query = new QueryImpl(MSF220Rec.class).and(c1).and(c2).and(c3)
+		def query = new QueryImpl(MSF220Rec.class).and(c1)
+		//SC4298302 - End
+		edoi.search(query,{MSF220Rec msf220rec ->
+			readPreqItem (msf220rec.primaryKey.poNo)
+		})
+	}
+	/**
+	 * Read Preq item for specific PO number
+	 * @param poNo
+	 */
+	private void readPreqItem(String poNo)
+	{
+		info ("readPreqItem")
+		info ("poNo is ${poNo}")
+		Constraint c1 = MSF231Rec.poNo.equalTo(poNo)
+		Constraint c2 = MSF231Rec.poItemNo.notEqualTo(" ")
+		def query = new QueryImpl(MSF231Rec.class).and(c1).and(c2)
+		int i = 0
+		//SC4298302 - Start
+		String entityType_PUR = "PUR"
+		String SendEmailRefNo = "004"
+		String entityVl    = ""
+		//SC4298302 - End
+		edoi.search(query,{MSF231Rec msf231rec ->
+			String dstrctCode     = msf231rec.primaryKey.dstrctCode
+			String preqNo         = msf231rec.primaryKey.preqNo
+			String preqItemNo     = msf231rec.primaryKey.preqItemNo
+			String poItemNo       = msf231rec.poItemNo
+			String orderPlaceDate = convertDateFormat(msf231rec.ordPlaceDate,"/")
+			String requestedBy    = ""
+			String emailAdress    = ""
+
+			try{
+				MSF230Rec msf230rec = edoi.findByPrimaryKey(new MSF230Key(dstrctCode, preqNo))
+				requestedBy = msf230rec.requestedBy
+				MSF810Rec msf810rec = new MSF810Rec()
+				msf810rec = getEmployee(requestedBy)
+				entityVl = preqNo + "-" + poNo
+				if(msf810rec) {
+					emailAdress = msf810rec.emailAddress
+					if(emailAdress.trim().length() > 0)
+					{
+						//SC4298301 - Start
+						MSF071Rec msf071RecRead = null;
+						boolean isPoRefNonExist = false;
+
+						try
+						{
+							MSF071Key msf071key = new MSF071Key();
+							msf071key.setEntityType(entityType_PUR);
+							msf071key.setEntityValue(entityVl);
+							msf071key.setRefNo(SendEmailRefNo);
+							msf071key.setSeqNum("001");
+							msf071RecRead = edoi.findByPrimaryKey(msf071key);
+						}catch (com.mincom.ellipse.edoi.common.exception.EDOIObjectNotFoundException  e){
+							info("*** Cannot find the MSF071 Record ***")
+							//SC4298301 - Start
+							errorMessages.add("*** Cannot find the MSF071 Record with Reference No(${SendEmailRefNo}), Entity Value(${entityVl} and Entity Type (${entityType_PUR}) ***")
+							//SC4298301 - Start
+							isPoRefNonExist = true;
+						}
+
+
+						if( msf071RecRead != null){
+							String refCode = msf071RecRead.getRefCode();
+							info("refCode: "+ refCode);
+
+							if ((!("Y").equals(refCode)) || ("").equals(refCode)){
+								isPoRefNonExist = true;
+							}
+						}else{
+							isPoRefNonExist = true;
+						}
+
+						info ("isPoRefNonExist: ${isPoRefNonExist}");
+
+						if(isPoRefNonExist){
+							if(sendEmail(preqNo, preqItemNo, requestedBy, poNo, poItemNo, orderPlaceDate, emailAdress)){
+								info("Successful Send Email");
+								//update msf071.
+								if(msf071RecRead!=null){
+									info("Update a the MSF071 record.")
+									updateRefCode(msf071RecRead);
+								}else{
+									info("Create a new MSF071 record.")
+									createRefCodes_004(entityVl,entityType_PUR,SendEmailRefNo)
+								}
+							}
+						}
+						//SC4298301 - End
+					}
+				}else{
+					info ("*** E-mail Adress Not Found for employee ${requestedBy}. ***")
+					//SC4298301 - Start
+					errorMessages.add("*** Purchase Order ${poNo} Purchase Requistion's E-mail Adress Not Found for employee ${requestedBy}. ***")
+					//SC4298301 - End
+
+				}
+				i++
+			}catch(com.mincom.ellipse.edoi.common.exception.EDOIObjectNotFoundException  e){
+				//SC4298301 - Start
+				info("***Purchase Requisition  ${preqNo} Not Found for Purchase Order No: ${poNo}. ***")
+				errorMessages.add("*** Purchase Requisition  ${preqNo} Not Found for Purchase Order No: ${poNo}. ***")
+				//SC4298301 - End
+
+			}
+		})
+
+		if(i == 0){
+			String periodDate = convertDateFormat(browseDate,"/")
+			//SC4298301 - Start - make the error message not informative.
+			//errorMessages.add("*** Purchase Requistion Not Found for Period ${periodDate}. ***")
+			errorMessages.add("*** Purchase Order ${poNo} Purchase Requistion  Not Found for Period ${periodDate}. ***")
+			//SC4298301 - End
+		}
+	}
+	//SC4298301 - Start
+	/**
+	 * This method update the reference code record in MSF071.
+	 */
+	private void updateRefCode(MSF071Rec msf071Rec)
+	{
+		info("updateRefCode")
+
+		try {
+			msf071Rec.setRefCode("Y");
+			msf071Rec.setLastModDate(sTodaysDate);
+			msf071Rec.setLastModTime(sTime);
+			msf071Rec.setLastModUser(sUserId);
+			edoi.update(msf071Rec)
+
+			info("Update Reference Code Y into MSF071")
+		}catch (com.mincom.ellipse.edoi.common.exception.EDOIInfrastructureException e)
+		{
+			info("Failed updating Reference Code " + e.getMessage())
+		}
+	}
+	/**
+	 * This method creates the reference code record in MSF071.
+	 * This method is implemented using edoi.create() as there is
+	 * one instance where we need to create a reference code with
+	 * space as RefCode. This is not supported by the subroutine
+	 * as space in RefCode is taken as a command to delete the
+	 * record
+	 */
+	private void createRefCodes_004(String entityValue, String entityType, String sendEmailRefNo){
+		info("createRefCodes_004")
+		try
+		{
+			MSF071Key msf071Key = new MSF071Key();
+			msf071Key.setEntityType(entityType);
+			msf071Key.setEntityValue(entityValue);
+			msf071Key.setSeqNum("001");
+			msf071Key.setRefNo(sendEmailRefNo);
+
+			MSF071Rec msf071Rec = new MSF071Rec(msf071Key);
+			msf071Rec.setRefCode("Y");
+			msf071Rec.setLastModDate(sTodaysDate);
+			msf071Rec.setLastModTime(sTime);
+			msf071Rec.setLastModUser(sUserId);
+			edoi.create(msf071Rec);
+
+			info("After Inserting record into MSF071");
+		}catch(Exception e)
+		{
+			info("Failed to Create record into MSF071 : "+e.getMessage());
+		}
+	}
+
+	/**
+	 * Send the email with specified contents.
+	 * @param preqNo Purchase Requisition Number
+	 * @param preqItemNo Purchase requisition item
+	 * @param requestedBy Requested By
+	 * @param poNo Purchase Order Number
+	 * @param poItemNo Purchase Order Item Number
+	 * @param orderDate Date order placed
+	 * @param email Email Address
+	 private void sendEmail(String preqNo, String preqItemNo, String requestedBy, String poNo, String poItemNo, String orderDate, String email){
+	 info("sendEmail")
+	 String subject = "Purchase Order Creation from a Purchase Requisition."
+	 String mailTo = email
+	 ArrayList message = new ArrayList()
+	 message.add("This is to advise you that the following purchase order has been created from")
+	 message.add("a Purchase Requisition. The order details is as follows:")
+	 message.add("-------------------------------------------------------------------------")
+	 message.add("PReq     PReq     Requested by  Purchase  Purchase        Order Place")
+	 message.add("No       Item No                Order No  Order Item No   Date")
+	 message.add("-------------------------------------------------------------------------")
+	 message.add(String.format("%-6s   %-3s      %-10s    %-6s    %-3s             %-10s",
+	 preqNo, preqItemNo, requestedBy, poNo, poItemNo, orderDate))
+	 message.add("-------------------------------------------------------------------------")
+	 SendEmail myEmail = new SendEmail(subject,mailTo,message)
+	 myEmail.sendMail()
+	 if(myEmail.isError()) {
+	 info ("*** Cannot Send Email to ${mailTo} because ${myEmail.getErrorMessage()}. ***")
+	 errorMessages.add("*** Cannot Send Email because ${myEmail.getErrorMessage()}. ***")
+	 }
+	 }
+	 */
+	private boolean sendEmail(String preqNo, String preqItemNo, String requestedBy, String poNo, String poItemNo, String orderDate, String email){
+		info("sendEmail")
+		boolean sendSuccess = false
+		String subject = "Purchase Order Creation from a Purchase Requisition."
+		String mailTo = email
+		ArrayList message = new ArrayList()
+		message.add("This is to advise you that the following purchase order has been created from")
+		message.add("a Purchase Requisition. The order details is as follows:")
+		message.add("-------------------------------------------------------------------------")
+		message.add("PReq     PReq     Requested by  Purchase  Purchase        Order Place")
+		message.add("No       Item No                Order No  Order Item No   Date")
+		message.add("-------------------------------------------------------------------------")
+		message.add(String.format("%-6s   %-3s      %-10s    %-6s    %-3s             %-10s",
+				preqNo, preqItemNo, requestedBy, poNo, poItemNo, orderDate))
+		message.add("-------------------------------------------------------------------------")
+
+		SendEmail myEmail = new SendEmail(subject,mailTo,message)
+		try{
+			myEmail.sendMail()
+
+			if(myEmail.isError()) {
+				info ("*** Cannot Send Email to ${mailTo} because ${myEmail.getErrorMessage()}. ***")
+				//SC4298301 - Start
+				errorMessages.add("*** Purchase Order ${poNo} Failed to Send Email to ${mailTo} because ${myEmail.getErrorMessage()}. ***")
+				//SC4298301 - End
+
+			}else{
+				//SC4298301 - Start
+				errorMessages.add("*** Purchase Order ${poNo} was  sent to ${mailTo} ***")
+				//SC4298301 - End
+				sendSuccess = true
+			}
+		}catch(Exception e){
+			//e.printStackTrace();
+			info("Send Email Failed :"+ e);
+			if(myEmail.getErrorMessage()!=null){
+				info("Send Email Failed 1: ${myEmail.getErrorMessage()}");
+			}
+			if(e.getMessage()!=null){
+				info("Send Email Failed 2: "+e.getMessage());
+			}
+
+		}
+		return sendSuccess;
+	}
+
+	//SC4298301 - End
+	/**
+	 * Convert date format into DD/MM/YYYY
+	 * @param dateS date to be converted.
+	 * @param separator separtor
+	 * @return DD/MM/YY
+	 */
+	private String convertDateFormat(String dateS, String separator) {
+		info("convertDateFormat")
+		String formattedString = dateS.substring(6) + separator + dateS.substring(4,6) + separator + dateS.substring(0,4)
+		return formattedString
+	}
+
+	/**
+	 * Print batch report.
+	 */
+	private void printBatchReport(){
+		info("printBatchReport")
+		if(!errorMessages.isEmpty()) {
+			reportA = report.open("TRB23DA")
+			//SC4298301 - Start
+			//reportA.write("Email Sending Failure Exception Report".center(132))
+			reportA.write("Email Report".center(132))
+			//SC4298301 - End
+			reportA.writeLine(132,"-")
+			errorMessages.each {
+				reportA.write(it.center(132))
+			}
+			reportA.close()
+		}
+	}
+
+	/**
+	 * Get the employee based on the employee id.
+	 * @param employeeId employee id
+	 * @return employee
+	 */
+	private MSF810Rec getEmployee(String employeeId){
+		info("getEmployee")
+		try{
+			MSF810Rec msf810rec = edoi.findByPrimaryKey(new MSF810Key(employeeId))
+			return msf810rec
+		}
+		catch(com.mincom.ellipse.edoi.common.exception.EDOIObjectNotFoundException  e){
+			info("*** Employee ${employeeId} does not exist. ***")
+			errorMessages.add("*** Employee ${employeeId} does not exist. ***")
+			return null
+		}
+	}
+}
+
+/*
+ * Run the srcipt.
+ */
+ProcessTrb23d process = new ProcessTrb23d();
+process.runBatch(binding);

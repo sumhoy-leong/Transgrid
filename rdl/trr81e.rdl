@@ -1,0 +1,457 @@
+%PROGRAM-ID
+       TRR81E
+%AUTHOR
+       Mincom LTD
+%NARRATIVE
+      **************************************************************************
+      **  This report will produce Employee Listing.
+      **************************************************************************
+      **  Revision History
+      ** 24-Apr-13 a9is6175       Version 0004
+      ** ........................ Change code to get Weekly Pay Rate from MSF820
+      ** ........................ RPT-HRLY-RATE * 35 hours
+      ** 18-Apr-13 a9is6175       Version 0003
+      ** ........................ Change pick up the MSF874 ‘ACCOUNT-CODE’ to 
+      ** ........................ MSF874 ‘COST-CENTRE’ for Default cost code
+      ** 15-Apr-13 a9is6175       Version 0002
+      ** ........................ Changed MSF766 to MSF870 for PRIM-RPT-GRP
+      ** ........................ Changed SCATDESC to 30 character
+      ** ........................ SVN leading zeros removal
+      ** 08-Apr-13 a9is6175       Convert from Ellipse 5 to Ellipse 8
+      ** ........................ Reset version number to 0001 for E8 upgrade
+      ** ........................ Combine 3 rdl (trr81e, trr81f and trrper)
+      ** ........................ become single rdl (trr81e).
+      ** 01-Aug-07 Janak Barar    SC1543016 requires additional coloumns
+      ** ........................ in CSV file and current report to be 
+      ** ........................ discontinued.                        
+      ** 08-Mar-06 AIesho         P05110870
+      ** ........................ Changed WX-USER-ID to start at 2
+      ** 09-Nov-05 E Fredeluces   P05110870
+      ** ........................ Fix compilation errors in Ellipse 5.2.3.7.
+      **  06-Dec-04 A.Iesho       WCHG070905 
+      **  ....................... Add three fields to CSV file, Age, Years of
+      **  ....................... service and Over 55 age indicator
+      **  06-Nov-02 RK Mahajan    WCHG008777 - Additional col in report and
+      **                          CSV file.
+      **  25-Jan-01 E Fredeluces  WCHG000714
+      **  ....................... Delete Work Group 6 to 10 parameters.
+      **  ....................... Added PRC to the Report and CSV file.
+      **  ....................... Make the PRC 40 chars long instead of 20.
+      **  ....................... Added PRC in the sort option. 
+      **  16-Nov-01 L Nee         WCHG000146
+      **  ....................... The Surname and Initial columns are grouped  
+      **  ....................... together on the CSV file, as are the Position 
+      **  ....................... ID and Description columns. Amended code to 
+      **  ....................... display these fields in seperate columns.
+      **  23-Oct-01 L Nee         W01090764
+      **  ....................... Amended to display Physical Location instead 
+      **  ....................... of Pay Location
+      **  18-Sep-01 L Nee         W01080698
+      **  ....................... Program amended to produce an
+      **  ....................... output file in CSV format.
+      **  05-Jan-01 D Diolaso     W00120601
+      **  ....................... Option of PRC and the option of alpha or
+      **  ....................... service number order; Exclusion of staff
+      **  ....................... category WC and ZO
+      **  10-Jan-00 G Presser     W99120032   (Version 003)
+      **  ....................... Enhance selection for person running
+      **  ....................... report
+      **  20-Jul-99 G Presser     W99070253   (Version 002)
+      **  ....................... Check access to Pay Group for
+      *** ....................... person running program
+      **  Initial Version : Neel Chandra 18-Aug-97.(W708110061).
+      **************************************************************************
+%FILES
+        MFILE = MSF820
+        LFILE = MSF810
+        LFILE = MSF760
+        LFILE = MSF723A
+        LFILE = MSF878A
+        LFILE = MSF878B
+        LFILE = MSF828
+        LFILE = MSF829
+        LFILE = MSF870
+        LFILE = MSF871
+        LFILE = MSF874
+        LFILE = MSF826
+        LFILE = MSF845
+        LFILE = MSF84B
+        LFILE = MSF801
+        LFILE = MSF803
+        LFILE = MSF808
+        LFILE = MSF880
+        LFILE = MSF875
+        LFILE = MSF010
+%*      RFILE = TRR81EA
+        OFILE = TRT81EA
+
+%VERSION
+        0004
+%ORDER
+    ASCENDING   EMPLOYEE-ID
+%SELECTION
+        SELECTIF (EMPLOYEE-ID >= SPACES)
+%ROUTINES
+    MSSRAT 
+    MSSCNV 
+%BREAK-FIELDS
+    DUM
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 950
+%BREAK DUM HEADER
+'Emp-ID,Svc-No,Surname,Initials,FName,Preferred Name,Gender,Employee-Type,Staff-Categ,Staff-Categ-Desc,Shift Category,-
+Primary Resource,Birth-Date,Age,Hire-Date,Hire Years,Service-Date,Service-years,Phyl-Loc,Phyl-Loc-Desc,Payroll-Loc,-
+Position-ID,Position-Description,Award Code,Salary-Pt,Weekly Pay Rate,MIN-SP,MAX-SP,Work-Group,Prim-Rpt-Code,-
+Prim-Rpt-Code-desc,Business Unit,Group,Branch,Default Cost Code,LSL-Balance,Super-Fund,Email,Sup-Pos-id,Sup-Pos-Title,-
+Sup-Emp-ID,Sup-Surname,Sup-FName'
+%DETAIL
+<IF PRFLG = 'Y'>
+{EMP     }B{SVN      }B{SURN                          }BYB{FSNAME     }B{PRN       }BSB{E}B{C}BQ{SCATDESC                    }QB-
+{SH}B{RTP}B{BD    }B{AG}B{HD    }B{HRY}B{SD     }B{SRY}B{L}BQ{LOCDESC                               }QB-
+Q{PAYDESC                               }QB{POS     }BQ{PTIT                                  }QB{AWD}B{SALP}B{WROP         }B-
+{MINR}B{MAXR}B{IWG   }B{PRCD                                  }B{RG-D                   }B{BUDESC                                }B-
+{GRDESC                                }B{BRDESC                                }B{DFC      }B{LSLB   }B{UNDESC                  }B-
+{EMAIL                           }B{SUP     }B{SUPTITLE                          }B{SVEID   }B{SPLSN                         }B-
+{SPFSN      }
+<ENDIF>
+%*
+%REQUEST-PARAMETERS
+   PRC       PIC (X(20)) TEXT 'Primary Reporting Code (Blank for all) :'
+   PLC       PIC (X(2))  TEXT 'Pay Location           (Blank for all) :'
+%*
+%VARIABLES
+%*  
+        EMP      = EMPLOYEE-ID   SUPPRESS
+        EMPS1    = SUBSTR(EMP,10,1)
+        EMPS2    = SUBSTR(EMP,9,2)
+        EMPS3    = SUBSTR(EMP,8,3)
+        EMPS4    = SUBSTR(EMP,7,4)
+        EMPS5    = SUBSTR(EMP,6,5)
+        EMPS6    = SUBSTR(EMP,5,6)
+        EMPS7    = SUBSTR(EMP,4,7)
+        EMPS8    = SUBSTR(EMP,3,8)
+        EMPS9    = SUBSTR(EMP,2,9)
+        EMP9     = SUBSTR(EMP,1,9)
+        EMP8     = SUBSTR(EMP,1,8)
+        EMP7     = SUBSTR(EMP,1,7)
+        EMP6     = SUBSTR(EMP,1,6)
+        EMP5     = SUBSTR(EMP,1,5)
+        EMP4     = SUBSTR(EMP,1,4)
+        EMP3     = SUBSTR(EMP,1,3)
+        EMP2     = SUBSTR(EMP,1,2)
+        EMP1     = SUBSTR(EMP,1,1)
+        EMPS     = choose (EMPS1  IF(EMP9  = '000000000'),   -
+                           EMPS2  IF(EMP8  = '00000000'), -
+                           EMPS3  IF(EMP7  = '0000000'), -
+                           EMPS4  IF(EMP6  = '000000'), -
+                           EMPS5  IF(EMP5  = '00000'), -
+                           EMPS6  IF(EMP4  = '0000'), -
+                           EMPS7  IF(EMP3  = '000'), -
+                           EMPS8  IF(EMP2  = '00'), -
+                           EMPS9  IF(EMP1  = '0'), EMP)
+        SVN      = CATENATE('P',EMPS)
+        L        = RPT-PHY-LOC
+        PL       = PAY-LOCATION
+		PAYL     = CHOOSE (%PLC%  IF(%PLC% <> SPACES), PL) CONSTANT
+		AWD      = RPT-AWARD-CODE
+        SALP     = RPT-RATE-REF
+        SH       = SHIFT-CAT
+%*		
+        RHR      = RPT-HRLY-RATE	
+        HRS      = 35 CONSTANT		
+        WROP     = CALC (HRS * RHR) D-PIC -----------9.99
+%*Lookup MSF810
+        EMPID    = EMPLOYEE-ID   OF MSF810 -
+                                 WHERE(EMPLOYEE-ID = EMP)
+        FLNAM    = SURNAME          VIA (EMPID)
+        FSNAME   = FIRST-NAME       VIA (EMPID)
+        PRN      = PREF-NAME        VIA (EMPID)	
+        FNAME    = FIRST-INITIAL    VIA (EMPID)
+        SNAME    = SECOND-INITIAL   VIA (EMPID)
+        RTY      = RESOURCE-TYPE VIA (EMPID)
+		RTP      = SUBSTR(RTY,2,4)
+       	EMAIL    = EMAIL-ADDRESS VIA (EMPID)
+        SURN     = FLNAM
+        Y        = FNAME
+        Z        = SNAME
+%*
+        POS       = POSITION-ID OF MSF878A           -
+                    WHERE    (EMPLOYEE-ID-1   = EMP, -
+                              PRIMARY-POS-1   = '0', -
+                              POS-STOP-DATE-1 = '00000000') -
+                    MAX (1)           CONSTANT             
+%*Lookup MSF870
+        PRCD     = PRIM-RPT-GRP OF MSF870 -
+                   WHERE (POSITION-ID = POS)
+        PTIT     = POS-TITLE    VIA (PRCD)
+        BUTY     = SUBSTR(PRCD,5,4)
+        GRTY     = SUBSTR(PRCD,9,4)
+        BRTY     = SUBSTR(PRCD,13,4)
+%*Lookup MSF808
+        RG-D = PRC-NAME OF MSF808 -
+               WHERE (PRIM-RPT-CODES = PRCD)
+%*             
+%********************************
+%***** (RG up to PRCSUB)
+        RG   = PRIM-RPT-CODES VIA (RG-D) 
+        RG1  = SUBSTR(RG,1,4)
+        RG2  = SUBSTR(RG,1,8)
+        RG3  = SUBSTR(RG,1,12)
+        RG4  = SUBSTR(RG,1,16)
+        RG5  = SUBSTR(RG,1,20)
+        RG6  = SUBSTR(RG,1,24)
+        RG7  = SUBSTR(RG,1,28)   
+        RG8  = SUBSTR(RG,1,32)   
+        RG9  = SUBSTR(RG,1,36)   
+        RG10 = SUBSTR(RG,1,40)        
+%*
+%**** (S up to PRT)
+        PRC0 = %PRC%
+        PRC1 = SUBSTR (%PRC%,1,4)
+        PRC2 = SUBSTR (%PRC%,5,4)
+        PRC3 = SUBSTR (%PRC%,9,4)
+        PRC4 = SUBSTR (%PRC%,13,4)
+        PRC5 = SUBSTR (%PRC%,17,4)
+        PRC6 = SUBSTR (%PRC%,21,4)
+        PRC7 = SUBSTR (%PRC%,25,4)
+        PRC8 = SUBSTR (%PRC%,29,4)
+        PRC9 = SUBSTR (%PRC%,33,4)
+        PRC10= SUBSTR (%PRC%,37,4)
+%*
+        PRC11 = choose (PRC1  IF(PRC1 <> '....'), SPACES)
+        PRC22 = choose (PRC2  IF(PRC2 <> '....'), SPACES)
+        PRC33 = choose (PRC3  IF(PRC3 <> '....'), SPACES)
+        PRC44 = choose (PRC4  IF(PRC4 <> '....'), SPACES)
+        PRC55 = choose (PRC5  IF(PRC5 <> '....'), SPACES)
+        PRC66 = choose (PRC6  IF(PRC6 <> '....'), SPACES)
+        PRC77 = choose (PRC7  IF(PRC7 <> '....'), SPACES)
+        PRC88 = choose (PRC8  IF(PRC8 <> '....'), SPACES)
+        PRC99 = choose (PRC9  IF(PRC9 <> '....'), SPACES)
+        PRC00 = choose (PRC10 IF(PRC10 <> '....'), SPACES)
+%*
+        PRCL1 = SUBSTR (PRC0,1,4)
+        PRCL2 = SUBSTR (PRC0,1,8)
+        PRCL3 = SUBSTR (PRC0,1,12)
+        PRCL4 = SUBSTR (PRC0,1,16)
+        PRCL5 = SUBSTR (PRC0,1,20)
+        PRCL6 = SUBSTR (PRC0,1,24)
+        PRCL7 = SUBSTR (PRC0,1,28)
+        PRCL8 = SUBSTR (PRC0,1,32)
+        PRCL9 = SUBSTR (PRC0,1,36)
+        PRCL10= SUBSTR (PRC0,1,40)
+%*
+        LVLREQ = choose ('0'  IF(PRC11  = SPACES),                  -
+                         '1'  IF(PRC22  = SPACES),                  -
+                         '2'  IF(PRC22  > SPACES, PRC33  = SPACES), -
+                         '3'  IF(PRC33  > SPACES, PRC44  = SPACES), -
+                         '4'  IF(PRC44  > SPACES, PRC55  = SPACES), -
+                         '5'  IF(PRC55  > SPACES, PRC66  = SPACES), -
+                         '6'  IF(PRC66  > SPACES, PRC77  = SPACES), -
+                         '7'  IF(PRC77  > SPACES, PRC88  = SPACES), -
+                         '8'  IF(PRC88  > SPACES, PRC99  = SPACES), -
+                         '9'  IF(PRC99  > SPACES, PRC00  = SPACES), -
+                         '10' IF(PRC00  > SPACES),PRC00)
+%*
+        EPRCSUB = choose (RG1 IF (LVLREQ = '1'), -
+                          RG2 IF (LVLREQ = '2'), -
+                          RG3 IF (LVLREQ = '3'), -
+                          RG4 IF (LVLREQ = '4'), -
+                          RG5 IF (LVLREQ = '5'), -
+                          RG6 IF (LVLREQ = '6'), -
+                          RG7 IF (LVLREQ = '7'), -
+                          RG8 IF (LVLREQ = '8'), -
+                          RG9 IF (LVLREQ = '9'), -
+                          RG) 
+%*
+       PRCSUB = choose  (PRCL1 IF (LVLREQ = '1'), -
+                         PRCL2 IF (LVLREQ = '2'), -
+                         PRCL3 IF (LVLREQ = '3'), -
+                         PRCL4 IF (LVLREQ = '4'), -
+                         PRCL5 IF (LVLREQ = '5'), -
+                         PRCL6 IF (LVLREQ = '6'), -
+                         PRCL7 IF (LVLREQ = '7'), -
+                         PRCL8 IF (LVLREQ = '8'), -
+                         PRCL9 IF (LVLREQ = '9'), -
+                         PRC0)
+%*
+      PRT   = choose ('Y' IF (EPRCSUB = PRCSUB), -
+                      'Y' IF (RG      = PRC0), -
+                      'Y' IF (PRC11   = SPACES), -
+                      'N')
+      PG   = PAY-GROUP
+%*******************************
+          
+        ACO      = AWARD-CODE-OUT OF MSSRAT -
+                   WHERE (OPTION = '1', -
+                          EMPLOYEE-ID = EMP, -
+                          REQUIRED-DATE = WX-CUR-PERIOD-END-DATE-9)
+        WKRATE   = CALC-WKLY-RATE VIA (ACO)
+        FTYPE    = BASE-FREQ-TYPE VIA (ACO) 
+
+        EC1      = CST-ACC-CODE OF MSF826 -   
+                   WHERE (EMPLOYEE-ID = EMP)   
+
+        DCC = SINGLE (EC1 (1))              
+        WPR = choose (WKRATE IF (FTYPE = 'W'), 0) D-PIC (9(6).99)
+%* Lookup MSF760		
+        STAT     = EMP-STATUS OF MSF760 -
+                              WHERE(EMPLOYEE-ID = EMP)
+        S        = GENDER            VIA (STAT)
+        SC       = STAFF-CATEG       VIA (STAT)
+        UNC      = UNION-CODE        VIA (STAT)
+%*
+        PRT2     = choose ('N' IF (SC = 'WC'), -
+                           'N' IF (SC = 'ZO'), 'Y')
+
+        ET       = EMP-TYPE          VIA (STAT)
+        BD       = BIRTH-DATE        VIA (STAT)     FORMAT (DATE)
+        HD       = HIRE-DATE         VIA (STAT)     FORMAT (DATE)
+        SD       = SERVICE-DATE      VIA (STAT)     FORMAT (DATE)
+        B1       = substr (BD,7,2)
+        B2       = substr (BD,5,2)
+        B3       = substr (BD,3,2)
+%*        BDT      = catenate (B2,'/',B1,'/',B3) 
+        H1       = substr (HD,7,2)
+        H2       = substr (HD,5,2)
+        H3       = substr (HD,3,2)
+%*        HDT      = catenate (H2,'/',H1,'/',H3)
+        SD1      = substr (SD,7,2)
+        SD2      = substr (SD,5,2)
+        SD3      = substr (SD,3,2)
+%*        SDT      = catenate (SD2,'/',SD1,'/',SD3)         
+%*  Today 
+		TDAY     = date()
+        Y1       = substr (TDAY,1,4)
+        CYR      = substr (TDAY,1,4)
+        M1       = substr (TDAY,5,2)
+        M1N      = numeric (M1)  I-PIC (9(2))
+        D1       = substr (TDAY,7,2)
+        D1N      = numeric (D1)  I-PIC (9(2))
+        CYRN     = numeric(CYR)  I-PIC 9(4)  
+%*  Age
+        B2N      = numeric (B2)  I-PIC (9(2))
+        B1N      = numeric (B1)  I-PIC (9(2))
+        BYR      = substr (BD,1,4)
+        BY       = substr (BD,1,4)
+        BYRN     = numeric(BYR)  I-PIC 9(4)
+        AG1      = calc(CYRN - BYRN)   I-PIC 9(4)
+        AG2      = calc(CYRN - BYRN -1) I-PIC 9(4)
+        AG       = choose(AG1 IF(M1N > B2N), -
+                          AG1 IF(M1N = B2N, D1N >= B1N), AG2) I-PIC (X(4))
+        AGN      = choose(AG1 IF(M1N > B2N), -
+                          AG1 IF(M1N = B2N, D1N >= B1N), AG2)
+%*  Hire Years
+        H2N      = numeric (H2)  I-PIC (9(2))
+        H1N      = numeric (H1)  I-PIC (9(2))
+        HYR      = substr (HD,1,4)
+        HY       = substr (HD,1,4)
+        HYRN     = numeric(HYR)  I-PIC 9(4)
+        HYR1     = calc(CYRN - HYRN)   I-PIC 9(4)
+        HYR2     = calc(CYRN - HYRN -1) I-PIC 9(4)
+        HRY      = choose(HYR1 IF(M1N > H2N), -
+                          HYR1 IF(M1N = H2N, D1N >= H1N), HYR2) I-PIC (X(4))
+%*  Service Years
+        S2N      = numeric (SD2)  I-PIC (9(2))
+        S1N      = numeric (SD1)  I-PIC (9(2))
+        SYR      = substr (SD,1,4)
+        SY       = substr (SD,1,4)
+        SYRN     = numeric(SYR)  I-PIC 9(4)
+        SYR1     = calc(CYRN - SYRN)   I-PIC 9(4)
+        SYR2     = calc(CYRN - SYRN -1) I-PIC 9(4)
+        SRY      = choose(HYR1 IF(M1N > S2N), -
+                          HYR1 IF(M1N = S2N, D1N >= S1N), SYR2) I-PIC (X(4))					  
+%*  Lookup MSF010 - Table File
+        SCATDESC = TABLE-DESC OF MSF010 -
+                   WHERE (TABLE-TYPE = 'STFC', -
+                          TABLE-CODE = SC)
+        LOCDESC  = TABLE-DESC OF MSF010        -
+                   WHERE (TABLE-TYPE = 'PHYL', -
+                          TABLE-CODE = L)
+        PAYDESC  = TABLE-DESC OF MSF010 -
+                   WHERE (TABLE-TYPE  = 'PAYL',-
+                          TABLE-CODE  = PAYL)
+        PAYLCD  = TABLE-CODE VIA (PAYDESC) CONSTANT
+        BUDESC   = TABLE-DESC OF MSF010        -
+                   WHERE (TABLE-TYPE = 'PC02', -
+                          TABLE-CODE = BUTY)
+        GRDESC   = TABLE-DESC OF MSF010        -
+                   WHERE (TABLE-TYPE = 'PC03', -
+                          TABLE-CODE = GRTY)
+        BRDESC   = TABLE-DESC OF MSF010        -
+                   WHERE (TABLE-TYPE = 'PC04', -
+                          TABLE-CODE = BRTY)
+        UNDESC   = TABLE-DESC OF MSF010        -
+                   WHERE (TABLE-TYPE = 'UN', -
+                          TABLE-CODE = UNC)
+%*                                            
+%*Lookup MSF874
+        DFCC    = COST-CENTRE OF MSF874 -
+                   WHERE ( POSITION-ID = POS)
+        ADFC    = CATENATE (''',DFCC)
+        DFC     = CHOOSE (ADFC IF(DFCC <> SPACES), DFCC) CONSTANT
+%*  
+%* Lookup MSF871
+        MINR     = RATE-REF-MIN OF MSF871 -
+                   WHERE   (POSITION-ID = POS)
+        MAXR     = RATE-REF-MAX  VIA (MINR)
+%*
+        ACDE     = AWARD-CODE OF MSF828 -
+                   WHERE (EMPLOYEE-ID   = EMP, -
+                          INV-STR-DATE >= '00000000') -
+                   MAX (1)
+
+%* MSF875 - Hierarchy File
+%*
+        SUP      = SUPERIOR-ID OF MSF875 -
+                   WHERE (HIER-DETAILS = WX-HIER-DETAILS, -
+                   POSITION-ID  = POS)
+
+        SUPTITLE = POS-TITLE OF MSF870 -
+                   WHERE (POSITION-ID  = SUP)
+%*
+        SVEID  = EMPLOYEE-ID OF MSF878A            -
+                 WHERE (POSITION-ID = SUP, -
+                       PRIMARY-POS-1   = '0',     -
+                       POS-STOP-DATE-1 = '00000000')  -
+                 MAX (1)                          CONSTANT D-PIC (X(10))
+        SPLSN    = SURNAME  OF MSF810 -
+                            WHERE(EMPLOYEE-ID = SVEID)
+        SPFSN    = FIRST-NAME VIA (SPLSN)
+
+%*Work Group MSF723                                      
+       IWGROUP   = WORK-GROUP OF MSF723A  -            
+                              WHERE(REC-723-TYPE-2   = 'W'  ,  -
+                                    EQUIP-NO-2       = SPACES, -       
+                                    EMPLOYEE-ID-2    = EMP  ,  -       
+                                    EFF-DT-REVSD-2  >= '0') MAX(1) -      
+                              SELECTIF (EFF-DT-REVSD-2 > '0')     
+                                     
+%*
+       PYFLG    = CHOOSE ('Y' IF(PL = PAYLCD), 'N')
+%* Get the print flag
+       PRFLG  = choose ('Y' IF (STAT   = 'A',  -
+                                PRT    = 'Y',  -
+                                PYFLG  = 'Y',  -
+                                PRT2   = 'Y'), -
+                        'N')
+%*Lookup MSF880
+        ACCR     = ACCRUAL-CODE OF MSF880 -
+                   WHERE (EMPLOYEE-ID   = EMP, -
+                          LEAVE-TYPE    = 'L')
+        LVBR     = LVE-ST-BALANCE  VIA (ACCR) D-PIC ----9.9999
+        LVMN     = LVE-MAN-ADJ     VIA (ACCR) D-PIC ----9.9999
+        LVTK     = LEAVE-TAKEN     VIA (ACCR) D-PIC ----9.9999
+        LSLB     = calc(LVBR + LVMN - LVTK) D-PIC ----9.9999
+%* Output File variables
+       ENAME     = CATENATE (SURN, ' ', Y, Z)
+       E         = ET
+       C         = SC
+       B         = ','
+       Q         = '"'
+       IWG       = IWGROUP
+       DUMMY     = 'Y'
+       DUM       = choose ('Y' IF (EMP = EMP), DUMMY)
+%*
+%*End of Program

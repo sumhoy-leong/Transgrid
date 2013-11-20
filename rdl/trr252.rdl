@@ -1,0 +1,673 @@
+%***  $Id: trr252.rdl,v 003D 2008/02/18 11:05:00 elldev Exp $
+%*** TRR252.RDL
+%***
+%*** Revision History ***
+%*** 18-Feb-08 EFredeluces SC1777045
+%*** .................... No output generated when the offer number
+%*** .................... is entered. 
+%*** 26-Nov-98 DDiolaso   Recompile (Fix for MIMS 4.3)
+%*** .................... Added FPA-TYPE as a request parameter
+%*** 04-Feb-93 David_G    Ver. 003B Pacific Power Changes: Re-include items
+%*** .................... with 0 qty tendered in values (Purchasing changed 
+%*** .................... minds). Refer QTY variable.
+%*** 04-Feb-93 David_G    Ver. 003A Pacific Power Changes: Report totals for 
+%*** .................... all distrcts in stock code break footing .
+%*** .................... If qty tendered = 0, VALues should be 0.
+%*** 27-Nov-92 David_G    Pacific Power Changes: Report total weighting-%summary
+%*** .................... Print 'W' to indicate items with weighting in-%detail
+%*** .................... Remove SUPPRESS in detail to ensure there are always
+%*** .................... 2 lines printed for each item.
+%*** 03-Dec-90 Paul       CSO255 MINC1 --- CHANGE PROGRAM AS MSF251 HAD A FILE
+%*** .................... CHANGE FOR MSF251-QTY-TEND-UOI
+%*** 05-Nov-90 Barbara    When Qty Tendered is zero, use 1 for calculation
+%*** .................... purposes and display '*' alongside Qty Tendered.
+%*** 28-Sep-90 Barbara    Changes to use Quoted value not quoted price to
+%*** .................... determine the lowest quote.
+%*** 11-Sep-90 Barbara    Check for Min price of zero when no quotes entered
+%*** 11-Sep-90 Barbara    Change to ensure foreign currency never passed to
+%*** .................... MSSFXR as spaces.
+%*** 10-Sep-90 Kris       Change heading allignment to cater for People not
+%*** .................... using Offer codes
+%*** 06-Jul-90 BARBARA    Initial coding.
+%*** 30-Jan-97 Padmaja    W609240031 
+%***..................... New field 'Value of items where all suppliers quoted'
+%***..................... displays total of each item to which
+%***..................... all the suppliers have quoted.
+%PROGRAM-ID
+       TRR252
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  For an FPA this report lists quote details for up to
+      *    six suppliers (and offers). The quotes are evaluated
+      *    highlighting the lowest quote for each item and summarizing
+      *    details on the value of the quote for each supplier.
+%VERSION
+       003D
+%MODULE
+       3250
+%FILES
+        MFILE = MSF251
+        LFILE = MSF252
+        LFILE = MSF170
+        LFILE = MSF210
+        RFILE = TRR252A
+%ROUTINES
+       MSSFXR
+%SELECTION
+%*** Enter selection criteria for MSF251
+       WHERE (FPA-REC-TYPE = %FTYPE%, -
+              FPA-GROUP = %FPA%, -
+              FPA-ITEM-NO >= SPACES)
+       REJECTIF (DSTRCT-CODE = SPACES)
+%CONTROL-BREAKS
+       STOCK-CODE
+%REPORT-TITLE
+       'Evaluate FPA Quotes'
+%PAGE HEADING
+                                                         'FPA Group:'{FPA}
+                                                    '---------------------------- SUPPLIERS QUOTES -------------------------------'
+'Itm Stk Code  Dist UOI Quantity -Current-    Current'      {SUP1}       {SUP2}       {SUP3}       {SUP4}       {SUP5}       {SUP6}
+'No                     Tendered Supp   PC      Price'        {OF}          BB           CC           DD           EE           FF
+%DETAIL
+{IN} {STK    } {DS} {UI}{QTY   }L{SUPP} GG{CPR       }{VAL1      }H{VAL2      }I{VAL3      }J{VAL4      }K{VAL5     }M{VAL6      }N
+                                                     {V1       }{W1}{V2     }{W2}{V3     }{W3}{V4     }{W4}{V5     }{W5}{V6   }{W6}
+%BREAK STOCK-CODE FOOTING
+              'TOTAL ALL DISTRICTS ='                {VAL1T     }H{VAL2T     }I{VAL3T     }J{VAL4T     }K{VAL5T     }M{VAL6T     }N
+
+%REPORT-SUMMARY
+                'Total No. of suppliers '      {SUPPNO }
+
+                'Number of Items on RFQ'       {NOI  }
+
+   'No. of Items on RFQ (all districts)'       {NIA  }
+
+                'Number of Items Quoted'                   {NQ1  }      {NQ2  }      {NQ3  }      {NQ4  }      {NQ5  }      {NQ6  }
+
+            'Percentage of Items Quoted'                       PPP          QQQ          RRR          SSS          TTT          UUU
+
+             'Value of all Items Quoted'{VIQ        }{VIQ1       }{VIQ2       }{VIQ3       }{VIQ4       }{VIQ5       }{VIQ6       }
+               'Value all Lowest Quotes'             {VLQ1       }{VLQ2       }{VLQ3       }{VLQ4       }{VLQ5       }{VLQ6       }
+
+                     'Average Lead Time'                       VVV          WWW          XXX          YYY          ZZZ          AAA
+
+%* DG Weighting figure
+   'Weighting Value of all Items Quoted'             {VIQ1W      }{VIQ2W      }{VIQ3W      }{VIQ4W      }{VIQ5W      }{VIQ6W      }
+%*
+<IF S1 <> 0>
+'**** NOTES for Supplier' {SUP1} {OF}
+  <REPEAT>
+          {FO1                                                       }
+  <ENDREPEAT>
+<ENDIF>
+<IF S2 <> 0>
+'**** NOTES for Supplier' {SUP2} BB
+  <REPEAT>
+          {FO2                                                       }
+  <ENDREPEAT>
+<ENDIF>
+<IF S3 <> 0>
+'**** NOTES for Supplier' {SUP3} CC
+  <REPEAT>
+          {FO3                                                       }
+  <ENDREPEAT>
+<ENDIF>
+<IF S4 <> 0>
+'**** NOTES for Supplier' {SUP4} DD
+  <REPEAT>
+          {FO4                                                       }
+  <ENDREPEAT>
+<ENDIF>
+<IF S5 <> 0>
+'**** NOTES for Supplier' {SUP5} EE
+  <REPEAT>
+          {FO5                                                       }
+  <ENDREPEAT>
+<ENDIF>
+<IF S6 <> 0>
+'**** NOTES for Supplier' {SUP6} FF
+  <REPEAT>
+          {FO6                                                       }
+  <ENDREPEAT>
+<ENDIF>
+
+'Value of items where all suppliers quoted:'      {GRTOTQ1    }{GRTOTQ2    }{GRTOTQ3    }{GRTOTQ4     }{GRTOTQ5     }{GRTOTQ6     }
+
+%REQUEST-PARAMETERS
+       FTYPE PIC (X(1))   TEXT 'FPA Type   :'
+       FPA LIKE FPA-GROUP TEXT 'FPA Number :'
+       SUP1 PIC (X(6))    TEXT 'Supplier 1 :'
+       OFF1 PIC (XX)      TEXT 'Offer 1    :'
+       SUP2 PIC (X(6))    TEXT 'Supplier 2 :'
+       OFF2 PIC (XX)      TEXT 'Offer 2    :'
+       SUP3 PIC (X(6))    TEXT 'Supplier 3 :'
+       OFF3 PIC (XX)      TEXT 'Offer 3    :'
+       SUP4 PIC (X(6))    TEXT 'Supplier 4 :'
+       OFF4 PIC (XX)      TEXT 'Offer 4    :'
+       SUP5 PIC (X(6))    TEXT 'Supplier 5 :'
+       OFF5 PIC (XX)      TEXT 'Offer 5    :'
+       SUP6 PIC (X(6))    TEXT 'Supplier 6 :'
+       OFF6 PIC (XX)      TEXT 'Offer 6    :'
+%VARIABLES
+       FTYPE = %FTYPE%
+       FPA = %FPA%
+       SUP1 = %SUP1%
+       SUP2 = %SUP2%
+       SUP3 = %SUP3%
+       SUP4 = %SUP4%
+       SUP5 = %SUP5%
+       SUP6 = %SUP6%
+       OF = %OFF1%
+       B = %OFF2%
+       C = %OFF3%
+       D = %OFF4%
+       E = %OFF5%
+       F = %OFF6%
+       DATET = DATE ()
+       IN = FPA-ITEM-NO SUPPRESS
+       STK = STOCK-CODE SUPPRESS
+       DS = DSTRCT-CODE
+       UI = UNIT-OF-ISSUE OF MSF170 WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+             STOCK-CODE = STOCK-CODE)
+
+       QTYX = QTY-TEND-UOI PIC (Z(7)9)
+       QTY = choose (QTYX IF (QTYX <> 0), 1)
+       L = choose ('*' IF (QTYX = 0), ' ')
+
+       SUPP = CURR-SUPPLIER VIA (UI)
+       G = PRICE-CODE VIA (UI)
+%* Determine Current Price for Stock Code
+       CTS = CURRENCY-TYPE OF MSF210 WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+               STOCK-CODE = STOCK-CODE, SUPPLIER-NO = SUPP, PRICE-CODE = G)
+       CT = choose (CTS IF (CTS <> ' '), WX-LOCAL-CURRENCY)
+       RATES = BUYING-RATE OF MSSFXR -
+                 WHERE (LOCAL-CURRENCY = WX-LOCAL-CURRENCY, -
+                        FOREIGN-CURR = CT, OPTION-FXR = 1, TRAN-DATE-9 = DATET)
+       WLC = WX-LOCAL-CURRENCY
+       GPS = GROSS-PRICE-I VIA (CTS)
+       DAS = DISCOUNT-A VIA (CTS)
+       DBS = DISCOUNT-B VIA (CTS)
+       CPR = calc (((GPS / RATES) * (100 + DAS) * (100 + DBS)) / 10000) -
+                                            PIC (Z(8)9.99)
+       CPRA = calc (CPR * 2)
+%*  Determine quote price for this supplier
+       CT1 = CURRENCY-TYPE OF MSF252 WHERE (FPA-REC-TYPE = FTYPE, -
+                     FPA-ID = %FPA%, FPA-ITEM-NO = IN, DSTRCT-CODE = DS, -
+                     SUPPLIER-ID = %SUP1% & %OFF1%)
+       CDATE1 = CURRENCY-DATE VIA (CT1)
+       CD1 = choose (DATET IF (CDATE1 = ' ' OR CDATE1 = '00000000'), CDATE1)
+       CRATE1 = CURRENCY-RATE VIA (CT1)
+       CT1A = choose (CT1 IF (CT1 <> ' '), WLC)
+       FXRATE1 = BUYING-RATE OF MSSFXR -
+                 WHERE (LOCAL-CURRENCY = WX-LOCAL-CURRENCY, -
+                        FOREIGN-CURR = CT1A, -
+                        OPTION-FXR = 1, TRAN-DATE-9 = CD1)
+       RATE1 = choose (CRATE1 IF (CRATE1 <> 0), -
+                       FXRATE1)
+       GP1 = GROSS-PRICE-P VIA (CT1)
+       DA1 = DISCOUNT-A VIA (CT1)
+       DB1 = DISCOUNT-B VIA (CT1)
+       CV1A = CONV-FACTOR VIA (CT1)
+       CV1 = CHOOSE (1 IF (CV1A = 0),CV1A)
+       WPC1 = WEIGHTING-PC VIA (CT1)
+       W1 = choose ('W' IF (WPC1 <> 0),' ')
+       PR1 = calc (((((GP1 / RATE1) * (100 + DA1) * (100 + DB1)) / 10000) -
+                                              / CV1) * (1 + (WPC1 / 100)))
+%* DG weighting of Price 
+       PR1W = calc (((((GP1 / RATE1) * (100 + DA1) * (100 + DB1)) / 10000) -
+                                              / CV1) * (WPC1 / 100))
+       PVQ11 = PRICE-VAR-PT-1 VIA (CT1)
+       PVC11 = PRICE-VAR-PC-1 VIA (CT1)
+       PVQ21 = PRICE-VAR-PT-2 VIA (CT1)
+       PVC21 = PRICE-VAR-PC-2 VIA (CT1)
+       PVQ31 = PRICE-VAR-PT-3 VIA (CT1)
+       PVC31 = PRICE-VAR-PC-3 VIA (CT1)
+       VAL1 = calc (  (PR1 * QTY) -
+                    + ((PVC11 / 100) * PR1 * ((100 - PVQ11) / 100) * QTY) -
+                    + ((PVC21 / 100) * PR1 * ((100 - PVQ21) / 100) * QTY) -
+                    + ((PVC31 / 100) * PR1 * ((100 - PVQ31) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+
+%* DG Value of weighting only
+       VAL1W = calc (  (PR1W * QTY) -
+                    + ((PVC11 / 100) * PR1W * ((100 - PVQ11) / 100) * QTY) -
+                    + ((PVC21 / 100) * PR1W * ((100 - PVQ21) / 100) * QTY) -
+                    + ((PVC31 / 100) * PR1W * ((100 - PVQ31) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+       PR1A = calc (PR1 * 2)
+       V1 = choose ('           ' IF (PR1 = 0 OR CPR = 0), -
+                    '***********' IF (CPR > PR1A OR PR1 > CPRA), '           ')
+%****
+%*  Determine quote price for this supplier
+       CT2 = CURRENCY-TYPE OF MSF252 WHERE (FPA-REC-TYPE = FTYPE, -
+                     FPA-ID = %FPA%, FPA-ITEM-NO = IN, DSTRCT-CODE = DS, -
+                     SUPPLIER-ID = %SUP2% & %OFF2%)
+       CDATE2 = CURRENCY-DATE VIA (CT2)
+       CD2 = choose (DATET IF (CDATE2 = SPACES OR CDATE2 = ZEROES), CDATE2)
+       CRATE2 = CURRENCY-RATE VIA (CT2)
+       CT2A = choose (CT2 IF (CT2 <> ' '), WLC)
+       FXRATE2 = BUYING-RATE OF MSSFXR -
+                 WHERE (LOCAL-CURRENCY = WX-LOCAL-CURRENCY, -
+                        FOREIGN-CURR = CT2A, -
+                        OPTION-FXR = 1, TRAN-DATE-9 = CD2)
+       RATE2 = choose (CRATE2 IF (CRATE2 <> 0), -
+                       FXRATE2)
+       GP2 = GROSS-PRICE-P VIA (CT2)
+       DA2 = DISCOUNT-A VIA (CT2)
+       DB2 = DISCOUNT-B VIA (CT2)
+       CV2A = CONV-FACTOR VIA (CT2)
+       CV2 = CHOOSE (1 IF (CV2A = 0), CV2A)
+       WPC2 = WEIGHTING-PC VIA (CT2)
+       W2 = choose ('W' IF (WPC2 <> 0),' ')
+       PR2 = calc (((((GP2 / RATE2) * (100 + DA2) * (100 + DB2)) / 10000) -
+                                            / CV2) * (1 + (WPC2 / 100)))
+%* DG weighting of Price 
+       PR2W = calc (((((GP2 / RATE2) * (100 + DA2) * (100 + DB2)) / 10000) -
+                                            / CV2) * (WPC2 / 100))
+%* 
+       PVQ12 = PRICE-VAR-PT-1 VIA (CT2)
+       PVC12 = PRICE-VAR-PC-1 VIA (CT2)
+       PVQ22 = PRICE-VAR-PT-2 VIA (CT2)
+       PVC22 = PRICE-VAR-PC-2 VIA (CT2)
+       PVQ32 = PRICE-VAR-PT-3 VIA (CT2)
+       PVC32 = PRICE-VAR-PC-3 VIA (CT2)
+       VAL2 = calc (  (PR2 * QTY) -
+                    + ((PVC12 / 100) * PR2 * ((100 - PVQ12) / 100) * QTY) -
+                    + ((PVC22 / 100) * PR2 * ((100 - PVQ22) / 100) * QTY) -
+                    + ((PVC32 / 100) * PR2 * ((100 - PVQ32) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+
+%* DG Value of weighting only
+       VAL2W = calc (  (PR2W * QTY) -
+                    + ((PVC12 / 100) * PR2W * ((100 - PVQ12) / 100) * QTY) -
+                    + ((PVC22 / 100) * PR2W * ((100 - PVQ22) / 100) * QTY) -
+                    + ((PVC32 / 100) * PR2W * ((100 - PVQ32) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+       PR2A = calc (PR2 * 2)
+       V2 = choose ('           ' IF (PR2 = 0 OR CPR = 0), -
+                    '***********' IF (CPR > PR2A OR PR2 > CPRA), '           ')
+%****
+%*  Determine quote price for this supplier
+       CT3 = CURRENCY-TYPE OF MSF252 WHERE (FPA-REC-TYPE = FTYPE, -
+                     FPA-ID = %FPA%, FPA-ITEM-NO = IN, DSTRCT-CODE = DS, -
+                     SUPPLIER-ID = %SUP3% & %OFF3%)
+       CDATE3 = CURRENCY-DATE VIA (CT3)
+       CD3 = choose (DATET IF (CDATE3 = SPACES OR CDATE3 = ZEROES), CDATE3)
+       CRATE3 = CURRENCY-RATE VIA (CT3)
+       CT3A = choose (CT3 IF (CT3 <> ' '), WLC)
+       FXRATE3 = BUYING-RATE OF MSSFXR -
+                 WHERE (LOCAL-CURRENCY = WX-LOCAL-CURRENCY, -
+                        FOREIGN-CURR = CT3A, -
+                        OPTION-FXR = 1, TRAN-DATE-9 = CD3)
+       RATE3 = choose (CRATE3 IF (CRATE3 <> 0), -
+                       FXRATE3)
+       GP3 = GROSS-PRICE-P VIA (CT3)
+       DA3 = DISCOUNT-A VIA (CT3)
+       DB3 = DISCOUNT-B VIA (CT3)
+       CV3A = CONV-FACTOR VIA (CT3)
+       CV3 = CHOOSE (1 IF (CV3A = 0), CV3A)
+       WPC3 = WEIGHTING-PC VIA (CT3)
+       W3 = choose ('W' IF (WPC3 <> 0),' ')
+       PR3 = calc (((((GP3 / RATE3) * (100 + DA3) * (100 + DB3)) / 10000) -
+                                                / CV3) * (1 + (WPC3 / 100)))
+%* DG weighting of Price 
+       PR3W = calc (((((GP3 / RATE3) * (100 + DA3) * (100 + DB3)) / 10000) -
+                                                / CV3) * (WPC3 / 100))
+       PVQ13 = PRICE-VAR-PT-1 VIA (CT3)
+       PVC13 = PRICE-VAR-PC-1 VIA (CT3)
+       PVQ23 = PRICE-VAR-PT-2 VIA (CT3)
+       PVC23 = PRICE-VAR-PC-2 VIA (CT3)
+       PVQ33 = PRICE-VAR-PT-3 VIA (CT3)
+       PVC33 = PRICE-VAR-PC-3 VIA (CT3)
+       VAL3 = calc (  (PR3 * QTY) -
+                    + ((PVC13 / 100) * PR3 * ((100 - PVQ13) / 100) * QTY) -
+                    + ((PVC23 / 100) * PR3 * ((100 - PVQ23) / 100) * QTY) -
+                    + ((PVC33 / 100) * PR3 * ((100 - PVQ33) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+
+%* DG Value of weighting only
+       VAL3W = calc (  (PR3W * QTY) -
+                    + ((PVC13 / 100) * PR3W * ((100 - PVQ13) / 100) * QTY) -
+                    + ((PVC23 / 100) * PR3W * ((100 - PVQ23) / 100) * QTY) -
+                    + ((PVC33 / 100) * PR3W * ((100 - PVQ33) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+       PR3A = calc (PR3 * 2)
+       V3 = choose ('           ' IF (PR3 = 0 OR CPR = 0), -
+                    '***********' IF (CPR > PR3A OR PR3 > CPRA), '           ')
+%****
+%*  Determine quote price for this supplier
+       CT4 = CURRENCY-TYPE OF MSF252 WHERE (FPA-REC-TYPE = FTYPE, -
+                     FPA-ID = %FPA%, FPA-ITEM-NO = IN, DSTRCT-CODE = DS, -
+                     SUPPLIER-ID = %SUP4% & %OFF4%)
+       CDATE4 = CURRENCY-DATE VIA (CT4)
+       CD4 = choose (DATET IF (CDATE4 = SPACES OR CDATE4 = ZEROES), CDATE4)
+       CRATE4 = CURRENCY-RATE VIA (CT4)
+       CT4A = choose (CT4 IF (CT4 <> ' '), WLC)
+       FXRATE4 = BUYING-RATE OF MSSFXR -
+                 WHERE (LOCAL-CURRENCY = WX-LOCAL-CURRENCY, -
+                        FOREIGN-CURR = CT4A, -
+                        OPTION-FXR = 1, TRAN-DATE-9 = CD4)
+       RATE4 = choose (CRATE4 IF (CRATE4 <> 0), -
+                       FXRATE4)
+       GP4 = GROSS-PRICE-P VIA (CT4)
+       DA4 = DISCOUNT-A VIA (CT4)
+       DB4 = DISCOUNT-B VIA (CT4)
+       CV4A = CONV-FACTOR VIA (CT4)
+       CV4 = CHOOSE (1 IF (CV4A = 0), CV4A)
+       WPC4 = WEIGHTING-PC VIA (CT4)
+       W4 = choose ('W' IF (WPC4 <> 0),' ')
+       PR4 = calc (((((GP4 / RATE4) * (100 + DA4) * (100 + DB4)) / 10000) -
+                                               / CV4) * (1 + (WPC4 / 100)))
+%* DG weighting of Price 
+       PR4W = calc (((((GP4 / RATE4) * (100 + DA4) * (100 + DB4)) / 10000) -
+                                               / CV4) * (WPC4 / 100))
+%*
+       PVQ14 = PRICE-VAR-PT-1 VIA (CT4)
+       PVC14 = PRICE-VAR-PC-1 VIA (CT4)
+       PVQ24 = PRICE-VAR-PT-2 VIA (CT4)
+       PVC24 = PRICE-VAR-PC-2 VIA (CT4)
+       PVQ34 = PRICE-VAR-PT-3 VIA (CT4)
+       PVC34 = PRICE-VAR-PC-3 VIA (CT4)
+       VAL4 = calc (  (PR4 * QTY) -
+                    + ((PVC14 / 100) * PR4 * ((100 - PVQ14) / 100) * QTY) -
+                    + ((PVC24 / 100) * PR4 * ((100 - PVQ24) / 100) * QTY) -
+                    + ((PVC34 / 100) * PR4 * ((100 - PVQ34) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+
+%* DG Value of weighting only
+       VAL4W = calc (  (PR4W * QTY) -
+                    + ((PVC14 / 100) * PR4W * ((100 - PVQ14) / 100) * QTY) -
+                    + ((PVC24 / 100) * PR4W * ((100 - PVQ24) / 100) * QTY) -
+                    + ((PVC34 / 100) * PR4W * ((100 - PVQ34) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+       PR4A = calc (PR4 * 2)
+       V4 = choose ('           ' IF (PR4 = 0 OR CPR = 0), -
+                    '***********' IF (CPR > PR4A OR PR4 > CPRA), '           ')
+%*******
+%*  Determine quote price for this supplier
+       CT5 = CURRENCY-TYPE OF MSF252 WHERE (FPA-REC-TYPE = FTYPE, -
+                     FPA-ID = %FPA%, FPA-ITEM-NO = IN, DSTRCT-CODE = DS, -
+                     SUPPLIER-ID = %SUP5% & %OFF5%)
+       CDATE5 = CURRENCY-DATE VIA (CT5)
+       CD5 = choose (DATET IF (CDATE5 = SPACES OR CDATE5 = ZEROES), CDATE5)
+       CRATE5 = CURRENCY-RATE VIA (CT5)
+       CT5A = choose (CT5 IF (CT5 <> ' '), WLC)
+       FXRATE5 = BUYING-RATE OF MSSFXR -
+                 WHERE (LOCAL-CURRENCY = WX-LOCAL-CURRENCY, -
+                        FOREIGN-CURR = CT5A, -
+                        OPTION-FXR = 1, TRAN-DATE-9 = CD5)
+       RATE5 = choose (CRATE5 IF (CRATE5 <> 0), -
+                       FXRATE5)
+       GP5 = GROSS-PRICE-P VIA (CT5)
+       DA5 = DISCOUNT-A VIA (CT5)
+       DB5 = DISCOUNT-B VIA (CT5)
+       CV5A = CONV-FACTOR VIA (CT5)
+       CV5 = CHOOSE (1 IF (CV5A = 0), CV5A)
+       WPC5 = WEIGHTING-PC VIA (CT5)
+       W5 = choose ('W' IF (WPC5 <> 0),' ')
+       PR5 = calc (((((GP5 / RATE5) * (100 + DA5) * (100 + DB5)) / 10000) -
+                                               / CV5) * (1 + (WPC5 / 100)))
+%* DG weighting of Price 
+       PR5W = calc (((((GP5 / RATE5) * (100 + DA5) * (100 + DB5)) / 10000) -
+                                               / CV5) * (WPC5 / 100))
+%* 
+       PVQ15 = PRICE-VAR-PT-1 VIA (CT5)
+       PVC15 = PRICE-VAR-PC-1 VIA (CT5)
+       PVQ25 = PRICE-VAR-PT-2 VIA (CT5)
+       PVC25 = PRICE-VAR-PC-2 VIA (CT5)
+       PVQ35 = PRICE-VAR-PT-3 VIA (CT5)
+       PVC35 = PRICE-VAR-PC-3 VIA (CT5)
+       VAL5 = calc (  (PR5 * QTY) -
+                    + ((PVC15 / 100) * PR5 * ((100 - PVQ15) / 100) * QTY) -
+                    + ((PVC25 / 100) * PR5 * ((100 - PVQ25) / 100) * QTY) -
+                    + ((PVC35 / 100) * PR5 * ((100 - PVQ35) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+
+%* DG Value of weighting only
+       VAL5W = calc (  (PR5W * QTY) -
+                    + ((PVC15 / 100) * PR5W * ((100 - PVQ15) / 100) * QTY) -
+                    + ((PVC25 / 100) * PR5W * ((100 - PVQ25) / 100) * QTY) -
+                    + ((PVC35 / 100) * PR5W * ((100 - PVQ35) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+       PR5A = calc (PR5 * 2)
+       V5 = choose ('           ' IF (PR5 = 0 OR CPR = 0), -
+                    '***********' IF (CPR > PR5A OR PR5 > CPRA), '           ')
+%****
+%*%*  Determine quote price for this supplier
+       CT6 = CURRENCY-TYPE OF MSF252 WHERE (FPA-REC-TYPE = FTYPE, -
+                     FPA-ID = %FPA%, FPA-ITEM-NO = IN, DSTRCT-CODE = DS, -
+                     SUPPLIER-ID = %SUP6% & %OFF6%)
+       CDATE6 = CURRENCY-DATE VIA (CT6)
+       CD6 = choose (DATET IF (CDATE6 = SPACES OR CDATE6 = ZEROES), CDATE6)
+       CRATE6 = CURRENCY-RATE VIA (CT6)
+       CT6A = choose (CT6 IF (CT6 <> ' '), WLC)
+       FXRATE6 = BUYING-RATE OF MSSFXR -
+                 WHERE (LOCAL-CURRENCY = WX-LOCAL-CURRENCY, -
+                        FOREIGN-CURR = CT6A, -
+                        OPTION-FXR = 1, TRAN-DATE-9 = CD6)
+       RATE6 = choose (CRATE6 IF (CRATE6 <> 0), -
+                       FXRATE6)
+       GP6 = GROSS-PRICE-P VIA (CT6)
+       DA6 = DISCOUNT-A VIA (CT6)
+       DB6 = DISCOUNT-B VIA (CT6)
+       CV6A = CONV-FACTOR VIA (CT6)
+       CV6 = CHOOSE (1 IF (CV6A = 0), CV6A)
+       WPC6 = WEIGHTING-PC VIA (CT6)
+       W6 = choose ('W' IF (WPC6 <> 0),' ')
+       PR6 = calc (((((GP6 / RATE6) * (100 + DA6) * (100 + DB6)) / 10000) -
+                                               / CV6) * (1 + (WPC6 / 100)))
+%* DG weighting of Price 
+       PR6W = calc (((((GP6 / RATE6) * (100 + DA6) * (100 + DB6)) / 10000) -
+                                               / CV6) * (WPC6 / 100))
+       PVQ16 = PRICE-VAR-PT-1 VIA (CT6)
+       PVC16 = PRICE-VAR-PC-1 VIA (CT6)
+       PVQ26 = PRICE-VAR-PT-2 VIA (CT6)
+       PVC26 = PRICE-VAR-PC-2 VIA (CT6)
+       PVQ36 = PRICE-VAR-PT-3 VIA (CT6)
+       PVC36 = PRICE-VAR-PC-3 VIA (CT6)
+       VAL6 = calc (  (PR6 * QTY) -
+                    + ((PVC16 / 100) * PR6 * ((100 - PVQ16) / 100) * QTY) -
+                    + ((PVC26 / 100) * PR6 * ((100 - PVQ26) / 100) * QTY) -
+                    + ((PVC36 / 100) * PR6 * ((100 - PVQ36) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+
+%* DG Value of weighting only
+       VAL6W = calc (  (PR6W * QTY) -
+                    + ((PVC16 / 100) * PR6W * ((100 - PVQ16) / 100) * QTY) -
+                    + ((PVC26 / 100) * PR6W * ((100 - PVQ26) / 100) * QTY) -
+                    + ((PVC36 / 100) * PR6W * ((100 - PVQ36) / 100) * QTY)) -
+                                   PIC (Z(8)9.99 BLANK WHEN ZERO)
+       PR6A = calc (PR6 * 2)
+       V6 = choose ('           ' IF (PR6 = 0 OR CPR = 0), -
+                    '***********' IF (CPR > PR6A OR PR6 > CPRA), '           ')
+%****
+%*  Count of all different items
+       NOI = count (IN) PIC (Z(6)9)
+%*  Count of all items in all districts
+       NIA = count (*) PIC (Z(6)9)
+%*  If no quote entered set variable to 999... so it cannot be the mimimum
+       MP1 = choose (99999999.99 IF (GP1 = 0), VAL1)
+       MP2 = choose (99999999.99 IF (GP2 = 0), VAL2)
+       MP3 = choose (99999999.99 IF (GP3 = 0), VAL3)
+       MP4 = choose (99999999.99 IF (GP4 = 0), VAL4)
+       MP5 = choose (99999999.99 IF (GP5 = 0), VAL5)
+       MP6 = choose (99999999.99 IF (GP6 = 0), VAL6)
+%*  Determine the mimimum quote value over all suppliers
+       MPR = choose (VAL1 IF (MP1 < MP2, MP1 < MP3, MP1 < MP4, -
+                             MP1 < MP5, MP1 < MP6), -
+                     VAL2 IF (MP2 < MP3, MP2 < MP4, MP2 < MP5, MP2 < MP6), -
+                     VAL3 IF (MP3 < MP4, MP3 < MP5, MP3 < MP6), -
+                     VAL4 IF (MP4 < MP5, MP4 < MP6), -
+                     VAL5 IF (MP5 < MP6), VAL6)
+%*  Flag quoted value if it is equal to the minimum value for this item
+       H = choose ('*' IF (VAL1 = MPR, MPR <> 0), ' ')
+       I = choose ('*' IF (VAL2 = MPR, MPR <> 0), ' ')
+       J = choose ('*' IF (VAL3 = MPR, MPR <> 0), ' ')
+       K = choose ('*' IF (VAL4 = MPR, MPR <> 0), ' ')
+       M = choose ('*' IF (VAL5 = MPR, MPR <> 0), ' ')
+       N = choose ('*' IF (VAL6 = MPR, MPR <> 0), ' ')
+%*  Count no of items quoted for each supplier
+       NQV1 = choose (1 IF (PR1 <> 0),0)
+       NQ1 = total (NQV1) PIC (Z(6)9 BLANK WHEN ZERO)
+       NQV2 = choose (1 IF (PR2 <> 0),0)
+       NQ2 = total (NQV2) PIC (Z(6)9 BLANK WHEN ZERO)
+       NQV3 = choose (1 IF (PR3 <> 0),0)
+       NQ3 = total (NQV3) PIC (Z(6)9 BLANK WHEN ZERO)
+       NQV4 = choose (1 IF (PR4 <> 0),0)
+       NQ4 = total (NQV4) PIC (Z(6)9 BLANK WHEN ZERO)
+       NQV5 = choose (1 IF (PR5 <> 0),0)
+       NQ5 = total (NQV5) PIC (Z(6)9 BLANK WHEN ZERO)
+       NQV6 = choose (1 IF (PR6 <> 0),0)
+       NQ6 = total (NQV6) PIC (Z(6)9 BLANK WHEN ZERO)
+%* Percentage of items quoted (for each supplier)
+       P = calc ((NQ1 / NIA) * 100) PIC (ZZ9 BLANK WHEN ZERO)
+       Q = calc ((NQ2 / NIA) * 100) PIC (ZZ9 BLANK WHEN ZERO)
+       R = calc ((NQ3 / NIA) * 100) PIC (ZZ9 BLANK WHEN ZERO)
+       S = calc ((NQ4 / NIA) * 100) PIC (ZZ9 BLANK WHEN ZERO)
+       T = calc ((NQ5 / NIA) * 100) PIC (ZZ9 BLANK WHEN ZERO)
+       U = calc ((NQ6 / NIA) * 100) PIC (ZZ9 BLANK WHEN ZERO)
+%* Total value of all items quoted (VAL1 etc is zero if not quoted)
+       IV = calc (CPR * QTY)
+       VIQ = total (IV) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ1 = total (VAL1) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ2 = total (VAL2) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ3 = total (VAL3) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ4 = total (VAL4) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ5 = total (VAL5) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ6 = total (VAL6) PIC (Z(9)9.99 BLANK WHEN ZERO)
+%* DG Total Value of weighting
+       VIQ1W = total (VAL1W) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ2W = total (VAL2W) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ3W = total (VAL3W) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ4W = total (VAL4W) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ5W = total (VAL5W) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VIQ6W = total (VAL6W) PIC (Z(9)9.99 BLANK WHEN ZERO)
+%* Get value of lowest quotes only
+       VLQL1 = choose (VAL1 IF (VAL1 = MPR), 0)
+       VLQ1 = total (VLQL1) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VLQL2 = choose (VAL2 IF (VAL2 = MPR), 0)
+       VLQ2 = total (VLQL2) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VLQL3 = choose (VAL3 IF (VAL3 = MPR), 0)
+       VLQ3 = total (VLQL3) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VLQL4 = choose (VAL4 IF (VAL4 = MPR), 0)
+       VLQ4 = total (VLQL4) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VLQL5 = choose (VAL5 IF (VAL5 = MPR), 0)
+       VLQ5 = total (VLQL5) PIC (Z(9)9.99 BLANK WHEN ZERO)
+       VLQL6 = choose (VAL6 IF (VAL6 = MPR), 0)
+       VLQ6 = total (VLQL6) PIC (Z(9)9.99 BLANK WHEN ZERO)
+%* Average Lead Time
+       LT1 = SUPP-LEAD-TIME-9 VIA (CT1)
+       LLT1 = total (LT1)
+       V = calc (LLT1 / NQ1) PIC (ZZ9 BLANK WHEN ZERO)
+       LT2 = SUPP-LEAD-TIME-9 VIA (CT2)
+       LLT2 = total (LT2)
+       W = calc (LLT2 / NQ2) PIC (ZZ9 BLANK WHEN ZERO)
+       LT3 = SUPP-LEAD-TIME-9 VIA (CT3)
+       LLT3 = total (LT3)
+       X = calc (LLT3 / NQ3) PIC (ZZ9 BLANK WHEN ZERO)
+       LT4 = SUPP-LEAD-TIME-9 VIA (CT4)
+       LLT4 = total (LT4)
+       Y = calc (LLT4 / NQ4) PIC (ZZ9 BLANK WHEN ZERO)
+       LT5 = SUPP-LEAD-TIME-9 VIA (CT5)
+       LLT5 = total (LT5)
+       Z = calc (LLT5 / NQ5) PIC (ZZ9 BLANK WHEN ZERO)
+       LT6 = SUPP-LEAD-TIME-9 VIA (CT6)
+       LLT6 = total (LT6)
+       A = calc (LLT6 / NQ6) PIC (ZZ9 BLANK WHEN ZERO)
+       FO1 = GET (READ-TEXT FROM ('MSF096') CODE ('FO') KEY ('F',%FPA%,SUP1,OF))
+       FO2 = GET (READ-TEXT FROM ('MSF096') CODE ('FO') KEY ('F',%FPA%,SUP2,B))
+       FO3 = GET (READ-TEXT FROM ('MSF096') CODE ('FO') KEY ('F',%FPA%,SUP3,C))
+       FO4 = GET (READ-TEXT FROM ('MSF096') CODE ('FO') KEY ('F',%FPA%,SUP4,D))
+       FO5 = GET (READ-TEXT FROM ('MSF096') CODE ('FO') KEY ('F',%FPA%,SUP5,E))
+       FO6 = GET (READ-TEXT FROM ('MSF096') CODE ('FO') KEY ('F',%FPA%,SUP6,F))
+       S1 = SIZE (FO1)
+       S2 = SIZE (FO2)
+       S3 = SIZE (FO3)
+       S4 = SIZE (FO4)
+       S5 = SIZE (FO5)
+       S6 = SIZE (FO6)
+%* DG Break totals
+       VAL1T = TOTAL (VAL1)
+       VAL2T = TOTAL (VAL2)
+       VAL3T = TOTAL (VAL3)
+       VAL4T = TOTAL (VAL4)
+       VAL5T = TOTAL (VAL5)
+       VAL6T = TOTAL (VAL6)
+%********W609240031*******New field - total summary field - 30/1/97*****
+       SUPP1 = choose (1 IF (SUP1 <> SPACES),0)
+       SUPP2 = choose (1 IF (SUP2 <> SPACES),0)
+       SUPP3 = choose (1 IF (SUP3 <> SPACES),0)
+       SUPP4 = choose (1 IF (SUP4 <> SPACES),0)
+       SUPP5 = choose (1 IF (SUP5 <> SPACES),0)
+       SUPP6 = choose (1 IF (SUP6 <> SPACES),0)
+
+       SUPPNO = calc (SUPP1 + SUPP2 + SUPP3 + SUPP4 + SUPP5 + SUPP6)
+                                  
+       TQ1 = CHOOSE ('Y' IF (SUPPNO = 1, -
+                             VAL1 > 0), 'N')
+       SUPP1VAL1 = CHOOSE (VAL1 IF (TQ1 = 'Y'), 0)
+
+       TQ2 = CHOOSE ('Y' IF (SUPPNO = 2, -
+                             VAL2 > 0, -
+                             VAL1 > 0), 'N') 
+       SUPP2VAL2 = CHOOSE (VAL2 IF (TQ2 = 'Y'), 0)
+       SUPP2VAL1 = CHOOSE (VAL1 IF (TQ2 = 'Y'), 0)
+
+       TQ3 = CHOOSE ('Y' IF (SUPPNO = 3, -
+                             VAL3 > 0, -
+                             VAL2 > 0, -
+                             VAL1 > 0), 'N') 
+       SUPP3VAL3 = CHOOSE (VAL3 IF (TQ3 = 'Y'), 0)
+       SUPP3VAL2= CHOOSE (VAL2 IF (TQ3 = 'Y'), 0)
+       SUPP3VAL1 = CHOOSE (VAL1 IF (TQ3 = 'Y'), 0)
+
+ 
+       TQ4 = CHOOSE ('Y' IF (SUPPNO = 4, -
+                             VAL4 > 0, -
+                             VAL3 > 0, -
+                             VAL2 > 0, -
+                             VAL1 > 0), 'N') 
+       SUPP4VAL4 = CHOOSE (VAL4 IF (TQ4 = 'Y'), 0)
+       SUPP4VAL3 = CHOOSE (VAL3 IF (TQ4 = 'Y'), 0)
+       SUPP4VAL2 = CHOOSE (VAL2 IF (TQ4 = 'Y'), 0)
+       SUPP4VAL1 = CHOOSE (VAL1 IF (TQ4 = 'Y'), 0)
+
+       TQ5 = CHOOSE ('Y' IF (SUPPNO = 5, -
+                             VAL5 > 0, -
+                             VAL4 > 0, -
+                             VAL3 > 0, -
+                             VAL2 > 0, -
+                             VAL1 > 0), 'N') 
+       SUPP5VAL5 = CHOOSE (VAL5 IF (TQ5 = 'Y'), 0)
+       SUPP5VAL4 = CHOOSE (VAL4 IF (TQ5 = 'Y'), 0)
+       SUPP5VAL3 = CHOOSE (VAL3 IF (TQ5 = 'Y'), 0)
+       SUPP5VAL2 = CHOOSE (VAL2 IF (TQ5 = 'Y'), 0)
+       SUPP5VAL1 = CHOOSE (VAL1 IF (TQ5 = 'Y'), 0)
+
+       TQ6 = CHOOSE ('Y' IF (SUPPNO = 6, -
+                             VAL6 > 0, -
+                             VAL5 > 0, -
+                             VAL4 > 0, -
+                             VAL3 > 0, -
+                             VAL2 > 0, -
+                             VAL1 > 0), 'N') 
+       SUPP6VAL6 = CHOOSE (VAL6 IF (TQ6 = 'Y'), 0)
+       SUPP6VAL5 = CHOOSE (VAL5 IF (TQ6 = 'Y'), 0)
+       SUPP6VAL4 = CHOOSE (VAL4 IF (TQ6 = 'Y'), 0)
+       SUPP6VAL3 = CHOOSE (VAL3 IF (TQ6 = 'Y'), 0)
+       SUPP6VAL2 = CHOOSE (VAL2 IF (TQ6 = 'Y'), 0)
+       SUPP6VAL1 = CHOOSE (VAL1 IF (TQ6 = 'Y'), 0)
+
+       GRTOTQ6 = TOTAL (SUPP6VAL6)
+       5GRTOTQ5 = CALC (SUPP6VAL5 + SUPP5VAL5)
+       GRTOTQ5 = TOTAL (5GRTOTQ5)
+       4GRTOTQ4 = CALC (SUPP6VAL4 + SUPP5VAL4 + SUPP4VAL4)
+       GRTOTQ4 = TOTAL (4GRTOTQ4)
+       3GRTOTQ3 = CALC (SUPP6VAL3 + SUPP5VAL3 + SUPP4VAL3 + SUPP3VAL3)
+       GRTOTQ3 = TOTAL (3GRTOTQ3)
+       2GRTOTQ2 = CALC (SUPP6VAL2 + SUPP5VAL2 + SUPP4VAL2 + SUPP3VAL2 + SUPP2VAL2)
+       GRTOTQ2 = TOTAL (2GRTOTQ2)
+       1GRTOTQ1 = CALC (SUPP6VAL1 + SUPP5VAL1 + SUPP4VAL1 + SUPP3VAL1 + SUPP2VAL1 + SUPP1VAL1)
+       GRTOTQ1 = TOTAL (1GRTOTQ1)
+
+%**************************W609240031*****30/1/97*******************************

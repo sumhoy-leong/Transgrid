@@ -1,0 +1,925 @@
+%***  $Id: trrpop.rdl,v7F 01/03/2012 15:30:00 Exp $
+%*** TRRPOP.RDL
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 19-April-13 MarkC       Version 0005
+%*** .....................   Try to resolve problem with PO number not getting printed
+%*** .....................   on the last page of a PO. Removed Suppress on AM variable 
+%*** 17-April-13 MarkC       Version 0004
+%*** .....................   Includes changes made by Paul Mylonas on 13th March
+%*** .....................   that had been lost for some reason 
+%*** 16-April-13 MarkC       Version 0003
+%*** .....................   Amended as WX-FPA-IN value not being correctly set in E8
+%*** .....................   for some reason, so have simplified this condition by
+%*** .....................   taking out this check.
+%*** 11-April-13 MarkC       Version 0002
+%*** .....................   Amended so that only the first part number and mnemonic 
+%*** .....................   is reported, rather than up to 3 part numbers and mnemonics 
+%*** 14-Aug-12  a9tl3060     Convert from ellipse 6 to ellipse 8 (Version 0001).
+%*** 01-Mar-12  E Fredeluces SC3885180
+%*** .....................   Due to District consolidation the
+%*** .....................   following changes will be done:
+%*** .....................   1.  B report will be removed.  It will be   
+%*** .....................       amended to contain Stock items only   
+%*** .....................       and printing to be done in the whouse.   
+%*** .....................       The report will be genrated by ESRPO1.
+%*** .....................   2.  Call ESRPO1 to generate the PO Control
+%*** .....................       Report for Non-stock and Stock Items.
+%*** 20-Sep-11  E Fredeluces SC3778159
+%*** .....................   To include the B for PO Control Report.
+%*** .....................   Remove ESRPO1 copy-request to generate
+%*** .....................   the PO Control Report. 
+%*** 26-Aug-10 EFredeluces   SC2897650
+%*** .....................   Move the Post Code to the next line to 
+%*** .....................   prevent truncation.
+%*** 23-Oct-09 EFredeluces   SC2578315
+%*** .....................   Align the Purchase Order form based on the 
+%*** .....................   new Pre-Formatted form.   
+%*** 22-Feb-06  AIesho       P05110872
+%*** .....................   Append the %DISTRICT-CODE% code to ORDER when
+%*** .....................   searching for a printer.  This is part of the
+%*** .....................   Ellipse Upgrade where every printer must be
+%*** .....................   unique
+%*** 06-Jun-05  AIesho       P05060270
+%*** .....................   Modify the RDL to allow it to print to Multiple
+%*** .....................   districts depending on warehouse if, but only
+%*** .....................   when it is run from the GRID district.
+%*** .....................   Remove Report B into TRRPO1
+%*** 19-May-05  AIesho       WCHG096211
+%*** .....................   Added Purchasing officer details before printing
+%*** .....................   Purchase order number for report B only
+%*** 07-Feb-05  AIesho       WCHG085620
+%*** .....................   Added GET-TEXT for 'NT' type. Moved the printing
+%*** .....................   of Purchase order Number and Narrative to a BREAK
+%*** .....................   for Report B. This change is only for Report B
+%*** 20-Oct-03  I Gianakis   WCHG035839
+%*** .....................   Added 'audit' output report A, which lists
+%*** .....................   details of the purchase orders in csv format.
+%*** 06-Jun-01 EFredeluces   W01030481
+%*** .....................   Shifted Item & Qty 1 character to left.
+%*** 31-May-01 RCasagrande   W01030481
+%*** .....................   Shifted report accross by 4 characters due to 
+%*** .....................   smaller font being used.
+%*** 15-Mar-01 DDiolaso      W01030557
+%*** ....................    Move Post Code 3 spaces to the left
+%*** 06-Sep-00 EFredeluces   Move Post Code 2 spaces to the left.
+%*** 04-Sep-00 EFredeluces   W00090030
+%*** ....................    Supplier Address is being truncated.
+%*** 10-Jul-00 DDIOLASO      W00070188
+%*** ....................    Adjust 'Attn' label to accomodate name in the
+%*** ....................    same line
+%*** 03-Aug-99 DDIOLASO      W99080089
+%*** ....................   Increase the size of the supplier name print area
+%*** ....................   from 30 char to 32 char to avoid truncation
+%*** 15-Jul-99 DDIOLASO      W99070009
+%*** ....................   Instead of using order type of 'G', po-item-type of
+%*** ....................   of 'S' in file msf221 is to be tested as an
+%*** ....................   exeception.
+%*** ....................   Apparently, an incorrect requirement is provided
+%*** ....................   in the WO stating 'quantity and unit of purchase
+%*** ....................   only print/display where the order type is 'G' 
+%*** 06-Jul-99 DDIOLASO      W99070009
+%*** ....................   Revised so that the quantity and unit of purchase
+%*** ....................   will only be printed when order type is 'G' - goods
+%*** 09-Jun-99 EFredeluces   W99060243
+%*** ....................    Fix the printing of delivery charges clauses 
+%*** ....................    which shouldn't be printed.
+%*** 12-May-99 JN            W99050187 Amend access from MSFX05 to MSF096 -
+%*** ....................    include CLAUSE-VER-NO in key, Fix PO-ITEM-NO 
+%*** 29-Apr-99 EFredeluces   Included the %CONTROL for dynamic printing
+%*** 22-Apr-99 JN            Amend acces to Delivery Location - from MSF096 "TT"
+%*** ....................    'DL' to 'D' Code copied from MSRPOP
+%*** 27-Nov-97 EFredeluces   W710280043
+%*** ....................    Purchase Order to print using laser printers.
+%*** ....................    Report layout readjusted to suit the new form.
+%*** 16-Apr-96 Mincom        Replace 'RC' table access with HRGET macro.
+%*** 23-Sep-94 David_G    Ver 007B Use put statement for PO clauses.
+%*** 30-Aug-94 David_G    Ver 007A Always print ext. desc on stock items.
+%*** 23-Jun-94 David_G    Ver 006A Add text to purchase on behalf of PacificGrid
+%*** .................... Make sales tax text general text. Some sites still 
+%*** .................... have old stationary so can't delete yet.
+%*** 19-Jul-93 David_G    Add 'free of sales tax as they are' in PO footing.
+%*** .................... This was requested by Ian Macourt.
+%*** .................... Version 005C --> 005D.
+%*** 18-Jan-93 David_G    Add Sales Tax info in PO footing for Ian Macourt
+%*** .................... This info should be deleted when new purchase order
+%*** .................... stationary in use.
+%*** .................... Version 005B --> 005C.
+%*** 17-Nov-92 David_G    Print extended description on control 'b' report.
+%*** 05-JuL-92 David_G    Don't use %district-code% in catenate (fpaprin0) - 
+%*** .................... rdl doesn't know it is pic x(4).
+%*** 09-Jun-92 David_G    Print an extra line of Delivery text "DL" to allow
+%*** .................... 1line of text eg."Delivery Hours:7am-4pm 7 days"
+%*** .................... Make freight up to 5lines instead of 3
+%*** 09-MAY-92 David_G    Change override printer parameter from defprin 
+%*** .................... via msf080 to po-prin pic x(2).
+%*** 04-MAY-92 David_G    Print FPA orders at site.(Purch Off starting with FPA)
+%*** 30-MAR-92 David_G    REMOVE MINCOM'S FIX TO PRINT ALL CLAUSES
+%*** .................... IE. REMOVE PUT AND SINGLE STATEMENTS - THIS 
+%*** .................... WAS SLOWING DOWN RUN TIME TOO MUCH.!+ IT DOESN'T WORK
+%*** 12-DEC-91 David_G    Add ECNSW CHANGES as follows :
+%*** .................... Change Delivery /Freight lines format
+%*** 03-OCT-91 David_G    Add ECNSW CHANGES as follows :
+%*** .................... Change variable 'N'- print price if qty = 0 & 
+%*** ....................       order item type = 's'(service) or 0 if cancelled
+%*** 24-SEP-91 David_G    Add ECNSW CHANGES as follows :
+%*** .................... print change order indication on'B' report & itm count
+%*** 23-SEP-91 David_G    Add ECNSW CHANGES as follows :
+%*** .................... move 'item total' 1 char to right
+%*** .................... use literal L2 for 'order total'
+%*** .................... Don't print item total or order total
+%*** ....................       for items with price code starting with 'W'
+%*** ....................       ie. some service orders.
+%*** .................... Don't print due date if same as order date
+%*** ....................       ie. some service orders.
+%*** .................... change 'ENQUIRIES Telephone:' to 'ENQUIRIES:'
+%*** .................... 
+%*** 21-Aug-91 Shaun      C40106 ECNS1 424501  Changed for Tonyg
+%*** .................... Was not handling modification to whole of order
+%*** .................... (was handling mod to an item).
+%*** .................... 
+%*** 13-Aug-91 David_G    Add ECNSW CHANGES as follows :
+%*** .................... print buyer at po-no break instead of footing
+%*** .................... Add following in msf221 browse "SELECTIF (AI = '000')"
+%*** ....................     to print all items on a change order.
+%*** 13-Aug-91 David_G    Add ECNSW CHANGES as follows :
+%*** .................... Insert district in key to find dcpr ext desc.
+%*** .................... move "cancelled item" text up to print for stk & d/c
+%*** 24-Jun-91 David_G    Add ECNSW CHANGES as follows :
+%*** .................... Print order attach under clauses in case user has diff
+%*** ....................  clauses for each item-User can type clause in attach.
+%*** .................... Change all std text to print 99 lines instead of 20
+%*** .................... Only use default printer if request-no not blank.
+%*** .................... Move clause text to left side & ext lgth to 60.
+%*** .................... Don't print Supplier Contact (use att: only)
+%*** .................... Use (EQ * k) NOT (E * k) to calculate item value
+%*** .................... Don't print decimals in qty  (only if = .00)
+%*** .................... Print Confirmation banner at top not bottom
+%*** .................... Print supp no. top left
+%*** .................... Print full 8 characters of fpa group not 6
+%*** .................... Print buyer code/desc. at bottom of order
+%*** .................... Print d/c req no. if direct charge
+%*** .................... Print mnemonic code not full name
+%*** .................... Print 'pc' commentary
+%*** .................... 
+%*** 28-Dec-90 Barbara    Add Item Cancelled display and ensure qty = 0 on this
+%*** .................... condition.
+%*** .................... Commented out all code that is not currently
+%*** .................... available- Commentary text and purchase order
+%*** .................... clauses.
+%*** .................... NB: Page footing should not be used when report can
+%*** .................... be split over different printers.
+%*** 28-Dec-90 Barbara    CSBPOP Version 003C. 3.005A to 3.005C.
+%*** 16-Nov-90 Maryo      C99024 MINC1 --- Backfit changes from ECNSW
+%*** 14-Nov-90 Mark       C26752 ECNS1 ---
+%*** .................... Use the override (default) printer
+%*** .................... if one is supplied, otherwise use the printer
+%*** .................... associated with the purchase officer, otherwise let
+%*** .................... the print routine work it out.
+%*** 07-Nov-90 Jody       WO to align purchase order items on successive pages
+%*** .................... for one order. Change 'Item Tot' to 'Item Total' and
+%*** .................... 'Order Tot' to 'Order Total'
+%*** 23-Oct-90 Chrisw     WO recvd form ECNSW showing 'order total' different
+%*** .................... to 'order value' on the "B" report.
+%*** .................... Report "A" was using net-price where as the other
+%*** .................... was using gross-price, changed "B" to use net-price
+%*** .................... as well.
+%*** 23-Oct-90 Chrisw     CSBPOP Version 003B. 3.004B to 3.005A.
+%*** 19-Sep-90 Barbara    Crrect browse on MSF221 to contain only SELECTIF not
+%*** .................... both SELECTIF and REJECTIF.
+%*** 19-Sep-90 Barbara    CSBPOP Version 003A. 3.004A to 3.004B.
+%*** 16-Aug-90 Chrisw     Dates being suppressed, and order joined with item
+%*** 22-Jul-90 Ross       Correct code for FPA file changes
+%*** 22-Jul-90 Ross       CSBPOP Version 003. 3.003 to 3.004/2.
+%*** 28-Jun-90 BARBARA    Implemented READ-TEXT for descriptions and AFILE for
+%*** .................... MSF221.
+%*** 01-Jun-90 Kris       C99548 Version 002B. From M3001A to M3002C.
+%*** 11-Apr-90 Chrisj     CSBPOP Version 002A. From M3000C to M3001A.
+%*** 20-Mar-90 Ross       C99548 Version 002. From M3000 to M3000C.
+%*** 30-Jan-90 BARBARA   Initial Coding
+%***                  Generated by Version 002 of NEWRDL.MAC
+%***
+%PROGRAM-ID
+       TRRPOP
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  Purchase Order Printing
+%VERSION
+       0005
+%MODULE
+       3210
+%FILES
+        MFILE = MSF061
+        AFILE = MSF221
+        LFILE = MSF010
+        LFILE = MSF096
+        LFILE = MSF100
+        LFILE = MSFX05
+        LFILE = MSF210
+        LFILE = MSF220
+        LFILE = MSF200
+        LFILE = MSF231
+        RFILE = TRRPOPA
+        OFILE = TRTPOPA
+%ROUTINES
+       MSS110
+       MSSCNV
+%SELECTION
+%*** Enter selection criteria for MSF061
+       WHERE    (PART-1-061      = '3P', -
+                 PART-2-061      = 'PO', -
+                 DATA-1-061     >= %DISTRICT-CODE% & %RUN-NO%)
+       SELECTIF (%MED-1%        <> SPACES, MEDIUM-3P = %MED-1%)
+       SELECTIF (%MED-2%        <> SPACES, MEDIUM-3P = %MED-2%)
+       SELECTIF (%MED-3%        <> SPACES, MEDIUM-3P = %MED-3%)
+       SELECTIF (%MED-4%        <> SPACES, MEDIUM-3P = %MED-4%)
+       REJECTIF (PO-NO-PO       <> %PONO%, %PONO% <> SPACES)    
+       STOPIF   (DSTRCT-CODE-3P  > %DISTRICT-CODE%)
+       STOPIF   (PRINT-RUN-NO-3P > %RUN-NO%)
+%ORDER
+       WHOUSE-ID      VIA (D)
+       PURCH-OFFICER  VIA (SUP)
+       SUPPLIER-NO    VIA (SUP)
+       PO-NO          VIA (SUP)
+       PO-ITEM-NO     VIA (D)
+%CONTROL-BREAKS
+%*** List names of 3 control break fields
+       WHOUSE-ID      VIA (D)
+       PURCH-OFFICER  VIA (SUP)
+       SUPPLIER-NO    VIA (SUP)
+       PO-NO          VIA (SUP)
+       PO-ITEM-NO     VIA (D)
+%REPORT
+       A
+%REPORT-TITLE
+       'Purchase Order - Printed'
+%PAGE HEADING
+<IF (AI <> SPACES, AI = PO221) OR PO221 <> SPACES>
+
+                      {POGRID                               }             {AM     }
+                                                          {RDATE  }
+                                                         
+                                                                             'Page :'CCC
+    {SUP }  {SNAME                         }
+            {SADD1                         }      {DELIV                                 }
+            {SADD2                         }      {DLV1                                  }
+  <IF SADD3 <> SPACES>
+            {SADD3                         }      {DLV2                                  }
+            {PC}                                  {DLV3                                  }
+     'Attn:'{ATTN                             }   {DLV5                                  }
+  <ELSE>                              
+            {PC}                                  {DLV2                                  }
+     'Attn:'{ATTN                             }   {DLV3                                  }
+                                                  {DLV5                                  }
+                                                  {FRTD                                  }
+  <ENDIF>
+                                                  {FRTD                                  }
+                                                  {FRTD                                  }
+                                                  {FRTD                                  }
+                                                  {FRTD                                  }
+<ENDIF>
+%*** Control Break headings for up to 3 control level(s)
+%BREAK PO-NO  VIA (SUP) HEADING ON NEW-PAGE RESET-PAGE-COUNT
+<IF (AI <> SPACES, AI = PO221) OR PO221 <> SPACES>
+<IF AI <> SPACES>
+                          'This is a Change Order and only items'
+                          'changed from the original are printed'
+<ENDIF>
+<REPEAT>
+                           {HNARR                                                     }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {SUPGLOB                                                   }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {SUPDST                                                    }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {SUPGLOB1                                                  }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {SUPDST1                                                   }
+<ENDREPEAT>
+<IF CONF = 'C'>
+                          '*********************************************'
+                          '*             CONFIRMATION ORDER            *'
+                          '* DO NOT SUPPLY AGAINST THIS DOCUMENT       *'
+   <IF IT = 'C'>
+                          '* CONSIGNMENT STOCK - DO NOT INVOICE        *'
+   <ENDIF>
+                          '*********************************************'
+<ELSE>
+   <IF IT = 'C'>
+                          '*********************************************'
+                          '* CONSIGNMENT STOCK - DO NOT INVOICE        *'
+                          '*********************************************'
+   <ENDIF>
+
+<ENDIF>
+<ENDIF>
+%DETAIL TEST-PAGE (1)
+%* The following If will encoumpass all the detail section.
+<IF (AI <> SPACES, AI = PO221) OR PO221 <> SPACES>
+<IF STAT = '3'>
+                          '*********************************************'
+                          '*    CANCELLED ITEM - DO NOT INVOICE        *'
+                          '*********************************************'
+<ENDIF>
+<IF IT = 'O' OR IT = 'C'>
+    <IF EQ > 9999.99 OR EQ < -9999.99>
+      <IF Q-DEC <> 0>
+     DDD  
+     XXXXXXXXXXXX    YYYY  {INAME                                 }            {STK    }
+      <ELSE>
+     DDD  
+     {X1        }    YYYY  {INAME                                 }            {STK    }
+      <ENDIF>
+    <ELSE>
+      <IF Q-DEC <> 0>
+     DDD XXXXXXXX    YYYY  {INAME                                 }            {STK    }
+      <ELSE>
+     DDD {X1    }    YYYY  {INAME                                 }            {STK    }
+      <ENDIF>
+    <ENDIF>
+    <SUPPRESS>
+                           {D1                                    }
+    <SUPPRESS>
+                           {D2                                    }
+    <SUPPRESS>
+                           {D3                                    }
+    <SUPPRESS>
+                           {D4                                    }
+    <REPEAT>
+                           {EXTDSTK                               }
+    <ENDREPEAT>
+<ELSE>
+  <IF EQ > 9999.99 OR EQ < -9999.99>
+    <IF Q-DEC <> 0>
+     DDD
+     {X         }    YYYY  {ID1                                   }            BBBBBBLGGG
+    <ELSE>
+     DDD 
+     {X1        }    YYYY  {ID1                                   }            BBBBBBLGGG
+    <ENDIF>
+  <ELSE>
+    <IF Q-DEC <> 0>
+     DDD XXXXXXXX    YYYY  {ID1                                   }            BBBBBBLGGG
+    <ELSE>
+     DDD {X1    }    YYYY  {ID1                                   }            BBBBBBLGGG
+    <ENDIF>
+  <ENDIF>
+    <SUPPRESS>
+                           {ID2                                   }
+    <SUPPRESS>
+                           {ID3                                   }
+    <SUPPRESS>
+                           {ID4                                   }
+  <REPEAT>
+                           {PEXTD                                 }
+  <ENDREPEAT>
+<ENDIF>
+<IF IT = 'O' OR IT = 'C'>
+    <SUPPRESS>
+                          'Part No:'{MNEM  } {PART                        }
+<ELSE>
+    <SUPPRESS>
+                          'Part No:'{PRMNEM} {PRPARTNO                    }
+<ENDIF>
+<IF I <> SPACES>
+                          'Forward Purchase Agreement'IIIIIIIILJJJJ
+<ENDIF>
+<IF PRC < 'W ' OR PRC > 'X '>
+                           SKKKKKKKKKKKKK {Y } {L1      }NNNNNNNNNNNNNN
+<ENDIF>
+<IF DT1 <> ODATE1>
+                          'Due Date'{DT     }
+<ENDIF>
+<IF DS1 <> 0>
+                          'Discount'{DS1 }P'within'OOO'days'
+<ENDIF>
+<IF DS2 <> 0>
+                          'Discount'{DS2 }P'within'QQQ'days'
+<ENDIF>
+<REPEAT>
+                           {INARR                                                     }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {STKGLOB                                                   }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {STKDST                                                    }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {SUPSTKGLOB                                                }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {SUPSTKDST                                                 } 
+<ENDREPEAT>
+%*
+<REPEAT>
+<SUPPRESS>
+                           {STKGLOB1                                                  }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {STKDST1                                                   }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {SUPSTKGLB1                                                }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                           {SUPSTKDST1                                                }
+<ENDREPEAT>
+<SUPPRESS>
+                           {POC         } {PO} {PO} {PO} {PO} {PO}
+<SUPPRESS>                  
+                                          {PO} {PO} {PO} {PO} {PO}
+%*****
+%***** PURCHASE ORDER CLAUSES HERE
+%***** Need GET READ-TEXT plus case to count clauses?????
+<ENDIF>
+%BREAK PO-NO VIA (SUP) FOOTING TEST-PAGE (1)
+<IF (AI <> SPACES, AI = PO221) OR PO221 <> SPACES>
+<REPEAT>
+                           {FNARR                                                     }
+<ENDREPEAT>
+<IF PRC < 'W ' OR PRC > 'X '>
+                                          {L2       }{OTOT      }
+<ENDIF>
+<SUPPRESS>
+                           {POC1                }
+<SUPPRESS>
+                      {P1} {POCL1                                                     }
+<REPEAT>
+<SUPPRESS>
+                           {POCL1                                                     }
+<ENDREPEAT>
+<SUPPRESS>
+                      {P2} {POCL2                                                     }
+<REPEAT>
+<SUPPRESS>
+                           {POCL2                                                     }
+<ENDREPEAT>
+<SUPPRESS>
+                      {P3} {POCL3                                                     }
+<REPEAT>
+<SUPPRESS>
+                           {POCL3                                                     }
+<ENDREPEAT>
+<SUPPRESS>
+                      {P4} {POCL4                                                     }
+<REPEAT>
+<SUPPRESS>
+                           {POCL4                                                     }
+<ENDREPEAT>
+<SUPPRESS>
+                      {P5} {POCL5                                                     }
+<REPEAT>
+<SUPPRESS>
+                           {POCL5                                                     }
+<ENDREPEAT>
+<SUPPRESS>
+                      {P6} {POCL6                                                     }
+<REPEAT>
+<SUPPRESS>
+                           {POCL6                                                     }
+<ENDREPEAT>
+<SUPPRESS>
+                      {P7} {POCL7                                                     }
+<REPEAT>
+<SUPPRESS>
+                           {POCL7                                                     }
+<ENDREPEAT>
+<SUPPRESS>
+                      {P8} {POCL8                                                     }
+<REPEAT>
+<SUPPRESS>
+                           {POCL8                                                     }
+<ENDREPEAT> 
+<SUPPRESS>
+                      {P9} {POCL9                                                     }
+<REPEAT>
+<SUPPRESS>
+                           {POCL9                                                     }
+<ENDREPEAT>
+<SUPPRESS>
+                      {P10}{POCL10                                                    }
+<REPEAT>
+<SUPPRESS>
+                           {POCL10                                                    }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                      {ANARR                                                     }
+<ENDREPEAT>
+
+                     'ENQUIRIES:'{PODESCT                          }'PH:'{PHONE           }
+
+<REPEAT>
+<SUPPRESS>
+                      {POFOOT                                                    }
+<ENDREPEAT>
+<ENDIF>
+%CONTROL REPORT A
+       PAGE-WIDTH = 90 
+       PAGE-LENGTH = 68
+       LAST-DETAIL-LINE = 55
+       TRIM-REPORT
+       NO-STD-HEADINGS
+       DYNAMIC-PRINTER
+       COPY-REQUEST = TRRPO1
+%*
+%*   Output File  
+%*
+%OUTPUT-FILE
+        A
+%BREAK-FIELDS
+        PURCH-OFFICER VIA (SUP)
+        DUM
+%CONTROL
+        RECORD-LENGTH = 130 
+%BREAK PURCH-OFFICER  VIA (SUP) HEADING 
+'Print Run No.'RRRR    ',"Purchasing Officer'{POFF    } {PODESC                                           }                      W
+%BREAK DUM HEADER  
+'Order No.,Order Date,Stock Code/Purch.Req.,Desc.,Value,PROCESSED?,PROCESSING OFFICER                                            '
+%DETAIL
+<IF (AI <> SPACES, AI = PO221) OR PO221 <> SPACES>
+  <IF IT = 'O' OR IT = 'C'>
+W{A2  }LDDDWVW{ODATE  }WVW{STK      }WVW{DESC1                                                                 }WVW{VAL         }W
+  <ELSE>
+W{A2  }LDDDWVW{ODATE  }WVWBBBBBBLGGG WVW{DESC2                                                                 }WVW{VAL         }W
+  <ENDIF>
+<ENDIF>
+%BREAK PURCH-OFFICER VIA (SUP) FOOTING
+
+%REQUEST-PARAMETERS
+       RUN-NO  PIC (X(4))   TEXT 'Run Number'
+       MED-1   PIC (X(1))   TEXT 'Medium-1'
+       MED-2   PIC (X(1))   TEXT 'Medium-2'
+       MED-3   PIC (X(1))   TEXT 'Medium-3'
+       MED-4   PIC (X(1))   TEXT 'Medium-4'	
+       PO-PRIN PIC (X(2))          TEXT 'Purchase Order Printer'
+       WHOUSEI PIC (X(2))          TEXT 'Warehouse ID (OPTIONAL)'
+       OUTD    PIC (X(2))   TEXT 'Output Device (Optional)'
+       CONTRP  PIC (X(2))   TEXT 'Control Printer (Optional)'
+       PONO    PIC (X(6))   TEXT 'Purchase Order Number (Optional)'
+       DEFPRIN LIKE PRINTER1 OF MSF080
+%VARIABLES
+       WHOUSEI = %WHOUSEI%  CONSTANT
+       M1      = %MED-1%    CONSTANT
+       M2      = %MED-2%    CONSTANT
+       M3      = %MED-3%    CONSTANT
+       M4      = %MED-4%    CONSTANT
+       O1      = %OUTD%     CONSTANT
+       C1      = %CONTRP%   CONSTANT
+       PONO    = %PONO%     CONSTANT
+       V = ',' CONSTANT
+       W = '"' CONSTANT
+       DUM = CHOOSE (1 IF (1=1),1)
+       RDATE = DATE() CONSTANT
+       R = %RUN-NO% CONSTANT
+       A = PO-NO-PO
+       A1 = PO-NO-PO SUPPRESS
+       A2 = PO-NO-PO
+       AI = PO-ITEM-NO-PO
+       A10 = choose(AI IF(AI <> SPACES), AI)
+       C = PAGE()
+%*** Shaun 210891 added AI <> '000' clause into selectif and stopif
+       D = PO-ITEM-NO FROM MSF221 WHERE (PO-NO = PO-NO-PO, -
+           PO-ITEM-NO >= A10) SELECTIF (A10 = SPACES) -
+           SELECTIF (A10 = '000') -
+           SELECTIF (A10 <> SPACES, A10 <> '000', PO-ITEM-NO = A10) -
+           REJECTIF (WHOUSE-ID <> WHOUSEI, WHOUSEI <> SPACES) -
+           STOPIF (AI <> SPACES, AI <> '000', PO-ITEM-NO > AI)
+       IREQI  = ISSUE-REQ     VIA (D)
+       WHI    = WHOUSE-ID     VIA (D)
+       PITYPE = PO-ITEM-TYPE  VIA (D)
+       PO221  = PO-NO         VIA (D)
+       AX      = PO-NO-PO
+       AW      = catenate (AX,'-',WHI) I-PIC (X(9))
+       AO      = catenate (AX,'   ') I-PIC (X(9))
+%*     AM      = choose   (AW  IF (DSTRCT-CODE-3P = 'GRID'), -
+       AM      = choose   (AW  IF (WHI <> SPACES), -
+                 AO) I-PIC (X(9))
+%*               AO) I-PIC (X(9)) SUPPRESS
+       SUP = SUPPLIER-NO OF MSF220 WHERE (PO-NO = PO221)
+       POXMIT = PO-XMIT-VERSION VIA (SUP)
+       POFF = PURCH-OFFICER     VIA (SUP)
+       FPAPOFF = substr (POFF,1,3)
+       DL = DELIV-LOCATION      VIA (SUP)
+       DLDESC = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE = 'DN', -
+                       TABLE-CODE = DL)
+       DLOCDESC = CHOOSE (DLDESC IF (DLDESC <> SPACES), -
+                         '*** Unknown ***')
+       PODESC1 = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = POFF)
+       PODESC  = FORMATTED-NAME via (PODESC1)
+       PHONE = WORK-PHONE-NO VIA (PODESC1)
+       NTI   = NAME-TITLE VIA (PODESC1)
+       NT1   = substr (NTI,1,1)
+       NT2   = substr (NTI,2,1)
+       NT3   = substr (NTI,3,1)
+       NT4   = substr (NTI,4,1)
+       NTLN  = choose (4 IF (NT4 <> SPACES), -
+                       3 IF (NT3 <> SPACES), -
+                       2 IF (NT2 <> SPACES), -
+                       1 IF (NT1 <> SPACES), -
+                       0)
+       PODESCA = catenate (NT1, ' ', PODESC)
+       PODESCB = catenate (NT1, NT2, ' ', PODESC)
+       PODESCC = catenate (NT1, NT2, NT3, ' ', PODESC)
+       PODESCD = catenate (NTI, ' ', PODESC)
+       PODESCT = choose (PODESC  IF(NTLN = 0), -
+                         PODESCA IF(NTLN = 1), -
+                         PODESCB IF(NTLN = 2), -
+                         PODESCC IF(NTLN = 3), -
+                         PODESCD)
+%* DYNAMIC PRINTER
+%* Print at purch. officer's printer if non fpa buyer
+%* Print at site order printer (printer code starts with "ORDER") 
+%*       if fpa buyer (buyer code starts with "FPA")
+
+       NONFPAPRIN = PRINTER-ID VIA (PODESC1)
+       DISTRICT = %DISTRICT-CODE% CONSTANT
+       FPAPRIN0 = catenate (DISTRICT,'ORDER',DISTRICT) CONSTANT
+       FPAPRIN00 = catenate (DISTRICT,'ORDER',DISTRICT,'ZZZZZ') CONSTANT
+       FPAPRIN1 = PRINTER OF MSF010 -
+                  WHERE (TABLE-TYPE = 'PR', -
+                         TABLE-CODE >= FPAPRIN0) -
+                  STOPIF (TABLE-CODE > FPAPRIN00) MAX (1)
+%* Set the printer
+%* This over rides order printer when Grid district.
+       PRINS      = ASSOC-REC OF MSF010           -
+                    WHERE   (TABLE-TYPE = '+WH', -
+                             TABLE-CODE =  DSTRCT-CODE-3P & WHI)
+       PRINW      = substr(PRINS,3,2)   I-PIC (X(2))
+
+       FPAPR      = choose(PRINW IF(PRINW <> SPACES,DSTRCT-CODE-3P = 'GRID'), -
+                    FPAPRIN1)
+%* Select order printer when FPA else select Purchasing Officer Printer
+       FPAPRIN = choose (FPAPR IF (FPAPOFF = 'FPA'), SPACES)  
+       PRIN = choose (FPAPRIN IF (FPAPRIN <> SPACES), -
+                      NONFPAPRIN)
+
+       PRINA = choose (%PO-PRIN% IF (%PO-PRIN% <> SPACES), -
+                            PRIN IF (PRIN <> SPACES), %DEFPRIN%)
+%* Set the printer
+       PRINC = choose (O1 IF (O1 <> SPACES), -
+                       PRINA)
+       PRINX = PRINTER (PRINC)
+%*
+       CONF = LIVE-CONF-IND VIA (SUP)
+       SNAME = SUPPLIER-NAME OF MSF200 WHERE (SUPPLIER-NO = SUP)
+       SADD1 = ORDER-ADDR-1 VIA (SNAME)
+       SADD2 = ORDER-ADDR-2 VIA (SNAME)
+       SADD3 = ORDER-ADDR-3 VIA (SNAME)
+       PC = ORDER-ZIP VIA (SNAME)
+%***    22-APR-99 JN NEW DELIV CODE 
+    DELIV220 = DELIV-LOCATION VIA (SUP)
+    DELIV221 = DELIV-LOCATION VIA (D)
+    DELIV1   = CHOOSE(DELIV220 IF (WX-PO-CONS-DELIV-IND = 'Y' ) , DELIV221 ) -
+                                                         I-PIC (X(4))
+    DLV     = get (READ-TEXT FROM ('MSF096') -
+                                CODE ('TT') -
+                                KEY  ('DN  ',DELIV1)) -
+                      MAX (5) -
+                      TEXT-WIDTH (40)
+       DLV1 = single (DLV (1))
+       DLV2 = single (DLV (2))
+       DLV3 = single (DLV (3))
+       DLV4 = single (DLV (4))
+       DLV5 = single (DLV (5))
+
+       DELIV = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'DL', -
+                TABLE-CODE = DELIV1)
+%***    END 22-APR-99 JN NEW DELIV CODE 
+       FRT1 = FREIGHT-CODE VIA (SUP)
+       FRT9 = catenate (FRT1,9)
+       FRTD = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'FR', -
+                TABLE-CODE >= FRT1) -
+              STOPIF (TABLE-CODE > FRT9) MAX (5)
+
+       OCONTACT = ORDER-CONTACT VIA (SNAME)
+       ATTN = GET (READ-TEXT FROM ('MSF096') CODE ('NT') -
+                     KEY ('AL', A)) MAX (1)
+       ATSIZE = SIZE (ATTN)
+       INARR = GET (READ-TEXT FROM ('MSF096') CODE ('NT') -
+                     KEY ('1', A, D)) MAX (99)
+       HNARR = GET (READ-TEXT FROM ('MSF096') CODE ('NT') -
+                     KEY ('2', A)) MAX (99)
+       FNARR = GET (READ-TEXT FROM ('MSF096') CODE ('NT') -
+                     KEY ('3', A)) MAX (99)
+       ANARR = GET (READ-TEXT FROM ('MSF096') CODE ('NT') -
+                     KEY ('6', A)) MAX (99)
+       SUPGLOB = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PC ') -
+                      SUPPLIER-VALUE (SUP)) MAX (99)
+       SUPDST = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PC ') -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP)) MAX (99)
+       SUPGLOB1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PG ') -
+                      SUPPLIER-VALUE (SUP)) MAX (99)
+       SUPDST1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PD ') -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP)) MAX (99)
+       STAT = STATUS-221 VIA (D)
+       CC = CHANGE-COUNT VIA (D)
+       QUANT = CURR-QTY-P VIA (D)
+       QUANT1 = calc (QUANT * 1) I-PIC (S9(9)) 
+       Q-DEC = calc ((QUANT - QUANT1) * 100) I-PIC (9(9)V9(2))
+       EQ = choose (0 IF (STAT = '3'), QUANT)
+
+       E = choose (EQ IF (Q-DEC <> 0), EQ) I-PIC (9(9)V9(2))
+       E1 = choose (EQ IF (Q-DEC = 0), EQ) I-PIC (9(9))
+
+       F = UNIT-OF-PURCH VIA (D)
+       F1 = UNIT-OF-PURCH VIA (D)
+       IT = PO-ITEM-TYPE VIA (D)
+       PDI = PO-DESC-IND VIA (D)
+       STK1 = STOCK-CODE VIA (D)
+       PRC = PRICE-CODE VIA (D)
+       STK = choose (STK1 IF (IT = 'O' OR IT = 'C'), SPACES)
+       PR = PRICE-CODE VIA (D)
+       PRCDESC  = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'PC', -
+                         TABLE-CODE = PR)
+       INAME = ITEM-NAME OF MSF100 WHERE (STOCK-CODE = STK1)
+       MNEM1 = MNEMONIC-1 OF MSS110 WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                      STOCK-CODE = STK, SUPPLIER-NO = SUP, PRICE-CODE = PRC)
+       PART1 = PART-NO-1 VIA (MNEM1)
+       MNEM2 = MNEMONIC-2 VIA (MNEM1)
+       PART2 = PART-NO-2 VIA (MNEM1)
+       MNEM3 = MNEMONIC-3 VIA (MNEM1)
+       PART3 = PART-NO-3 VIA (MNEM1)
+       MNEM = MNEMONIC VIA (MNEM1)
+       PART = PART-NO VIA (MNEM1)
+       MNEML1 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'AA', -
+                                           TABLE-CODE = MNEM1)
+       MN1 = choose (MNEML1 IF (MNEML1 <> SPACES), MNEM1)
+       MNEML2 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'AA', -
+                                           TABLE-CODE = MNEM2)
+       MN2 = choose (MNEML2 IF (MNEML2 <> SPACES), MNEM2)
+       MNEML3 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'AA', -
+                                           TABLE-CODE = MNEM3)
+       MN3 = choose (MNEML3 IF (MNEML3 <> SPACES), MNEM3)
+       D1 = DESC-LINE-1 VIA (INAME)
+       D2 = DESC-LINE-2 VIA (INAME)
+       D3 = DESC-LINE-3 VIA (INAME)
+       D4 = DESC-LINE-4 VIA (INAME)
+       EXTDSTK = GET (READ-TEXT FROM ('MSF096') CODE ('SC') KEY (STK1)) MAX (99)
+       DC = DSTRCT-CODE VIA (SUP)
+       B = PURCH-REQ VIA (D)
+       G = PREQ-ITEM VIA (D)
+       ID1 = ITEM-DESC1 OF MSF231 WHERE (DSTRCT-CODE = DC, -
+            PREQ-NO = B, PREQ-ITEM-NO = G) IF (IT <> 'O', IT <> 'C')
+       ID2 = ITEM-DESC2 VIA (ID1) IF (IT <> 'O', IT <> 'C')
+       ID3 = ITEM-DESC3 VIA (ID1) IF (IT <> 'O', IT <> 'C')
+       ID4 = ITEM-DESC4 VIA (ID1) IF (IT <> 'O', IT <> 'C')
+       PRMNEM = MNEMONIC VIA (ID1)
+%*DD060799 Inserted the following
+       REQTYP = REQ-TYPE VIA (ID1)
+       DUMYQTY = 0   CONSTANT
+       DUMYUNT = '   ' CONSTANT
+       X = CHOOSE(DUMYQTY IF (PITYPE = 'S'), E) I-PIC (9(9)V9(2)) FORMAT (BWZ)  
+       X1  = CHOOSE(DUMYQTY IF (PITYPE = 'S'), E1) I-PIC (9(9)) FORMAT (BWZ)
+       Y   = CHOOSE(DUMYUNT IF (PITYPE = 'S'), F)
+%*DD060799 End of insert
+       PRMNEML = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'AA', -
+                                             TABLE-CODE = PRMNEM)
+       PRMN = choose (PRMNEML IF (PRMNEML <> SPACES), PRMNEM)
+       PRPARTNO = PART-NO VIA (ID1)
+       MN = choose (MN1 IF (IT = 'O' OR IT = 'C'), PRMN)
+       PARTX = choose (PART1 IF (IT = 'O' OR IT = 'C'), PRPARTNO)
+       PEXTD = GET (READ-TEXT FROM ('MSF096') CODE ('PR') -
+                  KEY (DC,B,G)) MAX (99)
+       I = FPA-ID VIA (D)
+       L = '/'
+       J = FPA-ITEM-NO VIA (D)
+       S = '@'
+       K = CURR-NET-PR-P VIA (D) D-PIC ($(9)9.99)
+       L1 = 'Item Total'
+       L2 = 'Order Total'
+       N1 = calc (K * EQ) D-PIC ($(10)9.99)
+       N = choose (K IF (EQ=0 AND IT='S' AND STAT <> '3'),N1) D-PIC ($(10)9.99)
+       DT1 = CURR-DUE-DATE VIA (D)
+       DT = GET (DISPLAY-DATE FROM (DT1))
+       P = '%'
+       DS1 = SETTLE-PC-A VIA (D) D-PIC (ZZ9.99)
+       O = SETTLE-DAYS-A VIA (D) D-PIC 999
+       DS2 = SETTLE-PC-B VIA (D) D-PIC (ZZ9.99)
+       Q = SETTLE-DAYS-B VIA (D) D-PIC 999
+       ODATE1 = ORDER-DATE VIA (SUP)
+       ODATE2 = GET (DISPLAY-DATE FROM (ODATE1))
+       ODATE3 = ODATE2 D-PIC (X(9)) SUPPRESS
+       ODATE = CHOOSE (ODATE3 IF (A1 = SPACES), ODATE2)
+       OTOT = total (N) D-PIC ($(10)9.99)
+       QTY = CURR-QTY-P VIA (D) D-PIC (-(8)9.99)
+       GP = GROSS-PRICE-P VIA (D) D-PIC (-(10)9.99)
+       NP = CURR-NET-PR-P VIA (D) D-PIC (-(10)9.99)
+       VAL = calc (QTY * NP)
+       STOT = total (VAL)
+       STKGLOB = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PC') -
+                      STOCK-CODE-VALUE (STK1)) MAX (99)
+       STKDST = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PC') -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) STOCK-CODE-VALUE (STK1)) MAX (99)
+       SUPSTKGLOB = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PC') -
+                      SUPPLIER-VALUE (SUP) STOCK-CODE-VALUE (STK1)) MAX (99)
+       SUPSTKDST = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PC') -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP) -
+                      STOCK-CODE-VALUE (STK1)) MAX (99)
+
+       STKGLOB1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PG') -
+                      STOCK-CODE-VALUE (STK1)) MAX (99)
+       STKDST1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PD') -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) STOCK-CODE-VALUE (STK1)) MAX (99)
+       SUPSTKGLB1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PG') -
+                      SUPPLIER-VALUE (SUP) STOCK-CODE-VALUE (STK1)) MAX (99)
+       SUPSTKDST1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE ('PD') -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP) -
+                      STOCK-CODE-VALUE (STK1)) MAX (99)
+%* JN NEW
+       CL  = CLAUSE-ID       OF MSFX05       -
+            WHERE (CLAUSE-ENT-TYPE = 'O',   -
+                   CLAUSE-ENT-ID   = A & D & POXMIT, -
+                   CLAUSE-PRT-SEQ >= SPACES) -
+            MAX (10)
+       PO   = CLAUSE-ID     VIA (CL)
+       XVER = CLAUSE-VER-NO VIA (CL)
+       IDVR = CATENATE (PO, XVER)
+       P0   = PUT    (IDVR) MAX (10)
+       P1   = SINGLE (P0   (1))
+       P2   = SINGLE (P0   (2))
+       P3   = SINGLE (P0   (3))
+       P4   = SINGLE (P0   (4))
+       P5   = SINGLE (P0   (5))
+       P6   = SINGLE (P0   (6))
+       P7   = SINGLE (P0   (7))
+       P8   = SINGLE (P0   (8))
+       P9   = SINGLE (P0   (9))
+       P10  = SINGLE (P0  (10))
+%*  END JN 
+%*
+       POC = CHOOSE ('See Clause(s):' IF (P1 <> SPACES), SPACES)
+       POC1 = CHOOSE ('PURCHASE ORDER CLAUSES' IF (P1 <> SPACES), SPACES)
+
+       POCL1 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P1)) MAX (99)
+       POCL2 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P2)) MAX (99)
+       POCL3 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P3)) MAX (99)
+       POCL4 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P4)) MAX (99)
+       POCL5 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P5)) MAX (99)
+       POCL6 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P6)) MAX (99)
+       POCL7 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P7)) MAX (99)
+       POCL8 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P8)) MAX (99)
+       POCL9 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P9)) MAX (99)
+       POCL10 = GET (READ-TEXT FROM ('MSF096') -
+                             CODE ('PC') KEY (P10)) MAX (99)
+%* DG 23/6/94 Add General Text for footing - put sales tax text in here so it 
+%*   can be deleted on-line when sites have correct stationary.
+       POFOOT = GET (READ-TEXT FROM ('MSF096') CODE ('GT') -
+                     KEY ('POFOOT')) MAX (20)
+%* DG 23/6/94 Add General Text for purchasing on behalf of PacificGrid
+       POGRIDT = GET (READ-TEXT FROM ('MSF096') CODE ('GT') -
+                     KEY ('POGRID')) MAX (2)
+       ORGIND = ASSOC-CHAR-1 OF MSF010 WHERE (TABLE-TYPE = '3D', -
+                                             TABLE-CODE = %DISTRICT-CODE%)
+%* Note 3d table file classifies dist's 1=PP, 2=Grid.
+       POGRID = CHOOSE (POGRIDT IF (ORGIND = '2'), SPACES)
+
+%* IG 21/10/2003
+       DESC1X = CATENATE (INAME, D1)
+       DESC1 = OUT-STRING OF MSSCNV -
+               WHERE (OPTION     = 'P', -
+                     INP-STRING  = DESC1X)
+       DESC2X = CATENATE (ID1, ID2)
+       DESC2 = OUT-STRING OF MSSCNV -
+               WHERE (OPTION     = 'P', -
+                     INP-STRING  = DESC2X)
+%* AIesho Add Narrative
+      NARTIVE = GET (READ-TEXT FROM ('MSF096') CODE ('NT' ) KEY('2' ,PO-NO-PO )) MAX(20 ) TEXT-WIDTH(60 )
+      NZ      = size (NARTIVE)
+%**** End of Program *********************************************************
+
+%*'--------1---------2---------3---------4---------5---------6---------7---------8-------|'
+%*'234567890123456789012345678901234567890123456789012345678901234567890123456789012345678'

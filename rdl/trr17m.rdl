@@ -1,0 +1,294 @@
+%*** TRR17M.RDL
+%*** Revision History
+%*** 10-Apr-13 a9nh4814     MO164 (Version 0003)
+%*** ..................     Suppress Bin SOH if zero
+%*** 14-Jan-13 a9nh4814     MO164 (Version 0002)
+%*** ..................     Added output file
+%*** ..................     Modified warehouse custodian retrieval
+%*** 09-Nov-12 a9nh4814     MO164 - Ellipse 5 to Ellipse 8 Migration
+%*** ..................     - Reset version to 0001
+%*** ..................     - Modified SOH/CSOH retrieval to use MSSSOH
+%*** ..................     - Modified layout to display Bin and its SOH
+%*** 18-Sep-07 E Fredeluces SC1587838 Not picking-up records based on the
+%*** ..................     Last Movement Date parameter entered.
+%*** 03-Jul-07 Janak Barar SC1520894 requires another parameter to be added
+%*** ..................... to filter the report on Last Movement Date.
+%*** 16-Jun-04 R Yeung   WCHG059342   
+%*** ..................  To display all bin records even SOH is zero.
+%*** 05-May-04 R Yeung   WCHG054086
+%*** ..................  Change the program logic from Primary bin to all bin.
+%*** 24-Sep-01 L Nee     W01090140
+%*** ..................  Added a field of 'Category' to the report.
+%*** 02-Nov-98 D Diolaso
+%*** ..................  Fix for MIMS 4.3
+%*** 15-Jan-98 N Chandra W801070020.
+%*** ..................  Changed the SOH refrence to test SOHA from msf170 
+%*** ..................  file. 
+%*** 13-Jan-98 N Chandra
+%*** .................. Removed WHOUSE-ID <> SPACES from the selection 
+%*** .................. criteria of the Main file in %SELECTION.
+%*** .................. REJECTIF (%WH% <> SPACES AND WHOUSE-ID <> %WH% AND
+%*** ..................           WHOUSE-ID <> SPACES). <- NB.
+%*** 26-MAR-97 R Chiarot
+%*** .................. Include an additional parameter to include/exclude
+%*** .................. stock codes where ROP, SOH and ROQ all equal zero.
+%*** 15-NOV-95 Peter Lacey
+%*** .................. Converted from 3.010 to 3.013. Changed PRIME-LOCATION
+%*** .................. & BIN-CODE to BIN-DETAILS.
+%*** 18-Jan-93 MaryW .. Vers. 002 Amend report to print last moved date and  
+%*** .................. rearrange layout to print bin codes on the right side
+%*** .................. of the report. Correct total number of items reported.
+%PROGRAM-ID
+       TRR17M
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  This program prints stock take count sheets.
+%*****************
+%* Version 1 Format
+%*'Primary/           Item Name and Descriptions/                                  UNIT      STOCK       Owned             New Bin'
+%* 'Other Bins         Manufacturers Part Numbers & Preferences UOI  TYPE CLASS    PRICE      CODE       S.O.H   COUNT     Location'
+%*  BBBBBBBBBBBB       {INAME                                 } EEEE   O    N MMMMMMMMMM   CCCCCCCCC KKKKKKKKK  {DASH               }
+%*      HHHHHHHHHHHH   {IDESC2                                }                                      GGGGGGGGG 
+%*
+%* Old version 2 format (by R. Yeung on 05/05/04)
+%*'Item Name and Descriptions/                             LAST         UNIT     STOCK    Primary/         Owned             New Bin'
+%*'Manufacturers Part Numbers & Preferences UOI TP CL CAT MOVED        PRICE     CODE     Other Bins      S.O.H   COUNT     Location'
+%*****************
+%VERSION
+       0003
+%MODULE
+       3140
+%FILES
+        MFILE = MSF1HB
+        LFILE = MSF1CS
+        LFILE = MSF000
+        LFILE = MSF100
+        LFILE = MSF110A
+        LFILE = MSF170
+        LFILE = MSF180
+        AFILE = MSF1CSA
+        AFILE = MSF1HB
+        OFILE = TRT17MB
+        RFILE = TRR17MA
+%ROUTINES
+    MSSSOH
+%SELECTION
+       WHERE (CUSTODIAN-ID >= SPACES)
+       REJECTIF (BIN-CODE        < %FROM-BIN%)
+       REJECTIF (BIN-CODE        > %TO-BIN%)
+%ORDER
+       BIN-CODE 
+       STOCK-CODE
+%CONTROL-BREAKS
+       DUM
+       STOCK-CODE
+%OUTPUT-FILE
+       B
+%BREAK DUM HEADER
+'Item Name|UOI|TP|CL|CAT|Last Moved|Unit Price|Stock Code|Owned S.O.H|Bin Location|Bin SOH|Bin Consign SOH'
+%DETAIL
+<IF PSP = 'Y' AND BBIN2 <> SPACES>
+{WNAME                                 }SEEEESOSNSPPS{M4    }SMMMMMMMMMMSCCCCCCCCCSKKKKKKKKKS{BBIN2     }S{FBSOH  }S{FBCSOH }
+<ENDIF>
+%REPORT
+       A
+%REPORT-TITLE
+       'STOCK TAKE COUNT SHEETS'
+%PAGE HEADING
+'WAREHOUSE:'AAAA 
+
+'Item Name and Descriptions/                             LAST         UNIT     STOCK                     Owned             New Bin'
+ 'Manufacturers Part Numbers & Preferences UOI TP CL CAT MOVED        PRICE     CODE   Bins Location     S.O.H   COUNT     Location'
+%BREAK STOCK-CODE HEADING TEST-PAGE (7)
+<IF   PSP = 'Y'>
+
+ {INAME                                 }  EEEE O N  PP {M4    } MMMMMMMMMM  CCCCCCCCC               KKKKKKKKK {DASH               }
+<SUPPRESS>
+ {IDESC1                                }
+<SUPPRESS>
+ {IDESC2                                } 
+<SUPPRESS>
+ {IDESC3                                } 
+<SUPPRESS>
+ {IDESC4                                } 
+<SUPPRESS>
+    <REPEAT>
+ {MNEM  } {PARTNO                      } II 
+    <ENDREPEAT>
+<ENDIF>
+%DETAIL TEST-PAGE (5)
+<IF PSP = 'Y' AND BBIN <> SPACES>
+<IF BSOH > 0>
+<SUPPRESS>
+                                                                                       {BBIN      }  {FBSOH  }
+<ELSE>
+<SUPPRESS>
+                                                                                       {BBIN      }
+<ENDIF>
+<IF BCSOH > 0 >
+<SUPPRESS>
+                                                                                                     {FBCSOH } '(Consigned)'
+<ENDIF>
+<ENDIF>
+%PAGE FOOTING
+                                                                   'COUNTED BY ________________________ DATE _____/_____/____'
+
+%SUMMARY
+
+
+'Total Number of Items reported = '{CNT1   }
+
+
+
+%REQUEST-PARAMETERS
+       WH       PIC (X(4))     TEXT Warehouse
+       FROM-BIN PIC (X(12))    TEXT From Bin Location
+       TO-BIN   PIC (X(12))    TEXT To Bin Location
+       CLSS     PIC (X)        TEXT Stock Class
+       TYP      PIC (X)        TEXT Stock Type
+       CLSS1    PIC (X)        TEXT Stock Class
+       TYP1     PIC (X)        TEXT Stock Type
+       LMOVEDT  PIC (X(8))     TEXT Last Movement Date 
+       CLSS2    PIC (X)        TEXT Stock Class
+       TYP2     PIC (X)        TEXT Stock Type
+       ZSEL     PIC (X)        TEXT Include Zero SOH/ROP/ROQ
+%VARIABLES
+       S  = '|'
+       DUMMY = 'Y'                           CONSTANT
+       DUM = CHOOSE ('Y' IF (S = S), DUMMY)
+       L1 = '     Owned' 
+       L2 = ' Consigned'
+       A  = %WH% CONSTANT 
+       PDT = %LMOVEDT% CONSTANT
+       CUST  = CUSTODIAN-ID
+       WH-ID = WHOUSE-ID OF MSF1CS -
+               WHERE (CUSTODIAN-ID = CUST)
+       WH-OK = CHOOSE ('Y' IF (A = SPACES), -
+                       'Y' IF (A <> SPACES, A = WH-ID), -
+                       'N')
+       HWHOUSE = HOME-WHOUSE OF MSF170                         -
+                 WHERE    (DSTRCT-CODE   = %DISTRICT-CODE%,    -
+                           STOCK-CODE    = STOCK-CODE)
+       ROPA = ROP VIA (HWHOUSE)
+       ROQA = REORDER-QTY VIA (HWHOUSE)
+       SOHA = DSTRCT-OWN-SOH OF MSSSOH -
+              WHERE (OPTION-SOH      = '1', -
+              DSTRCT-CODE            = %DISTRICT-CODE%, -
+              STOCK-CODE             = STOCK-CODE, -
+              DSTRCT-SOH-REQ-SW      = 'Y')
+%*             BYPASS-CAT-SEC-SW      = 'Y'
+
+       XSEL = %ZSEL% CONSTANT 
+       PSW = CHOOSE ('N' IF (XSEL = 'N',  -
+                             ROPA = ZERO, -
+                             ROQA = ZERO, -
+                             SOHA = ZERO), 'Y')
+       A1 = CHOOSE (A IF (A <> SPACES), WX-WHOUSE-ID) CONSTANT
+       C = STOCK-CODE
+       D = STOCK-TYPE OF MSF100 WHERE (STOCK-CODE = STOCK-CODE)
+       INAME = ITEM-NAME VIA (D)
+       WNAME = INAME
+       IDESC1 = DESC-LINE-1 VIA (D)
+       IDESC2 = DESC-LINE-2 VIA (D)
+       IDESC3 = DESC-LINE-3 VIA (D)
+       IDESC4 = DESC-LINE-4 VIA (D)
+       E = UNIT-OF-ISSUE VIA (D)
+       F = CLASS VIA (D)
+       MNEM = MNEMONIC OF MSF110A WHERE (DSTRCT-CODE = '    ', -
+              STOCK-CODE = STOCK-CODE, PREF-PART-IND >= SPACES) MAX (3)
+       PARTNO = PART-NO VIA (MNEM)
+       I = PREF-PART-IND VIA (MNEM)
+       B = BIN-CODE
+       BIN-SOH = OWNED-SOH OF MSSSOH -
+                 WHERE (OPTION-SOH        = '2', -
+                        DSTRCT-CODE       = %DISTRICT-CODE%, -
+                        STOCK-CODE        = STOCK-CODE, -
+                        WHOUSE-ID         = A1, -
+                        BIN-CODE          = B,-
+                        BIN-SOH-REQ-SW    = 'Y')
+       SOH1 = BIN-SOH
+       BIN-CSOH = CONSIGN-SOH VIA (BIN-SOH)
+       CSOH1 = BIN-CSOH
+       SOH2 = WH-OWN-SOH OF MSSSOH -
+              WHERE (OPTION-SOH        = '2', -
+                     DSTRCT-CODE       = %DISTRICT-CODE%, -
+                     STOCK-CODE        = STOCK-CODE, -
+                     WHOUSE-ID         = A1, -
+                     WH-SOH-REQ-SW     = 'Y')
+%*                     BYPASS-CAT-SEC-SW = 'Y'
+
+       CSOH2 = WH-CON-SOH VIA (SOH2)
+       SOH3 = DSTRCT-OWN-SOH VIA (SOHA)
+       CSOH3 = DSTRCT-CON-SOH VIA (SOHA)
+       K = CHOOSE (SOH1 IF (WX-STOCK-AT-BIN = 'Y'), -
+                   SOH2) D-PIC (Z(9)9-)
+%*                   SOH2 IF (WX-MULTIWHOUSE = 'Y')
+%*                   SOH3) PIC (Z(6)9-)
+       L = CHOOSE (CSOH1 IF (WX-STOCK-AT-BIN = 'Y'), -
+                   CSOH2) D-PIC (Z(9)9-)
+%*                   CSOH2 IF (WX-MULTIWHOUSE = 'Y')
+%*                   CSOH3) PIC (Z(6)9-)
+%*       H = RET-BIN-CODE OF MSSSOH -
+%*           WHERE (OPTION-SOH        = '2', -
+%*                  DSTRCT-CODE       = %DISTRICT-CODE%, -
+%*                  STOCK-CODE        = STOCK-CODE, -
+%*                  WHOUSE-ID         = A1, -
+%*                  WH-SOH-REQ-SW     = 'Y')
+%*       HSIZE = SIZE(H)
+       M = INVENT-COST-PR  VIA (HWHOUSE) D-PIC (Z(6)9.99)
+       N = CLASS VIA (HWHOUSE)
+       O = STOCK-TYPE VIA (HWHOUSE)
+       PC = PRIMARY-CAT VIA (HWHOUSE)
+       CMF  = CATEG-MGT-FLG VIA (HWHOUSE)
+       P  = CHOOSE (PC IF(CMF = 'Y'), '  ')
+       M1 = LAST-ISS-DATE VIA (HWHOUSE)
+       M2 = LAST-REC-DATE VIA (HWHOUSE)
+       M3 = CHOOSE (M2 IF (M2 > M1), M1)
+       M4 = M3 FORMAT DATE
+       DASH = '________ ____________'
+%*       DASHX = CHOOSE (SPACES IF (HSIZE = 0), DASH)
+       DSW = choose ('N' IF (M3 < PDT, PDT <> SPACES), 'Y')
+
+       CNT = CHOOSE (1 IF (%CLSS%  =  SPACES AND %TYP% = SPACES), -
+                     1 IF (%CLSS%  =  SPACES AND O     = %TYP%), -
+                     1 IF (%TYP%   =  SPACES AND N     = %CLSS%), -
+                     1 IF (N       =  %CLSS% AND O     = %TYP%), -
+                     1 IF (%CLSS1% =  SPACES AND O     = %TYP1%), -
+                     1 IF (%TYP1%  =  SPACES AND N     = %CLSS1%), -
+                     1 IF (N       = %CLSS1% AND O     = %TYP1%), -
+                     1 IF (%CLSS2% =  SPACES AND O     = %TYP2%), -
+                     1 IF (%TYP2%  =  SPACES AND N     = %CLSS2%), -
+                     1 IF (N       = %CLSS2% AND O     = %TYP2%), 0)
+       CNTA = CHOOSE (1   IF (WH-OK = 'Y' AND CNT = 1 AND PSW = 'Y' AND DSW = 'Y'), 0)
+       PSP  = CHOOSE ('Y' IF (WH-OK = 'Y' AND CNT = 1 AND PSW = 'Y' AND DSW = 'Y'),'N')
+       CNT1 = TOTAL (CNTA)
+       SB1 = WX-STOCK-AT-BIN
+       SB2 = STOCK-AT-BIN VIA (HWHOUSE)
+       SB3 = STOCK-AT-BIN OF MSF180 WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+              STOCK-CODE = STOCK-CODE, WHOUSE-ID = A1)
+       BCUST = CUSTODIAN-ID FROM MSF1CSA -
+             WHERE (DSTRCT-CODE            = %DISTRICT-CODE%, -
+                    WHOUSE-ID             >= SPACES) -
+             SELECTIF (WHOUSE-ID = A1)
+       BBIN = BIN-CODE FROM MSF1HB -
+              WHERE (CUSTODIAN-ID           = BCUST, -
+                     STOCK-CODE             = STOCK-CODE, -
+                     BIN-CODE              >= SPACES)
+       BBIN2 = BBIN
+       BSOH = OWNED-SOH OF MSSSOH -
+                 WHERE (OPTION-SOH        = '2', -
+                        DSTRCT-CODE       = %DISTRICT-CODE%, -
+                        STOCK-CODE        = STOCK-CODE, -
+                        WHOUSE-ID         = A1, -
+                        BIN-CODE          = BBIN,-
+                        BIN-SOH-REQ-SW    = 'Y')
+       FBSOH = BSOH D-PIC (Z(9)9-)
+       BCSOH = CONSIGN-SOH VIA (BSOH)
+       FBCSOH = BCSOH D-PIC (Z(9)9-)
+%*       G1 = RET-OWNED-SOH VIA (H)
+%*       G1 = RET-OWNED-SOH VIA (BIN-SOH)
+       G = CHOOSE (BSOH IF (SB1 = 'Y' OR SB2 = 'Y' OR SB3 = 'Y'), ZERO) FORMAT (BWZ)
+%*       J1 = RET-CONSIGN-SOH VIA (H)
+%*       J1 = RET-CONSIGN-SOH VIA (BIN-SOH)
+       J = CHOOSE (BCSOH IF (SB1 = 'Y' OR SB2 = 'Y' OR SB3 = 'Y'), ZERO) FORMAT (BWZ)

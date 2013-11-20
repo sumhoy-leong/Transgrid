@@ -1,0 +1,602 @@
+%*** msr23c.rdl
+%***
+%*** Copyright (c) 1998, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 03-Aug-12 a9ll4261   Fixed the truncated authsd total value.
+%*** 03-Aug-12 a9ir6369   MO164 (Version 0001)
+%*** .................... Reset version number to 0001 for E8 upgrade.
+%*** 06-Jun-05 AIesho     P05060270
+%*** .................... Appended WHOUSE ID to order number
+%*** 14-02-05 LNee       WHD0406068
+%*** ................... Amended the Purchasing Officer and Authorised Offer
+%*** ................... fields to print the correct values.
+%*** 04-11-99 DDiolaso   W99100972
+%*** ................... Created this version to conform to the layout
+%*** ................... of esr23a
+%***
+%*
+%* Define Report Parameters
+%*
+%* Report Name               :  TRR23C
+%*
+%* Reports Produced          :  A
+%*
+%* Report Description        :  ***** PURCHASE REQUISITION REPRINT *****
+%*
+%* Parameters
+%*     Parameter Number      :  1
+%*     Row Number            :  1
+%*     Description           :  
+%*     Length                :  6
+%*     Optional
+%*
+%*
+%* End Report Parameter Definition
+%*
+%*
+%* Request Header
+%*
+%*     Description Line 1    :  
+%*     Description Line 2    :  
+%*     Override Program      :  
+%*     Number of Requests    :  0
+%*     Reverse Option        :  TRUE
+%*     Start Option          :  TRUE
+%*     District Code Option  :  FALSE
+%*     Medium/Printer        :  TRUE
+%*     Request Record        :  TRUE
+%*     Number to Process     :  
+%*
+%* End Request Header
+%*
+%PROGRAM-ID
+    TRR23C
+%AUTHOR
+    Mincom Pty Ltd
+%NARRATIVE
+    This report (re)prints single purchase requisitions 
+%MODULE
+    3210
+%VERSION
+    0002
+%FILES
+    MFILE = MSF231
+    LFILE = MSF010
+    LFILE = MSF230
+    LFILE = MSF12A
+    LFILE = MSF600
+    AFILE = MSF010
+    AFILE = MSFX05
+    RFILE = TRR23CA
+%ROUTINES
+    MSS232
+    MSSEMP
+%SELECTION
+    WHERE (DSTRCT-CODE            = %DISTRICT-CODE%, -
+           PREQ-NO                = %PREQNO%, -
+           PREQ-ITEM-NO          >= SPACES)
+    SELECTIF (PREQ-NO = %PREQNO%)
+    REJECTIF (PREQ-NO > %PREQNO%)
+%ORDER
+    ASCENDING   PREQ-NO TEXT 'PREQ-NO'
+    ASCENDING   PREQ-ITEM-NO TEXT 'REQ-ITEM-NO'
+%BREAK-FIELDS
+    PREQ-NO
+    PREQ-ITEM-NO
+%TITLE
+    '***** PURCHASE REQUISITION REPRINT *****'
+%PAGE HEADING
+'Purchasing Officer:' {A00                                             }                                         
+%BREAK PREQ-NO HEADING ON NEW-PAGE
+                                                            'Date       Date     ---------Authorised -----------        Delegated'
+'Req.No   Requested By:'{A02     }                         'Entered   Required   By        Date      Value              Authority'
+{A01    } {A03                                            } {A04    } {A05    }  {A08     } {A09    } {A10           } '$__________'
+'Authorised Status   :' {AUTH-S       }  
+<IF A06 <> SPACES OR A07 <> SPACES>
+        'Material Grp:'{A06 }    'Related Req:'{A07 }                           {AUTHDESC                                        }
+<ELSE>
+                                                                                {AUTHDESC                                        }
+<ENDIF>
+'Delivery Instruction:'{A11                                                       }'Suggested Suppl:'{A12                          }
+<IF A13 <> SPACES OR A14 <> SPACES OR A15 <> SPACES OR A16 <> SPACES>
+
+<SUPPRESS>
+ {A13                                   } {A17                         }
+<SUPPRESS>
+ {A14                                   } {A18                         }
+<SUPPRESS>
+ {A15                                   } {A19                         }
+<SUPPRESS>
+ {A16                                   } {A20                         }
+<ENDIF>
+
+<IF A22 > 0>
+'Purchasing Instructions:'
+<REPEAT>
+ {A21                                                       }
+<ENDREPEAT>
+<ENDIF>
+<IF A23 <> 'X'>
+'------------------Default Costing Details------------------------------'
+ {A24               }           'Project/Work Order Account Code'             '%'
+   <IF A25 <> SPACES>
+ {A26                         }       {A27   }      {A25                   } {A28 }
+   <ENDIF>
+   <IF A29 <> SPACES>
+ {A30                         }       {A31   }      {A29                   } {A32 }
+   <ENDIF>
+   <IF A33 <> SPACES>
+ {A34                         }       {A35   }      {A33                   } {A36 }
+   <ENDIF>
+   <IF A37 <> SPACES>
+ {A38                         }       {A39   }      {A37                   } {A40 }
+   <ENDIF>
+   <IF A41 <> SPACES>
+ {A42                         }       {A43   }      {A41                   } {A44 }
+   <ENDIF>
+   <IF A45 <> SPACES>
+ {A46                         }       {A47   }      {A45                   } {A48 }
+   <ENDIF>
+   <IF A49 <> SPACES>
+ {A50                         }       {A51   }      {A49                   } {A52 }
+   <ENDIF>
+<ENDIF>
+                                                                               'Order No/'           'Lead'
+'Item  Quantity   UOM     Est. Price Description/Mnemonic and Part Number'     'Item        Supplier  Time   Frt  Dlv  Act. Price'
+%BREAK PREQ-ITEM-NO HEADING TEST-PAGE (4)
+
+  {A} {A53      } {A1} {A54        } {A55                                   }'|'{A56    }'|'       '|'    '|'  '|'  '|'            B
+                                     {A55                                   }'|'{D}       B  {A57 }'|'{A2}'|'EE'|'FF'|'{A58       }B
+'Status:'{A59                }       {A55                                   } {A60                                                 }
+<SUPPRESS>
+                                     {A55                                   }
+<REPEAT>
+                                     {A61                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A62                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A63                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A64                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A65                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A66                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A67                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A68                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A69                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A70                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A71                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A72                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A73                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A74                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A75                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A76                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A77                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A78                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A79                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A80                                                       }
+<ENDREPEAT>
+<REPEAT>
+<SUPPRESS>
+                                     {A81                                                       }
+<ENDREPEAT>
+                                     {A82   }  {A83                         }
+<IF A84 = 'I'>
+'-----------------------------Item Costing Details----------------------------------'
+  {A85              }          'Project/Work Order Account Code'             '%'
+   <IF A86 <> SPACES>
+ {A87                         }       {A88   }      {A86                   } {A89 }
+   <ENDIF>
+   <IF A90 <> SPACES>
+ {A91                         }       {A92   }      {A90                   } {A93 }
+   <ENDIF>
+   <IF A94 <> SPACES>
+ {A95                         }       {A96   }      {A94                   } {A97 }
+   <ENDIF>
+   <IF A98 <> SPACES>
+ {A99                         }       {B00   }      {A98                   } {B01 }
+   <ENDIF>
+   <IF B02 <> SPACES>
+ {B03                         }       {B04   }      {B02                   } {B05 }
+   <ENDIF>
+   <IF B06 <> SPACES>
+ {B07                         }       {B08   }      {B06                   } {B09 }
+   <ENDIF>
+   <IF B10 <> SPACES>
+ {B11                         }       {B12   }      {B10                   } {B13 }
+   <ENDIF>
+<ENDIF>
+%DETAIL TEST-PAGE (1)
+<IF B16 > 0>
+{B17      } {B15                                                        }
+<REPEAT>
+            {B15                                                        }
+<ENDREPEAT>
+<ENDIF>
+<IF B19 > 0>
+   <IF B16 = 0>
+{B20      } {B18                                                       }
+   <ENDIF>
+<REPEAT>
+            {B18                                                       }
+<ENDREPEAT>
+<ENDIF>
+%*DD060899
+'Offers -   Supplier Name |Contact Officer|Phone No |Price  |L/Time|  Disc|Settle.Disc|UOP |Freight|Delivery|Signature'
+'1 |                      |               |         |$      |      |     %|   %   Days|    |       |        |' 
+'  |Comments:______________________________________________________________________________________________________________________'
+'2 |                      |               |         |$      |      |     %|   %   Days|    |       |        |' 
+'  |Comments:______________________________________________________________________________________________________________________'
+'3 |                      |               |         |$      |      |     %|   %   Days|    |       |        |' 
+'  |Comments:______________________________________________________________________________________________________________________'
+
+%*DD041199
+%BREAK PREQ-NO FOOTING
+%*DD041199
+
+
+'QUOTATIONS INVITED IN ACCORDANCE WITH PROCUREMENT PROCEDURES - Signed .................... Date ........ Total Expenditure $......'
+
+'OFFERS  ACCEPTED   IN ACCORDANCE WITH PROCUREMENT PROCEDURES'
+'             AND THE DELEGATION OF AUTHORITY FOR EXPENDITURE - Signed .................... Title .................... Date .......'
+%REQUEST-PARAMETERS
+    PREQNO  PIC (X(6))  TEXT 'Purchase Requisition Number'
+%VARIABLES
+    B   = '|'
+    A60 = '|----------------------------------------------------|'
+    A24 = CHOOSE('Equipment Reference'  IF (WX-EQUIP-REG-IN = 'Y' OR WX-PLANT-NO-IND = 'Y' ) , SPACES )
+    A85 = CHOOSE('Equipment Reference'  IF (WX-EQUIP-REG-IN = 'Y' OR WX-PLANT-NO-IND = 'Y' ) , SPACES )
+    B17 = 'Comment(D):'  CONSTANT
+    B20 = 'Comment(G):'  CONSTANT
+    B62 = PO-ITEM-NO-9
+    A55 = ITEM-DESC
+    A561 = PO-NO
+    W   = WHOUSE-ID
+    A562 = catenate(A561,'-',W)  I-PIC (X(9))
+    A563 = catenate(A561,'   ')  I-PIC (X(9))
+    A56  = choose(A562 IF(DSTRCT-CODE = 'GRID', A561 <> SPACES), A563) I-PIC (X(9))
+    A1  = UNIT-OF-MEAS
+    A54 = EST-PRICE D-PIC ( ZZZZZZZZZ9.99 )
+    A53 = PR-QTY-REQD
+    A   = PREQ-ITEM-NO-9
+    A011 = PREQ-NO
+    A012 = catenate(A011,'-',W) I-PIC (X(9))
+    A013 = catenate(A011,'   ') I-PIC (X(9))
+    A01  = choose(A012 IF(DSTRCT-CODE = 'GRID'), A013) I-PIC (X(9))
+   
+    A2  = SUPP-LEAD-TIME-9 D-PIC ( ZZZ9 BLANK WHEN ZERO )
+    A57 = SUPPLIER-NO
+    E   = FREIGHT-CODE
+    F   = DELIV-LOCATION
+    A58 = ACT-GROSS-PR D-PIC ( ZZZZZZZZ9.99 )
+    A83 = PART-NO
+    A82 = MNEMONIC
+    A15 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'XX', -
+           TABLE-CODE             = 'R3') -
+    CONSTANT
+    A14 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'XX', -
+           TABLE-CODE             = 'R2') -
+    CONSTANT
+    A16 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'XX', -
+           TABLE-CODE             = 'R4') -
+    CONSTANT
+    A13 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'XX', -
+           TABLE-CODE             = 'R1') -
+    CONSTANT
+    A59 = CHOOSE('Not Ordered'  IF (STATUS-231 = '0' ) ,'Proforma Requisition'  IF (STATUS-231 = '1' ) ,'Ordered,-
+            Not Received'  IF (STATUS-231 = '2' ) ,'Partially Received'  IF (STATUS-231 = '3' ) ,-
+            'Fully Received'  IF (STATUS-231 = '4' ) ,'Complete'  IF (STATUS-231 = '9' ) , SPACES )
+    A21 = GET (READ-TEXT FROM ('MSF096') CODE ('PI' ) KEY(DSTRCT-CODE ,PREQ-NO )) MAX(60 ) 
+    A22 = SIZE(A21 )
+    A61 = GET (READ-TEXT FROM ('MSF096') CODE ('PR' ) KEY(%DISTRICT-CODE% ,PREQ-NO ,PREQ-ITEM-NO )) MAX(100 ) 
+    C   = CHOOSE('/'  IF (STATUS-231 > '1' ) , SPACES )
+    D   = CHOOSE(0  IF (PURCH-ORDER = SPACES ) , B62 ) D-PIC ( ZZ9 BLANK WHEN ZERO )
+    B38 = CREATION-DATE OF MSF230 -
+    WHERE (DSTRCT-CODE            = DSTRCT-CODE, -
+           PREQ-NO                = PREQ-NO)
+    A10 = AUTHSD-TOT-AMT VIA (B38) D-PIC ( ZZZZZZZZZZZZ9.99 BLANK WHEN ZERO )
+    A08 = AUTHSD-BY VIA (B38)
+    A07 = RELATED-WH-REQ VIA (B38)
+    B39 = REQ-BY-DATE VIA (B38)
+    A11 = DELIV-INSTR VIA (B38)
+    A12 = SUGGESTED-SUPP VIA (B38)
+    B40 = AUTHSD-DATE VIA (B38)
+    AUTH-STAT = AUTHSD-STATUS VIA (B38)
+    AUTH-S     = CHOOSE('Unauthorised' IF(AUTH-STAT = 'U'), -
+                        'Unauthorised' IF(AUTH-STAT = ' '), -
+                        'Authorised  ' IF(AUTH-STAT = 'A'), -
+                        'Notify      ' IF(AUTH-STAT = 'N'), -
+                        SPACES)                  D-PIC (X(12))
+    A0  = PRIORITY-CODE VIA (B38)
+    A02 = REQUESTED-BY VIA (B38)
+    A06 = MAT-GROUP-CODE VIA (B38)
+    B21 = OTHER-ANSWER-1 VIA (B38)
+    B21A = OTHER-ANSWER-2 VIA (B38)
+    B21B = OTHER-ANSWER-3 VIA (B38)
+    B21C = OTHER-ANSWER-4 VIA (B38)
+%*DD1199
+    B06 = GL-ACCOUNT-6 OF MSS232 -
+    WHERE (OPTION-232             = 'R', -
+           DSTRCT-CODE            = DSTRCT-CODE, -
+           REQ-TYPE-IND           = 'P', -
+           REQ-NO                 = PREQ-NO, -
+           PREQ-ITEM              = PREQ-ITEM-NO)
+    B09 = ALLOC-PC-6 VIA (B06) D-PIC ( ZZ9.99 )
+    B10 = GL-ACCOUNT-7 VIA (B06)
+    B95 = WORK-ORDER-4 VIA (B06)
+    B96 = PROJECT-NO-4 VIA (B06)
+    B13 = ALLOC-PC-7 VIA (B06) D-PIC ( ZZ9.99 )
+    B29 = EQUIP-NO-1 VIA (B06)
+    B31 = EQUIP-NO-3 VIA (B06)
+    A98 = GL-ACCOUNT-4 VIA (B06)
+    B33 = EQUIP-NO-5 VIA (B06)
+    A89 = ALLOC-PC-1 VIA (B06) D-PIC ( ZZ9.99 )
+    A86 = GL-ACCOUNT-1 VIA (B06)
+    B32 = EQUIP-NO-4 VIA (B06)
+    A84 = RETURN-STATUS VIA (B06)
+    A97 = ALLOC-PC-3 VIA (B06) D-PIC ( ZZ9.99 )
+    A90 = GL-ACCOUNT-2 VIA (B06)
+    A94 = GL-ACCOUNT-3 VIA (B06)
+    A93 = ALLOC-PC-2 VIA (B06) D-PIC ( ZZ9.99 )
+    B93 = PROJECT-NO-3 VIA (B06)
+    B90 = PROJECT-NO-2 VIA (B06)
+    B89 = WORK-ORDER-2 VIA (B06)
+    B35 = EQUIP-NO-7 VIA (B06)
+    B92 = WORK-ORDER-3 VIA (B06)
+    B01 = ALLOC-PC-4 VIA (B06) D-PIC ( ZZ9.99 )
+    B34 = EQUIP-NO-6 VIA (B06)
+    B02 = GL-ACCOUNT-5 VIA (B06)
+    B87 = PROJECT-NO-1 VIA (B06)
+    B05 = ALLOC-PC-5 VIA (B06) D-PIC ( ZZ9.99 )
+    B86 = WORK-ORDER-1 VIA (B06)
+    B30 = EQUIP-NO-2 VIA (B06)
+    C02 = PROJECT-NO-6 VIA (B06)
+    C01 = WORK-ORDER-6 VIA (B06)
+    C04 = WORK-ORDER-7 VIA (B06)
+    C05 = PROJECT-NO-7 VIA (B06)
+    B98 = WORK-ORDER-5 VIA (B06)
+    B99 = PROJECT-NO-5 VIA (B06)
+    A25 = GL-ACCOUNT-1 OF MSS232 -
+    WHERE (OPTION-232             = 'R', -
+           DSTRCT-CODE            = DSTRCT-CODE, -
+           REQ-TYPE-IND           = 'P', -
+           REQ-NO                 = PREQ-NO, -
+           PREQ-ITEM              = '000')
+    B51 = WORK-ORDER-4 VIA (A25)
+    A23 = RETURN-STATUS VIA (A25)
+    B42 = WORK-ORDER-1 VIA (A25)
+    B54 = WORK-ORDER-5 VIA (A25)
+    A29 = GL-ACCOUNT-2 VIA (A25)
+    A32 = ALLOC-PC-2 VIA (A25) D-PIC ( ZZ9.99 )
+    A52 = ALLOC-PC-7 VIA (A25) D-PIC ( ZZ9.99 )
+    A28 = ALLOC-PC-1 VIA (A25) D-PIC ( ZZ9.99 )
+    B52 = PROJECT-NO-4 VIA (A25)
+    A33 = GL-ACCOUNT-3 VIA (A25)
+    B27 = EQUIP-NO-6 VIA (A25)
+    B26 = EQUIP-NO-5 VIA (A25)
+    B25 = EQUIP-NO-4 VIA (A25)
+    B28 = EQUIP-NO-7 VIA (A25)
+    B43 = PROJECT-NO-1 VIA (A25)
+    B49 = PROJECT-NO-3 VIA (A25)
+    B46 = PROJECT-NO-2 VIA (A25)
+    B48 = WORK-ORDER-3 VIA (A25)
+    B24 = EQUIP-NO-3 VIA (A25)
+    B23 = EQUIP-NO-2 VIA (A25)
+    B45 = WORK-ORDER-2 VIA (A25)
+    B22 = EQUIP-NO-1 VIA (A25)
+    A49 = GL-ACCOUNT-7 VIA (A25)
+    A48 = ALLOC-PC-6 VIA (A25) D-PIC ( ZZ9.99 )
+    A41 = GL-ACCOUNT-5 VIA (A25)
+    A40 = ALLOC-PC-4 VIA (A25) D-PIC ( ZZ9.99 )
+    A37 = GL-ACCOUNT-4 VIA (A25)
+    B61 = PROJECT-NO-7 VIA (A25)
+    B57 = WORK-ORDER-6 VIA (A25)
+    B60 = WORK-ORDER-7 VIA (A25)
+    B58 = PROJECT-NO-6 VIA (A25)
+    A44 = ALLOC-PC-5 VIA (A25) D-PIC ( ZZ9.99 )
+    A45 = GL-ACCOUNT-6 VIA (A25)
+    A36 = ALLOC-PC-3 VIA (A25) D-PIC ( ZZ9.99 )
+    B55 = PROJECT-NO-5 VIA (A25)
+    A88 = CHOOSE(B86  IF (B86 <> SPACES ) ,B87  IF (B87 <> SPACES ) , SPACES )
+    A51 = CHOOSE(B60  IF (B60 <> SPACES ) ,B61  IF (B61 <> SPACES ) , SPACES )
+    B08 = CHOOSE(C01  IF (C01 <> SPACES ) ,C02  IF (C02 <> SPACES ) , SPACES )
+    A39 = CHOOSE(B51  IF (B51 <> SPACES ) ,B52  IF (B52 <> SPACES ) , SPACES )
+    A35 = CHOOSE(B48  IF (B48 <> SPACES ) ,B49  IF (B49 <> SPACES ) , SPACES )
+    B00 = CHOOSE(B95  IF (B95 <> SPACES ) ,B96  IF (B96 <> SPACES ) , SPACES )
+    B12 = CHOOSE(C04  IF (C04 <> SPACES ) ,C05  IF (C05 <> SPACES ) , SPACES )
+    A27 = CHOOSE(B42  IF (B42 <> SPACES ) ,B43  IF (B43 <> SPACES ) , SPACES )
+    A31 = CHOOSE(B45  IF (B45 <> SPACES ) ,B46  IF (B46 <> SPACES ) , SPACES )
+    B04 = CHOOSE(B98  IF (B98 <> SPACES ) ,B99  IF (B99 <> SPACES ) , SPACES )
+    A47 = CHOOSE(B57  IF (B57 <> SPACES ) ,B58  IF (B58 <> SPACES ) , SPACES )
+    A09 = GET (DISPLAY-DATE FROM (B40 ))
+    A43 = CHOOSE(B54  IF (B54 <> SPACES ) ,B55  IF (B55 <> SPACES ) , SPACES )
+    A96 = CHOOSE(B92  IF (B92 <> SPACES ) ,B93  IF (B93 <> SPACES ) , SPACES )
+    A05 = GET (DISPLAY-DATE FROM (B39 ))
+    A04 = GET (DISPLAY-DATE FROM (B38 ))
+    A92 = CHOOSE(B89  IF (B89 <> SPACES ) ,B90  IF (B90 <> SPACES ) , SPACES )
+    B85 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B29)
+    B88 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B30)
+    B37 = SUPP-CUST-NAME-1 OF MSF12A -
+    WHERE (SUPPLY-CUST-ID         = A02)
+    C03 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B35)
+    C00 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B34)
+    B50 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B25)
+    A17 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'R1', -
+           TABLE-CODE             = B21)
+    B44 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B23)
+    B94 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B32)
+    B53 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B26)
+    A18 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'R2', -
+           TABLE-CODE             = B21A)
+    B97 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B33)
+    A20 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'R4', -
+           TABLE-CODE             = B21C)
+    B56 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B27)
+    A19 = TABLE-DESC OF MSF010 -
+    WHERE (TABLE-TYPE             = 'R3', -
+           TABLE-CODE             = B21B)
+    B41 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B22)
+    C09 = HRGET ( EMPLOYEE-ID from('MSF810,MSSEMP')  KEY(EMPLOYEE-ID = A02 ) )
+    A03 = FORMATTED-NAME VIA (C09)
+    B91 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B31)
+    B36 = FORMATTED-NAME OF MSSEMP -
+    WHERE (EMP-REC-TYPE           = '0', -
+           EMPLOYEE-ID            = A02, -
+           SECURITY-LEVEL         = '0', -
+           COMMAREA-IND           = '0')
+    B47 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B24)
+    B59 = PLANT-NO OF MSF600 -
+    WHERE (EQUIP-NO               = B28)
+    A1X = hrget    (EMPLOYEE-ID          -
+          from     ('MSSEMP,MSF810')     -
+          key      (EMPLOYEE-ID = PURCH-OFFICER)
+    A00 = FORMATTED-NAME     VIA (A1X)
+    AUTHDESC1  = hrget  (EMPLOYEE-ID                         -
+                 from ('MSSEMP,MSF810')                      -
+                 key  (EMPLOYEE-ID = A08)
+    AUTHDESC   = FORMATTED-NAME     VIA (AUTHDESC1)
+    A50 = CHOOSE(B59  IF (B59 <> SPACES ) , B28 )
+    A46 = CHOOSE(B56  IF (B56 <> SPACES ) , B27 )
+    A38 = CHOOSE(B50  IF (B50 <> SPACES ) , B25 )
+    A26 = CHOOSE(B41  IF (B41 <> SPACES ) , B22 )
+    A42 = CHOOSE(B53  IF (B53 <> SPACES ) , B26 )
+    B11 = CHOOSE(C03  IF (C03 <> SPACES ) , B35 )
+    B07 = CHOOSE(C00  IF (C00 <> SPACES ) , B34 )
+    B03 = CHOOSE(B97  IF (B97 <> SPACES ) , B33 )
+    A99 = CHOOSE(B94  IF (B94 <> SPACES ) , B32 )
+    A95 = CHOOSE(B91  IF (B91 <> SPACES ) , B31 )
+    A91 = CHOOSE(B88  IF (B88 <> SPACES ) , B30 )
+    A87 = CHOOSE(B85  IF (B85 <> SPACES ) , B29 )
+    A30 = CHOOSE(B44  IF (B44 <> SPACES ) , B23 )
+    A34 = CHOOSE(B47  IF (B47 <> SPACES ) , B24 )
+    C06 = TABLE-CODE FROM MSF010 -
+    WHERE (TABLE-TYPE             = 'CS', -
+           TABLE-CODE            >= SPACES) -
+    SELECTIF (ASSOC-CHAR-18 = 'Y')
+    B14 = SUBSTR(C06 ,1 ,2 )
+    B18 = GET (READ-TEXT FROM ('MSF096') CODE ('CS' ) TYPE (B14 ) SUPPLIER-VALUE(SUPPLIER-NO )  ) MAX(100 ) TEXT-WIDTH(60 )
+    B19 = SIZE(B18 )
+    B15 = GET (READ-TEXT FROM ('MSF096') CODE ('CS' ) TYPE (B14 ) SUPPLIER-VALUE(SUPPLIER-NO )  ) MAX(100 ) TEXT-WIDTH(60 )
+    B16 = SIZE(B15 )
+    C08 = CLAUSE-VER-NO FROM MSFX05 -
+    WHERE (CLAUSE-ENT-TYPE        = 'P', -
+           CLAUSE-ENT-ID          = DSTRCT-CODE & PREQ-NO & PREQ-ITEM-NO & SPACES, -
+           CLAUSE-PRT-SEQ        >= SPACES)
+    C07 = CLAUSE-ID VIA (C08)
+    B63 = CATENATE(C07 ,C08 )
+    B64 = PUT(B63 ) MAX (20 )
+    B68 = SINGLE(B64 (4 ))
+    B70 = SINGLE(B64 (6 ))
+    B71 = SINGLE(B64 (7 ))
+    B72 = SINGLE(B64 (8 ))
+    B73 = SINGLE(B64 (9 ))
+    B74 = SINGLE(B64 (10 ))
+    B75 = SINGLE(B64 (11 ))
+    B76 = SINGLE(B64 (12 ))
+    B77 = SINGLE(B64 (13 ))
+    B78 = SINGLE(B64 (14 ))
+    B79 = SINGLE(B64 (15 ))
+    B80 = SINGLE(B64 (16 ))
+    B81 = SINGLE(B64 (17 ))
+    B82 = SINGLE(B64 (18 ))
+    B83 = SINGLE(B64 (19 ))
+    B84 = SINGLE(B64 (20 ))
+    A75 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B78 )) MAX(20 ) TEXT-WIDTH(60 )
+    A74 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B77 )) MAX(20 ) TEXT-WIDTH(60 )
+    A73 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B76 )) MAX(20 ) TEXT-WIDTH(60 )
+    A72 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B75 )) MAX(20 ) TEXT-WIDTH(60 )
+    A71 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B74 )) MAX(20 ) TEXT-WIDTH(60 )
+    A70 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B73 )) MAX(20 ) TEXT-WIDTH(60 )
+    A69 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B72 )) MAX(20 ) TEXT-WIDTH(60 )
+    A68 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B71 )) MAX(20 ) TEXT-WIDTH(60 )
+    A67 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B70 )) MAX(20 ) TEXT-WIDTH(60 )
+    B69 = SINGLE(B64 (5 ))
+    A66 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B69 )) MAX(20 ) TEXT-WIDTH(60 )
+    B67 = SINGLE(B64 (3 ))
+    A64 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B67 )) MAX(20 ) TEXT-WIDTH(60 )
+    B65 = SINGLE(B64 (1 ))
+    A62 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B65 )) MAX(20 ) TEXT-WIDTH(60 )
+    A77 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B80 )) MAX(20 ) TEXT-WIDTH(60 )
+    A78 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B81 )) MAX(20 ) TEXT-WIDTH(60 )
+    A79 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B82 )) MAX(20 ) TEXT-WIDTH(60 )
+    A80 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B83 )) MAX(20 ) TEXT-WIDTH(60 )
+    A81 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B84 )) MAX(20 ) TEXT-WIDTH(60 )
+    B66 = SINGLE(B64 (2 ))
+    A63 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B66 )) MAX(20 ) TEXT-WIDTH(60 )
+    A76 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B79 )) MAX(20 ) TEXT-WIDTH(60 )
+    A65 = GET (READ-TEXT FROM ('MSF096') CODE ('PC' ) KEY(B68 )) MAX(20 ) TEXT-WIDTH(60 )

@@ -1,0 +1,335 @@
+%*** TRR17X.RDL
+%***
+%*** Copyright (c) 1991, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 04-Aug-12 N Perry       MO164 ---
+%*** ......................  MSF190 no longer exists.
+%*** ......................  Now use MSF1CS and MSF1HB
+%*** 27-Jul-12 N Perry       MO164 (version 0001)
+%*** ......................  Changed program to get SOH using MSSSOH 
+%*** ......................  as SOH field no longer exist in 
+%*** ......................  either MSF170 or MSF180 now.
+%*** ......................  Reset version number to 0001 to Ellipse 8 format.
+%*** 02-Mar-06  AIesho    P05110872 Ellipse Upgrade 5.2.3.7.
+%*** .................... Changed the MSF900 key components to the new lengths
+%*** .................... and included the new fields in the key.
+%*** .................... Changed the request parameters and the last save
+%*** .................... key to the new MSF900 key length
+%*** ....................
+%*** 12-Jan-04 I Gianakis WCHG042784
+%***                      Clone of TRR17B for 'Stocktake adjustments'project.
+%PROGRAM-ID
+      TRR17X
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  Owned Stock Take Count Transactions - Report A
+      **
+%VERSION
+       0001
+%MODULE
+       3140
+%FILES
+        MFILE = MSF900
+        LFILE = MSF083
+        LFILE = MSF010
+        LFILE = MSF100
+        LFILE = MSF170
+%*        LFILE = MSF180
+%*        LFILE = MSF190
+        LFILE = MSF1CSA
+	    LFILE = MSF1HB
+        LFILE = MSF810
+        RFILE = TRR17XA
+        OFILE = TRT17XA
+%ROUTINES
+        MSSSOH
+%SELECTION
+%*** Enter selection criteria for MSF900
+<IF %TRAN-FROM% <> SPACES OR %TRAN-TO% <> SPACES>
+       WHERE (DSTRCT-CODE     = %DISTRICT-CODE%, -
+              PROCESS-DATE   >= UK1)
+       START (DSTRCT-CODE     = %DISTRICT-CODE%, -
+              PROCESS-DATE    = UK1, -
+              TRANSACTION-NO  = UK2, -
+              USERNO          = UK3N, -
+              REC900-TYPE     = UK3)
+       SELECTIF (TRAN-TYPE = 'STO')
+       SELECTIF (TRAN-TYPE = 'STC')
+       STOPIF (%TRAN-TO% <> SPACES, -
+               KEY-900    > TKEY)
+<ELSE>
+       WHERE (DSTRCT-CODE    >= %DISTRICT-CODE%, -
+              DSTRCT-CODE    <= %DISTRICT-CODE%)
+       START (DSTRCT-CODE     = %DISTRICT-CODE%, -
+              PROCESS-DATE    = RK1, -
+              TRANSACTION-NO  = RK2, -
+              USERNO          = RK3N, -
+              REC900-TYPE     = RK3)
+       SELECTIF (TRAN-TYPE = 'STO')
+       SELECTIF (TRAN-TYPE = 'STC')
+       REJECTIF (KEY-900 = RST-KEY)
+<ENDIF>
+%ORDER
+       ADESC2
+       DSTRCT-CODE
+       WHOUSE-ID-A
+       TRAN-AMOUNT
+       STOCK-CODE-A
+%CONTROL-BREAKS
+       ADESC2
+       DSTRCT-CODE
+       WHOUSE-ID-A
+%REPORT
+       A
+%REPORT-TITLE
+       'STOCK TAKE COUNT TRANSACTIONS BY AUTHORISING OFFICER'
+%PAGE HEADING
+{L1      }                       'Transaction  Tran  Inventory Val Before/  Current SOH After Adjustment     Transaction'
+{L2     } 'Bin Loc     CL ST UOI      Id.       Typ  Inventory Val After    S.O.H.   Count    Quantity       Value'
+{UNDERLINE                                                                                                                         }
+
+%BREAK ADESC2 HEADING ON NEW-PAGE SUPPRESS-PAGE-HEADING
+
+'Authorising Officer:' {AUTH    } {ADESC                                 }
+{L4                 }
+
+{L1      }                       'Transaction  Tran  Inventory Val Before/  Current SOH After Adjustment     Transaction'
+{L2     } 'Bin Loc     CL ST UOI      Id.       Typ  Inventory Val After    S.O.H.   Count    Quantity       Value'
+{UNDERLINE                                                                                                                         }
+
+%BREAK WHOUSE-ID-A HEADING 
+%*<IF WX-MULTIWHOUSE = 'Y'>
+{L3     } AAAA {WHDESC                                          }
+{L4     }
+
+%*<ENDIF>
+%DETAIL
+<IF I = 'STO'>
+  <IF P > THV>
+BBBBBBBBB {A36       } C  D  EEEE HHHHHHHHHHHHH III    KKKKKKKKKKKKKKKKKK MMMMMMMMMMNNNNNNNNNNOOOOOOOOOO{PA              }
+{INAME                                 }               QQQQQQQQQQQQQQQQQQ
+    <SUPPRESS>
+{IDESC                                 } 'Created By :'{CRTD    } {CDESC                                           }
+    <SUPPRESS>
+{IDESC                                 }
+    <SUPPRESS>
+{IDESC                                 }
+    <SUPPRESS>
+{IDESC                                 }
+
+  <ENDIF>
+<ENDIF>
+%BREAK ADESC2 FOOTING
+%*<IF WX-MULTIWHOUSE = 'Y'>
+%*{L3     }'Total for counts printed:'                                                                             {SA             }
+%*       'and authorized by '{AUTH   }':'                                                                          {TA             }
+'Total for counts printed and authorised by:' {AUTH    }                                                           {TA             }
+%*<ENDIF>
+%REPORT-SUMMARY 
+
+{L5  }'Total for write offs   :'                                                              {CNTSTON        }    {VALSTON        }
+            'for write ups    :'                                                              {CNTSTOP        }    {VALSTOP        }
+            'for 0 adjustments:'                                                              {CNTSTO0        }    
+
+            'for counts printed (write ups + write offs):'                                                         {SA             }
+            'for ALL counts (NET):'                                                            {CNTALL         }   {TA             }
+
+
+
+                               '<<<<<<<<<<<<<<<<<< END OF REPORT >>>>>>>>>>>>>>>>>'
+%CONTROL REPORT A
+%*     TRIM-REPORT
+       NO-STD-HEADINGS
+       UPDATE-RESTART-FILE = UPD-KEY
+       PAGE-LENGTH = 70
+%OUTPUT-FILE 
+       A
+%CONTROL
+       RECORD-LENGTH = 66
+%BREAK ADESC2 FOOTING
+%*<IF WX-MULTIWHOUSE = 'Y'>
+  <IF TRAN-CNT <> 0>
+{AUTH    } {AEMAIL                                } {FLNAME      }
+  <ENDIF>
+%*<ENDIF>
+%REQUEST-PARAMETERS
+       TRAN-FROM PIC (X(24)) TEXT 'Transaction Id From'
+       TRAN-TO   PIC (X(24)) TEXT '               To'
+       TH        PIC (9(7))  TEXT 'Tolerance Amount'
+       THP       PIC (9(3))  TEXT 'Tolerance Percent'
+       EML       PIC (X(1))  TEXT 'Send Email to Authorisers (Y/N)'
+%VARIABLES
+       TH1 = %TH% CONSTANT
+       THP1 = %THP% CONSTANT
+       TH = NUMERIC (TH1) CONSTANT
+       THP = NUMERIC (THP1) CONSTANT
+%*     split up user key into key elements
+       UK1     = SUBSTR (%TRAN-FROM%,1,8)  CONSTANT
+       UK2     = SUBSTR (%TRAN-FROM%,9,11)  CONSTANT
+       UK3N    = SUBSTR (%TRAN-FROM%,20,4)  CONSTANT
+       UK3     = SUBSTR (%TRAN-FROM%,24,1)  CONSTANT
+       TPKEY   = CHOOSE (%TRAN-TO% IF (%TRAN-TO% <> SPACES), -
+                         %TRAN-TO%) I-PIC (X(24)) CONSTANT
+       DST     = %DISTRICT-CODE% CONSTANT
+       TKEY    = CATENATE (DST,TPKEY) CONSTANT
+
+       RST-KEY = LAST-SAVE-KEY OF MSF083 -
+                               WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                                      PROG-NAME   = 'TRR17X') -
+                               CONSTANT
+%*     split up system key into key elements
+       RK1     = SUBSTR (RST-KEY,5,8)  CONSTANT
+       RK2     = SUBSTR (RST-KEY,13,11)  CONSTANT
+       RK3N    = SUBSTR (RST-KEY,24,4) CONSTANT
+       RK3     = SUBSTR (RST-KEY,28,1) CONSTANT
+
+%*       STO     = TABLE-DESC OF MSF010 -
+%*                            WHERE (TABLE-TYPE = 'TR', -
+%*                                   TABLE-CODE = 'STO') -
+%*                            CONSTANT
+%*       STC     = TABLE-DESC OF MSF010 -
+%*                            WHERE (TABLE-TYPE = 'TR', -
+%*                                   TABLE-CODE = 'STC') -
+%*                            CONSTANT
+       L1      = 'Stock Cde/' CONSTANT
+       L2      = 'Name/Desc' CONSTANT
+       L3      = 'Warehouse' CONSTANT
+       L4      = underline() CONSTANT
+       L5      = 'Report' CONSTANT
+       L6      = 'Stock Code/' CONSTANT
+
+       K9      = MAX (KEY-900)
+       UPD-KEY = CHOOSE (K9 IF (%TRAN-FROM% = SPACES, -
+                                %TRAN-TO% = SPACES), -
+                         RST-KEY)
+       A       = WHOUSE-ID-A
+       WHDESC  = TABLE-DESC OF MSF010 -
+                            WHERE (TABLE-TYPE = 'WH', -
+                                   TABLE-CODE = A)
+       B       = STOCK-CODE-A
+       AUTH    = AUTH-BY-A
+       ADESC1 = HRGET  (EMPLOYEE-ID -
+                FROM ('MSSEMP,MSF810') -
+                KEY  (EMPLOYEE-ID = AUTH)
+%*       ADESC1     = SURNAME OF MSF810 -
+%*                  WHERE (EMPLOYEE-ID = AUTH)
+       ADESC  = FORMATTED-NAME VIA (ADESC1)
+       AEMAIL1= EMAIL-ADDRESS  VIA (ADESC1)
+%* this default email address needs to go to a generic invt email address
+%* possibly the inv administrator
+       DEFEML = 'richard.yeung@transgrid.com.au'
+       AEMAIL = CHOOSE (AEMAIL1 IF (AEMAIL1 <> SPACES), -
+                        DEFEML)
+       FLNAME = CATENATE (AUTH,'.TXT')
+       ADESC2 = CHOOSE (ADESC IF (ADESC <> SPACES), AUTH)
+
+       CRTD    = CREATION-USER
+       CDESC1  = HRGET  (EMPLOYEE-ID -
+                 FROM ('MSSEMP,MSF810') -
+                 KEY  (EMPLOYEE-ID = CRTD)
+%*       CDESC1     = SURNAME OF MSF810 -
+%*                  WHERE (EMPLOYEE-ID = CRTD)
+       CDESC   = FORMATTED-NAME VIA (CDESC1)
+
+       C       = CLASS OF MSF170 -
+                       WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+                              STOCK-CODE  = B)
+       D       = STOCK-TYPE        VIA (C)
+       E       = UNIT-OF-ISSUE     VIA (C)
+       F       = ABCD-LEVEL        VIA (C)
+       G       = XYZ-LEVEL         VIA (C)
+       H       = SUBSTR (KEY-900,5,13)
+       I       = TRAN-TYPE
+       J       = STOCK-SECTION OF MSF100 -
+                               WHERE (STOCK-CODE = B)
+       INAME   = ITEM-NAME         VIA (J)
+       IDESC   = DESC-LINE         VIA (J)
+       K       = VALUE-BFR-A D-PIC (Z(13)9.99-)
+%*       M1      = SOH               VIA (C)
+       M1      = OWN-CON-SOH OF MSSSOH -
+                  WHERE (OPTION-SOH  = '1', -
+                  DSTRCT-CODE = DSTRCT-CODE, -
+                  STOCK-CODE  = STOCK-CODE)
+%*       M2      = SOH OF MSF180 -
+%*                     WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+%*                            STOCK-CODE  = B, -
+%*                            WHOUSE-ID   = A)
+       M2      = OWN-CON-SOH OF MSSSOH -
+                  WHERE (OPTION-SOH  = '2', -
+                  DSTRCT-CODE = DSTRCT-CODE, -
+                  STOCK-CODE  = STOCK-CODE, -
+                  WHOUSE-ID   = A)
+%*       M       = CHOOSE (M2 IF (WX-MULTIWHOUSE = 'Y'), -
+%*                         M1) D-PIC (Z(8)9-)
+       M = M2
+%*       CNT     = CHOOSE (1 IF (WX-MULTIWHOUSE = 'Y'), 0)
+       CNT = 1
+       TRAN-CNT = TOTAL (CNT)
+%*       A36 = BIN-CODE OF MSF190 -
+%*             WHERE (DSTRCT-CODE            = %DISTRICT-CODE%, -
+%*                    STOCK-CODE             = B, -
+%*                    WHOUSE-ID              = A, -
+%*                    PRIME-LOCATION         = '1', -
+%*                    BIN-CODE              >= SPACES) -
+%*              MAX(1)
+
+       B91 = CUSTODIAN-ID OF MSF1CSA -
+             WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                    WHOUSE-ID   = A)
+
+       A36 = BIN-CODE OF MSF1HB -
+             WHERE (CUSTODIAN-ID = B91, -
+                    STOCK-CODE   = B, -
+                    BIN-CODE   >= SPACES) MAX (1)
+
+
+%*			  N1      = SOH-AFTER-A
+       N2      = SOH-AFTER-WH-A
+%*       N       = CHOOSE (N2 IF (WX-MULTIWHOUSE = 'Y'), -
+%*                         N1) D-PIC (Z(8)9-)
+	   N = N2
+       O       = QTY-ADJ-UOI-A D-PIC (Z(8)9-)
+       P1      = TRAN-AMOUNT
+       PA      = TRAN-AMOUNT IF (I = 'STO') ELSE (ZERO) -
+                             D-PIC (Z(12)9.99-)
+%*       PB      = TRAN-AMOUNT IF (I = 'STC') ELSE (ZERO) -
+%*                             D-PIC (Z(12)9.99-)
+       PC      = CALC (TRAN-AMOUNT * (-1))
+       P       = CHOOSE (P1 IF (P1 > ZERO), -
+                         PC)
+       Q       = VALUE-AFT-A D-PIC (Z(13)9.99-)
+       THC     = CALC (K * (THP / 100))
+       THV     = CHOOSE (THC IF (THP <> 0 AND TH = 0), -
+                         THC IF (THP <> 0 AND TH <> 0 AND THC < TH), -
+                         TH IF (TH <> 0 AND THP = 0), -
+                         TH IF (TH <> 0 AND THP <> 0 AND TH < THC), -
+                         ZERO)
+
+       TREPA   = CHOOSE (P IF (P > THV AND I = 'STO'), -
+                         ZERO)
+       SA      = TOTAL (TREPA) D-PIC (Z(12)9.99-)
+       TA      = TOTAL (PA) D-PIC (Z(12)9.99-)
+%*       TREPB   = CHOOSE (P IF (P > THV AND I = 'STC'), -
+%*                         ZERO)
+%*       SB      = TOTAL (TREPB) D-PIC (Z(12)9.99-)
+%*       TB      = TOTAL (PB) D-PIC (Z(12)9.99-)
+%*** DAVID G Add counts and sub-totals for write ups & write offs.
+       PA-NEG  = CHOOSE (PA IF (PA < 0),0)
+       PA-NEGC = CHOOSE (1 IF (PA-NEG <> 0),0)
+       PA-POS  = CHOOSE (PA IF (PA > 0),0)
+       PA-POSC = CHOOSE (1 IF (PA-POS <> 0),0)
+%* value of negative adjustments
+       VALSTON = TOTAL (PA-NEG)
+%* value of positive adjustments
+       VALSTOP = CALC (TA - VALSTON)
+%* count all adjustments
+       CNTALL  = COUNT (*)
+%* count negative adjustments
+       CNTSTON = TOTAL (PA-NEGC)
+%* count positive adjustments
+       CNTSTOP = TOTAL (PA-POSC)
+%* count 0 adjustments
+       CNTSTO0 = CALC (CNTALL - CNTSTON - CNTSTOP)

@@ -1,0 +1,921 @@
+%*** TRR25B.RDL
+%***
+%*** Revision History ***
+%***
+%*** 17-Sep-12 a9jw6280      MO164 ---
+%*** ......................  MSF110 has different alternate key structure with E5 that
+%*** ......................  does not allow browse the table using district code and 
+%*** ......................  stock code as key to get part no and mnemonic.
+%*** ......................  Change the logic of the program to get mnemonic and
+%*** ......................  stock code from MSS110 now.
+%*** 03-Sep-12 a9jw6280      MO164 (Version 0001)
+%*** ......................  Same Break field name for all report/output files
+%*** ......................  caused data displayed double (as many as number of 
+%*** ......................  report/output files: in this report double to 3 data)
+%*** ......................  Changed break field name into BP1 & BP2, DUM1 & DUM2 for the 
+%*** ......................  output files.
+%*** ......................  Added %SUMMARY at the end of every output file
+%*** ......................  structure. 
+%*** ......................  Removed control INCLUDE-EMPTY-SUMMARY as it does not 
+%*** ......................  exist anymore in Ellipse 8.
+%*** ......................  Reset version number to 0001 for E8 upgrade.
+%*** 13-Sep-04 A Iesho       WHD0286539
+%*** ......................  Add another output file for records with
+%*** ......................  QTY-IND of '*' ie no qty in all districts
+%*** ......................  Added PAGE-LENGTH and LAST-DETAIL-LINE to the
+%*** ......................  report and set them both to 69.
+%*** 27-Apr-04 R Yeung       WHD0240126
+%*** ......................  Fixed the problem of missing records in output file.
+%*** 20-Apr-04 L Nee         WCHG040616
+%*** ......................  Amended length of part number from 10 to 30 chars 
+%*** 22-Jan-04 Gianakis      WCHG040616
+%*** ......................  Added the QTY to the output file EST Usage column 
+%*** ......................  and changed record length from 1909 to 1919.
+%*** 25-Nov-03 Lubanovic     WCHG040616
+%*** ......................  Combine the 4 description fields into 1 and
+%*** ......................  convert embedded spaces into a single space. 
+%*** 12-Nov-03 R Yeung       WCHG036916
+%*** ......................  User requested to change the CSV to TXT file
+%*** 11-Nov-03 R Yeung       WCHG036916
+%*** ......................  Remove the text file and create a new CSV file
+%*** 29-Oct-03 Lubanovic     WHD0164246
+%*** ....................... The program was not displaying all the
+%*** ....................... extended text for a stock code so I
+%*** ....................... added a MAX clause when retrieving the 'SC'
+%*** ....................... extended text from MSF096.
+%*** 15-Aug-03 L Nee         WHD0129179
+%*** ....................... Amend program to use the request parameter
+%*** ....................... 'District Breakdown Reqd' correctly.
+%*** 10-Jul-03 L Nee         WCHG023851                    
+%*** ....................... Amend program to output a CSV file.
+%*** 08-Oct-02 E Fredeluces  WCHG007160   Initial Coding.
+%***
+%PROGRAM-ID
+       TRR25B
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  Request for FPA Quotation 
+      **
+      **  Print a Request for FPA Quote for a selected supplier
+      **  or a blank RFQ with no supplier details.
+      **  If a district level breakdown is required details for all
+      **  districts are printed, otherwise only the global details
+      **  appear. 
+      **
+%VERSION
+       0002
+%MODULE
+       3250
+%FILES
+       IFILE = TRT25A 
+       LFILE = MSF110A
+       LFILE = MSF810
+       LFILE = MSF251
+       LFILE = MSF250
+       LFILE = MSF200
+       LFILE = MSF100
+       LFILE = MSF010
+       LFILE = MSF252
+       RFILE = TRR25BA
+       OFILE = TRT25BA
+       OFILE = TRO25BB
+%ROUTINES
+       MSS110
+       MSSCNV
+%INPUT-FILE
+       I-STOCK-CODE    PIC (X(9))
+       I-DSTRCT-CODE   PIC (X(4))
+       I-FPA-ITEM-NO   PIC (X(4))
+       I-QTY-TEND-UOI  PIC (S9(9)V9(4))
+       I-QTY-IND       PIC (X(1))
+%REPORT
+    A
+%CONTROL
+       PAGE-LENGTH = 69
+       LAST-DETAIL-LINE = 69
+%CONTROL-BREAKS
+       BP       
+%REPORT-TITLE
+       'Request For FPA Quotation'
+%PAGE HEADING
+'                                    FPA Group:'FFFFF {FDESC                                   }
+
+{L}'Enquires Contact Purchasing Officer'{POFF                                  }  'Quote Closing Date:'{CDATE   }
+
+<IF %SUP% <> SPACES>
+'Supplier:'{SUP } {SNAME                         }
+                  {ADDR1                         }
+    <SUPPRESS>
+                  {ADDR2                         }
+    <SUPPRESS>
+                  {ADDR3                         }
+
+<ENDIF>
+<REPEAT>
+    <SUPPRESS>
+          {FPAHEAD                                                   }
+<ENDREPEAT>
+<IF %SUP% <> SPACES>
+    <REPEAT>
+        <SUPPRESS>
+          {FPASUPP                                                   }
+    <ENDREPEAT>
+<ENDIF>
+
+{UNDERLINE                                                                                                                         }
+{L1}'Stock     Item Description'                             'Cntry  |Std  | Lead |Preferred|Estimated |Preferred|Total Price'
+'No  Code'                                                   'Origin |Pack | Time |  Pricing|Usage-FPA |   Unit  |(Est. Usage x'
+                                                             '       |     |(days)|   Unit  | Duration |  Price  | Unit Price)'
+%DETAIL
+%BREAK BP FOOTING
+                                                                     Z     Z      Z         Z          Z         Z
+{FI} {STK    } {INAME                                 }             '|     |      |         |          |         |'
+    <IF DESC1 <> SPACES>
+               {DESC1                                 }             '|     |      |         |          |         |' 
+    <ENDIF>
+    <IF DESC2 <> SPACES>
+               {DESC2                                 }             '|     |      |         |          |         |' 
+    <ENDIF>
+    <IF DESC3 <> SPACES>
+               {DESC3                                 }             '|     |      |         |          |         |' 
+    <ENDIF>
+    <IF DESC4 <> SPACES>
+               {DESC4                                 }             '|     |      |         |          |         |' 
+    <ENDIF>
+    <REPEAT>
+        <SUPPRESS>
+               {STKDC                                 }             '|     |      |         |          |         |' 
+    <ENDREPEAT>
+                                                                    '|     |      |         |          |         |' 
+          DDDD'Mnemonic Part Number'                 'Pref'         '|     |      |         |          |         |' 
+          {DC} {MNEM1 } {PART1                       } {P1}          Z     Z      Z  {UI}   Z{QTY    } Z         Z
+        <SUPPRESS>
+               {MNEM2 } {PART2                       } {P2}         '|     |      |         |          |         |'
+        <SUPPRESS>       
+               {MNEM3 } {PART3                       } {P3}         '|     |      |         |          |         |'
+        <SUPPRESS>       
+               {MNEM4 } {PART4                       } {P4}         '|     |      |         |          |         |'
+        <SUPPRESS>       
+               {MNEM5 } {PART5                       } {P5}         '|     |      |         |          |         |'
+        <SUPPRESS>       
+               {MNEM6 } {PART6                       } {P6}         '|     |      |         |          |         |'
+        <SUPPRESS>       
+               {MNEM7 } {PART7                       } {P7}         '|     |      |         |          |         |'
+        <SUPPRESS>       
+               {MNEM8 } {PART8                       } {P8}         '|     |      |         |          |         |'
+        <SUPPRESS>       
+               {MNEM9 } {PART9                       } {P9}         '|     |      |         |          |         |'
+        <SUPPRESS>       
+               {MNEM10} {PART10                      } {P10}        '|     |      |         |          |         |'
+                                                                    '|     |      |         |          |         |'
+%SUMMARY
+{UNDERLINE                                                                                                                         }
+
+
+'Total Number of Items on this RFQ is ' CCCCCCC
+
+'Total Price for all items is           ___________________'
+%*
+%*
+%OUTPUT-FILE
+       A
+%CONTROL
+       RECORD-LENGTH =1939
+%BREAK-FIELDS
+       DUM1
+       BP1
+%DETAIL
+<IF FI = FIRSTFI>
+{HDG1                               }{HDG2                }{HDG3                                             }{HDG4   }
+<ENDIF>
+%BREAK DUM1 HEADER
+%BREAK BP1 FOOTING
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM1 }A{PART1                       }A{UI}A{QTY    }
+<IF MNEM2 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM2 }A{PART2                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM3 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM3 }A{PART3                       }A{UI}A{QTY    }
+<ENDIF>    
+<IF MNEM4 <> SPACES>                                  
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM4 }A{PART4                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM5 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM5 }A{PART5                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM6 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM6 }A{PART6                       }A{UI}A{QTY    }
+<ENDIF>    
+<IF MNEM7 <> SPACES>                          
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM7 }A{PART7                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM8 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM8 }A{PART8                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM9 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM9 }A{PART9                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM10 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM10}A{PART10                      }A{UI}A{QTY    }
+<ENDIF>                                      
+%SUMMARY
+%**
+%OUTPUT-FILE
+       B
+%CONTROL
+       RECORD-LENGTH =1939
+%BREAK-FIELDS
+       DUM2
+       BP2
+%DETAIL
+<IF FI = FIRSTFI>
+{HDG1                               }{HDG2                }{HDG3                                             }{HDG4   }
+<ENDIF>
+%BREAK DUM2 HEADER
+%BREAK BP2 FOOTING
+<IF QTYI = '*'>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM1 }A{PART1                       }A{UI}A{QTY    }
+<IF MNEM2 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM2 }A{PART2                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM3 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM3 }A{PART3                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM4 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM4 }A{PART4                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM5 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM5 }A{PART5                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM6 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM6 }A{PART6                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM7 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM7 }A{PART7                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM8 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM8 }A{PART8                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM9 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM9 }A{PART9                       }A{UI}A{QTY    }
+<ENDIF>
+<IF MNEM10 <> SPACES>
+{FPA}A{SUP }A{FI}A{STK    }AQ{INAME                                 }QA-
+Q{SD                                                                                                -
+                                                                    }QAQ-
+{EXTDSC                                                                                             -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                      }QA{MNEM10}A{PART10                      }A{UI}A{QTY    }
+<ENDIF>
+<ENDIF>
+%SUMMARY
+%*
+%*
+%REQUEST-PARAMETERS
+       FPA          PIC (X(5))  TEXT  'FPA Number                    : '
+       SUP          PIC (X(6))  TEXT  'Supplier                      : '
+       NOUSG        PIC (X(1))  TEXT  'Exclude No Usage        (Y/N) : '
+       DBD          PIC (X(1))  TEXT  'District Breakdown Reqd (Y/N) : '
+%VARIABLES
+%* Constants
+       L1      = 'Item' CONSTANT
+       L       = 'For'  CONSTANT
+       Z       = '|'    CONSTANT
+       F       = %FPA%  CONSTANT
+       SUP     = %SUP%  CONSTANT
+       D       = CHOOSE ('Dist' IF (%DBD% = 'Y'), SPACES)    CONSTANT
+       FPAID   = CATENATE (I-FPA-ITEM-NO, I-DSTRCT-CODE)
+       BP      = CHOOSE (FPAID IF (%DBD% = 'Y'), I-FPA-ITEM-NO)
+       BP1     = CHOOSE (FPAID IF (%DBD% = 'Y'), I-FPA-ITEM-NO)
+       BP2     = CHOOSE (FPAID IF (%DBD% = 'Y'), I-FPA-ITEM-NO)
+%* msf250
+       FDESC   = FPA-DESC OF MSF250 -
+                          WHERE (FPA-REC-TYPE = 'F', -
+                                 FPA-GROUP    = %FPA%)       CONSTANT
+       PO      = PURCH-OFFICER     VIA (FDESC)               CONSTANT
+       LNAME   = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = PO)                    CONSTANT
+       FNAME   = FIRST-NAME VIA (LNAME)                      CONSTANT
+       ENAME   = CATENATE (LNAME,' , ',FNAME)                CONSTANT
+       POFF    = OUT-STRING OF MSSCNV      -
+                 WHERE (OPTION = 'P',      -
+                        INP-STRING = ENAME)                  CONSTANT
+       CDATE   = QUOTE-CLS-DATE    VIA (FDESC) FORMAT (DATE) CONSTANT
+%* msf200
+       SNAME   = SUPPLIER-NAME OF MSF200 -
+                               WHERE (SUPPLIER-NO = SUP)     CONSTANT
+       ADDR1   = ORDER-ADDR-1      VIA (SNAME)               CONSTANT
+       ADDR2   = ORDER-ADDR-2      VIA (SNAME)               CONSTANT
+       ADDR3   = ORDER-ADDR-3      VIA (SNAME)               CONSTANT
+%* msf251    
+       STK     = I-STOCK-CODE     
+       QTY     = I-QTY-TEND-UOI      D-PIC (Z(8)9)
+       FI      = I-FPA-ITEM-NO
+       DC      = I-DSTRCT-CODE
+       CNT     = choose (1 IF (FI <> SPACES), 0)
+       C       = total (CNT)       D-PIC (ZZZ,ZZ9)
+       QTYI    = I-QTY-IND
+       FIRSTFI = FPA-ITEM-NO OF MSF251 -
+                             WHERE (FPA-REC-TYPE = 'F', -
+                                    FPA-GROUP    = %FPA%, -
+                                    FPA-ITEM-NO >= SPACES) -
+                             MAX (1)
+                             
+%* msf100
+       INAME   = ITEM-NAME OF MSF100 -
+                           WHERE (STOCK-CODE = STK)
+       UI      = UNIT-OF-ISSUE    VIA (INAME)
+       DESC1   = DESC-LINE-1      VIA (INAME)
+       DESC2   = DESC-LINE-2      VIA (INAME)
+       DESC3   = DESC-LINE-3      VIA (INAME)
+       DESC4   = DESC-LINE-4      VIA (INAME)
+       SDESC   = catenate (DESC1,' ',DESC2,' ',DESC3,' ',DESC4)
+       SD      = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION     = 'P', -
+                        INP-STRING = SDESC)
+%*
+       FPAHEAD = get (READ-TEXT FROM ('MSF096') -
+                                CODE ('FH') -
+                                KEY  ('F', %FPA%)) -
+                      TEXT-WIDTH (60) -
+                      MAX (50)
+       FPASUPP = get (READ-TEXT FROM ('MSF096') -
+                                CODE ('FS') -
+                                KEY  ('F', %FPA%, SUP)) -
+                      TEXT-WIDTH (60) -
+                      MAX (50)
+       STKDC = get (READ-TEXT FROM ('MSF096') -
+                                CODE ('SC') -
+                                KEY  (STK)) -
+                      TEXT-WIDTH (40) -
+                      MAX (40)
+       EXTD     = PUT (STKDC) MAX (40)
+       EXTD1    = SINGLE (EXTD (1))
+       EXTD2    = SINGLE (EXTD (2))
+       EXTD3    = SINGLE (EXTD (3))
+       EXTD4    = SINGLE (EXTD (4))
+       EXTD5    = SINGLE (EXTD (5))
+       EXTD6    = SINGLE (EXTD (6))
+       EXTD7    = SINGLE (EXTD (7))
+       EXTD8    = SINGLE (EXTD (8))
+       EXTD9    = SINGLE (EXTD (9))
+       EXTD10   = SINGLE (EXTD (10))
+       EXTD11    = SINGLE (EXTD (11))
+       EXTD12    = SINGLE (EXTD (12))
+       EXTD13    = SINGLE (EXTD (13))
+       EXTD14    = SINGLE (EXTD (14))
+       EXTD15    = SINGLE (EXTD (15))
+       EXTD16    = SINGLE (EXTD (16))
+       EXTD17    = SINGLE (EXTD (17))
+       EXTD18    = SINGLE (EXTD (18))
+       EXTD19    = SINGLE (EXTD (19))
+       EXTD20    = SINGLE (EXTD (20))
+       EXTD21    = SINGLE (EXTD (21))
+       EXTD22    = SINGLE (EXTD (22))
+       EXTD23    = SINGLE (EXTD (23))
+       EXTD24    = SINGLE (EXTD (24))
+       EXTD25    = SINGLE (EXTD (25))
+       EXTD26    = SINGLE (EXTD (26))
+       EXTD27    = SINGLE (EXTD (27))
+       EXTD28    = SINGLE (EXTD (28))
+       EXTD29    = SINGLE (EXTD (29))
+       EXTD30    = SINGLE (EXTD (30))
+       EXTD31    = SINGLE (EXTD (31))
+       EXTD32    = SINGLE (EXTD (32))
+       EXTD33    = SINGLE (EXTD (33))
+       EXTD34    = SINGLE (EXTD (34))
+       EXTD35    = SINGLE (EXTD (35))
+       EXTD36    = SINGLE (EXTD (36))
+       EXTD37    = SINGLE (EXTD (37))
+       EXTD38    = SINGLE (EXTD (38))
+       EXTD39    = SINGLE (EXTD (39))
+       EXTD40    = SINGLE (EXTD (40))
+
+       EXTDSC1  = CATENATE (EXTD1, ' ', EXTD2, ' ', EXTD3, ' ', EXTD4, ' ', EXTD5, ' ', -
+                            EXTD6, ' ', EXTD7, ' ', EXTD8, ' ', EXTD9, ' ', EXTD10, ' ')
+       EXTDSC2  = CATENATE (EXTD11, ' ', EXTD12, ' ', EXTD13, ' ', EXTD14, ' ', EXTD15, ' ', -
+                            EXTD16, ' ', EXTD17, ' ', EXTD18, ' ', EXTD19, ' ', EXTD20, ' ')
+       EXTDSC3  = CATENATE (EXTD21, ' ', EXTD22, ' ', EXTD23, ' ', EXTD24, ' ', EXTD25, ' ', -
+                            EXTD26, ' ', EXTD27, ' ', EXTD28, ' ', EXTD29, ' ', EXTD30, ' ')
+       EXTDSC4  = CATENATE (EXTD31, ' ', EXTD32, ' ', EXTD33, ' ', EXTD34, ' ', EXTD35, ' ', -
+                            EXTD36, ' ', EXTD37, ' ', EXTD38, ' ', EXTD39, ' ', EXTD40)
+       EXTDSC   = CATENATE (EXTDSC1, EXTDSC2, EXTDSC3, EXTDSC4)
+%*
+%*      
+       MNEM11  = MNEMONIC-1 OF MSS110 -
+                          WHERE (DSTRCT-CODE   = DC, -
+                                 STOCK-CODE    = STK)
+
+       PART11  = PART-NO-1 VIA (MNEM11)
+                                         
+       P11     = PREF-PART-IND-1-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM1   = CHOOSE (MNEM11 IF (P11 = 3), SPACES)
+       PART1   = CHOOSE (PART11 IF (P11 = 3), SPACES)
+       P1      = CHOOSE (P11 IF (P11 = 3), 0) FORMAT (BWZ)    
+       PRINT1  = choose (1 if (P1 = 3), 0)
+       
+       MNEM12  = MNEMONIC-2 VIA (MNEM11)
+       PART12  = PART-NO-2 VIA (MNEM11)
+       P12     = PREF-PART-IND-2-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM2   = CHOOSE (MNEM12 IF (P12 = 3), SPACES)
+       PART2   = CHOOSE (PART12 IF (P12 = 3), SPACES)
+       P2      = CHOOSE (P11 IF (P12 = 3), 0) FORMAT (BWZ)    
+       PRINT2  = choose (1 if (P2 = 3), 0)
+                              
+       MNEM13  = MNEMONIC-3 VIA (MNEM11)
+       PART13  = PART-NO-3 VIA (MNEM11)
+       P13     = PREF-PART-IND-3-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM3   = CHOOSE (MNEM13 IF (P13 = 3), SPACES)
+       PART3   = CHOOSE (PART13 IF (P13 = 3), SPACES)
+       P3      = CHOOSE (P13 IF (P13 = 3), 0) FORMAT (BWZ)    
+       PRINT3  = choose (1 if (P3 = 3), 0)
+       
+       MNEM14  = MNEMONIC-4 VIA (MNEM11)
+       PART14  = PART-NO-4 VIA (MNEM11)
+       P14     = PREF-PART-IND-4-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM4   = CHOOSE (MNEM14 IF (P14 = 3), SPACES)
+       PART4   = CHOOSE (PART14 IF (P14 = 3), SPACES)
+       P4      = CHOOSE (P14 IF (P14 = 3), 0) FORMAT (BWZ)
+       PRINT4  = choose (1 if (P4 = 3), 0)
+
+       MNEM15  = MNEMONIC-5 VIA (MNEM11)
+       PART15  = PART-NO-5 VIA (MNEM11)
+       P15     = PREF-PART-IND-5-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM5   = CHOOSE (MNEM15 IF (P15 = 3), SPACES)
+       PART5   = CHOOSE (PART15 IF (P15 = 3), SPACES)
+       P5      = CHOOSE (P15 IF (P15 = 3), 0) FORMAT (BWZ)
+       PRINT5  = choose (1 if (P5 = 3), 0)
+       
+       MNEM16  = MNEMONIC-6 VIA (MNEM11)
+       PART16  = PART-NO-6 VIA (MNEM11)
+       P16     = PREF-PART-IND-6-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM6   = CHOOSE (MNEM16 IF (P16 = 3), SPACES)
+       PART6   = CHOOSE (PART16 IF (P16 = 3), SPACES)
+       P6      = CHOOSE (P16 IF (P16 = 3), 0) FORMAT (BWZ)
+       PRINT6  = choose (1 if (P6 = 3), 0)
+       
+       MNEM17  = MNEMONIC-7 VIA (MNEM11)
+       PART17  = PART-NO-7 VIA (MNEM11)
+       P17     = PREF-PART-IND-7-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM7   = CHOOSE (MNEM17 IF (P17 = 3), SPACES)
+       PART7   = CHOOSE (PART17 IF (P17 = 3), SPACES)
+       P7      = CHOOSE (P17 IF (P17 = 3), 0) FORMAT (BWZ)
+       PRINT7  = choose (1 if (P7 = 3), 0)
+       
+       MNEM18  = MNEMONIC-8 VIA (MNEM11)
+       PART18  = PART-NO-8 VIA (MNEM11)
+       P18     = PREF-PART-IND-8-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM8   = CHOOSE (MNEM18 IF (P18 = 3), SPACES)
+       PART8   = CHOOSE (PART18 IF (P18 = 3), SPACES)
+       P8      = CHOOSE (P18 IF (P18 = 3), 0) FORMAT (BWZ)
+       PRINT8  = choose (1 if (P8 = 3), 0)
+       
+       MNEM19  = MNEMONIC-9 VIA (MNEM11)
+       PART19  = PART-NO-9 VIA (MNEM11)
+       P19     = PREF-PART-IND-9-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM9   = CHOOSE (MNEM19 IF (P19 = 3), SPACES)
+       PART9   = CHOOSE (PART19 IF (P19 = 3), SPACES)
+       P9      = CHOOSE (P19 IF (P19 = 3), 0) FORMAT (BWZ)
+       PRINT9  = choose (1 if (P9 = 3), 0)
+       
+       MNEM110  = MNEMONIC-10 VIA (MNEM11)
+       PART110  = PART-NO-10 VIA (MNEM11)
+       P110     = PREF-PART-IND-10-9  VIA (MNEM11) -
+                                  D-PIC (Z9(2)) -
+                                  FORMAT (BWZ)
+                                  
+       MNEM10   = CHOOSE (MNEM110 IF (P110 = 3), SPACES)
+       PART10   = CHOOSE (PART110 IF (P110 = 3), SPACES)
+       P10      = CHOOSE (P110 IF (P110 = 3), 0) FORMAT (BWZ)
+       PRINT10  = choose (1 if (P10 = 3), 0)
+
+       PRINT   = CALC ( PRINT1 + PRINT2 +  -
+                        PRINT3 + PRINT4    +  -
+                        PRINT5 + PRINT6 +  -
+                        PRINT7 + PRINT8 +  -
+                        PRINT9 + PRINT10)    
+%* CSV file
+       Q       = '"'    CONSTANT
+       A       = '|'    CONSTANT 
+       B       = ' '    CONSTANT
+       DUMMY   = 'Y'    CONSTANT
+       DUM     = choose ('Y' IF (1 = 1), DUMMY)
+       DUM1    = choose ('Y' IF (1 = 1), DUMMY)
+       DUM2    = choose ('Y' IF (1 = 1), DUMMY)
+       HDG1    = 'FPA-No|Supplier-No|Item-No|StockCode|'               CONSTANT
+       HDG2    = 'Item-Name|Description|'                              CONSTANT
+       HDG3    = 'Extended-Description|Mnemonic|Part-No|Unit-of-Issue' CONSTANT
+       HDG4    = '|Quantity'                                           CONSTANT
+%*
+       FPA     = %FPA%
+       AGR     = '   '
+
+%*        STEXT      = PUT (STKDESC) MAX (10)
+%*        ST1        = SINGLE (STEXT (1))
+%*        S          = CHOOSE (' ' IF (ST1 = SPACES), '*')
+%*
+%*  End of Program
+%*

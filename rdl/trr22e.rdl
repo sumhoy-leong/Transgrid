@@ -1,0 +1,105 @@
+%*** TRR22E.rdl
+%***
+%*** Revision History ***
+%*** 19-Sep-12 a9jw6280   MO164 (Version 0001)
+%*** ...................  Reset version number to 0001 for E8 upgrade.
+%*** ...................  Add quote for req param TEXT. 
+%*** 05-Jan-05 AIesho     WCHG081741
+%**  ................... Initial Coding. 
+%PROGRAM-ID
+       TRR22E
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      This program will send e mail notifications for 
+      all purchase orders created for a day and that have 
+      a qualifier code that is in the #QI table
+%FILES
+        IFILE = TRT22D
+        LFILE = MSF100
+        LFILE = MSF200
+        RFILE = TRR22EA
+%INPUT-FILE
+        PO-NO   PIC (X(6))
+        PO-ITEM PIC (X(3))
+        SUPPLIER-NO PIC (X(6))
+        STOCK-CODE  PIC (X(9))
+        DSTRCT-CODE PIC (X(4))
+        EMPLOYEE    PIC (X(10))
+        ORDER-DATE  PIC (X(8))
+        CR-DATE     PIC (X(8))
+%ROUTINES
+        MSSDAT
+%VERSION
+        0001
+%ORDER
+      BRKF
+%BREAK-FIELDS
+      BRKF
+%REPORT-TITLE
+        'Purchase order Inspection Notification'
+%PAGE HEADING
+'Creation Date Date of purchase order Order No Item  Employee Id and Name'
+%BREAK BRKF NOTIFY ASSIGNEE
+{CDATE }       {ODATE }               {PO  }    III   {USRN    } {EMPN                        }
+%REQUEST-PARAMETERS
+       DATECR PIC (X(8))  FORMAT (DATE) TEXT 'Select Orders Created on        : '
+       DATEOR PIC (X(8))  FORMAT (DATE) TEXT 'Select Orders with Order Date   : '
+%VARIABLES
+       TTIME     = time()                              CONSTANT
+       C0        = ')'                                          CONSTANT
+       C1        = 'This is to advise you that Purchase Order ' CONSTANT
+       C2        = 'has now been created at district '          CONSTANT
+       C3        = ' and requires inspection'                   CONSTANT
+       C4        = 'Details for item '                          CONSTANT
+       C5        = 'Supplier   : '                              CONSTANT
+       C6        = 'Address    : '                              CONSTANT
+       C6A       = '-            '                              CONSTANT
+       D6        = 'Description: '                              CONSTANT
+       D6A       = '-            '                              CONSTANT
+       PO        = PO-NO
+       I         = PO-ITEM
+       DC        = DSTRCT-CODE
+       SNO       = SUPPLIER-NO
+       STK       = STOCK-CODE
+       USRN      = EMPLOYEE
+       ODATE     = ORDER-DATE   FORMAT (DATE)
+       CDATE     = CR-DATE      FORMAT (DATE)
+       EMPI    = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = USRN)
+       EMPN    = FORMATTED-NAME via (EMPI)
+%* Get MSF200 Supplier Details
+       SUPN      = SUPPLIER-NAME OF MSF200 -
+                   WHERE (SUPPLIER-NO = SNO)
+       ORDA1     = ORDER-ADDR-1   VIA (SUPN)
+       ORDA2     = ORDER-ADDR-2   VIA (SUPN)
+       ORDA3     = ORDER-ADDR-3   VIA (SUPN)
+%* Get MSF100 Details
+       ITN       = ITEM-NAME OF MSF100 -
+                   WHERE (STOCK-CODE = STK)
+       DESCL1    = DESC-LINE-1      VIA (ITN)
+       BRKF      = catenate(PO,I)
+       MLINE1    = catenate (C1,PO, '(s/c ',STK,C0)
+       MLINE2    = catenate (C2,DC,C3)
+       MLINE3    = C6A
+       MLINE4    = catenate (C4,I)
+       MLINE5    = catenate(D6,ITN)
+       MLINE6    = catenate(D6A,DESCL1)
+       MLINE7    = catenate (C5,SNO,' ',SUPN)
+       MLINE8    = catenate(C6,ORDA1)
+       MLINE9    = catenate(C6A,ORDA2)
+       MLINE10   = catenate(C6A,ORDA3)
+       ASSIGNEE    = NOTIFY (RECIPIENT    = USRN, -
+                          SUBJECT      = 'Purchase Order Creation', -
+                          MESSAGE-LINE = MLINE1, -
+                          MESSAGE-LINE = MLINE2, -
+                          MESSAGE-LINE = MLINE3, -
+                          MESSAGE-LINE = MLINE4, -
+                          MESSAGE-LINE = MLINE5, -
+                          MESSAGE-LINE = MLINE6, -
+                          MESSAGE-LINE = MLINE7, -
+                          MESSAGE-LINE = MLINE8, -
+                          MESSAGE-LINE = MLINE9, -
+                          MESSAGE-LINE = MLINE10)
+%* End Program

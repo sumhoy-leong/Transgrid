@@ -1,0 +1,388 @@
+%*** Revision History:
+%*** 14-Feb-2013  AIT Lubanovic Phase 1 New requirements
+%***                            Employee Resource Details Report 
+%*
+%PROGRAM-ID
+    TRR76C
+%AUTHOR
+    AIT 
+%NARRATIVE
+    This report will be used to review employee resource 
+    details and related competency levels so that employees, 
+    managers and training administrators can monitor and 
+    report on resource status or progress.
+    Users will be able to run this report as required.   
+    v001 - initial code
+    v002 - Changes requested:
+         - Remove columns org, NEmp Start contract, NEmp End Contract
+         - change headings for PRC2 - 3 to Business Unit, Group, Branch
+         - Latest resource type to be selected, 
+           therefore MFILE changed to MSF760
+         - Fixed empid catenation with 'P' to make sure no 0's
+         - removed org param - not required.
+    v003 - Changes required:
+         - Increase size of resource description and competency level in 
+           output report
+         - Report was only picking up one MSF765 record. Removed MAX(1)
+           code for MSF765 and changed to AFILE. Added code to only 
+           retrieve current record.
+%MODULE
+    3001
+%VERSION
+    003
+%FILES
+    MFILE = MSF760
+    AFILE = MSF765A 
+    LFILE = MSF010
+    LFILE = MSF737
+    LFILE = MSF810
+    LFILE = MSF820
+    LFILE = MSF829
+    LFILE = MSF875
+    LFILE = MSF878A
+    RFILE = TRR76CA
+    OFILE = TRT76CA
+%ROUTINES
+    MSSDAT
+    MSSCNV
+%SELECTION
+<IF %EMPID% <> SPACES>
+       WHERE (EMPLOYEE-ID  >= %EMPID%, -
+	          EMPLOYEE-ID  <= %EMPID%) -
+       REJECTIF (EMP-STATUS <> 'A') -
+       REJECTIF (STAFF-CATEG = 'WC') -
+       REJECTIF (STAFF-CATEG = 'ZA')  
+<ELSE >
+       WHERE (EMPLOYEE-ID >= SPACES) -
+       REJECTIF (EMP-STATUS <> 'A') -
+       REJECTIF (STAFF-CATEG = 'WC') -
+       REJECTIF (STAFF-CATEG = 'ZA')  
+<ENDIF>
+%ORDER
+    DUM                                    TEXT General Header
+    ASCENDING   RESCLS                     TEXT Resource Class
+    ASCENDING   EMP-SNAME                  TEXT Surname 
+    ASCENDING   RC                         TEXT Resource Code     
+    ASCENDING   COMLVL                     TEXT Competency Level
+%REPORT 
+    A 
+%TITLE
+'EMPLOYEE RESOURCE DETAILS'
+%PAGE HEADING
+%*        1         2         3         4         5         6         7         8         9         10        11        12        13 
+%*23456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012
+'-----------------------------------------------------------------------------------------------------------------------------------'
+'Emp   |Employee Name           | Resource            | Competency       |    | Resource Description              | Date   |Expiry'
+'ID    |                        | Class               | Level            |RC  |                                   | Gained |Date  '
+%DETAIL
+<IF (SELSW = 'Y')> 
+{EMPID}Z{EMP-CSV               }Z{RCLS-DESC          }Z{CL-DESC         }Z{RC}Z{RES-DESC                         }Z{DTGAIN}Z{DTEXP }
+<ENDIF>
+%REPORT-SUMMARY
+<IF TTL = 0 AND STL = 0>
+
+
+    ' No Records Met the Selection Criteria'
+<ELSE>
+
+
+'                                                   ***  End Of Report  ***'  
+<ENDIF>
+%OUTPUT-FILE
+   A
+%CONTROL
+   RECORD-LENGTH = 581
+%BREAK-FIELDS
+    DUM
+%BREAK DUM HEADER
+{HEAD1                                                  }-
+{HEAD2                                                                                           }-
+{HEAD3                                                                                                        }
+%DETAIL
+<IF (SELSW = 'Y')> 
+AV{C}V{EMPID    }VQ{EMP-CSV                               }QV-
+{PC02-DESC                                       }V-
+{PC03-DESC                                       }V-
+{PC04-DESC                                       }V-
+{PLOC-DESC                                       }V-
+{RESCLS}V{RCLS-DESC                                        }V-
+{RC}V{RES-DESC                                        }V-
+{COMLVL}V{CL-DESC                                          }V-
+{DTGAIN}V{DTEXP }V
+<ENDIF>
+%SUMMARY
+%REQUEST-PARAMETERS
+    EMPID   PIC (X(10))              TEXT 'Employee                         :'
+    EMPTYP  PIC (X(1))               TEXT 'Employee Type - (E)mployee       :'
+    PRC     PIC (X(20))              TEXT 'Primary Reporting Codes (PRC)    :'
+    MYEMP   PIC (X(1))               TEXT 'My Employees                     :'
+    RESCL1  PIC (X(1))               TEXT 'Resource Class                   :'
+    RESCL2  PIC (X(1))               TEXT '                                 :'
+    RESCL3  PIC (X(1))               TEXT '                                 :'
+    RESCL4  PIC (X(1))               TEXT '                                 :'
+    RESCL5  PIC (X(1))               TEXT '                                 :'
+    RESCL6  PIC (X(1))               TEXT '                                 :'
+    RESCL7  PIC (X(1))               TEXT '                                 :'
+    RESCL8  PIC (X(1))               TEXT '                                 :'
+    RESCL9  PIC (X(1))               TEXT '                                 :'
+    RESCL10 PIC (X(1))               TEXT '                                 :'
+    RESCDE1 PIC (X(4))               TEXT 'Resource Code                    :'
+    RESCDE2 PIC (X(4))               TEXT '                                 :'
+    RESCDE3 PIC (X(4))               TEXT '                                 :'    
+    RESCDE4 PIC (X(4))               TEXT '                                 :'
+    RESCDE5 PIC (X(4))               TEXT '                                 :'
+    RESCDE6 PIC (X(4))               TEXT '                                 :'
+    RESCDE7 PIC (X(4))               TEXT '                                 :'
+    RESCDE8 PIC (X(4))               TEXT '                                 :'
+    RESCDE9 PIC (X(4))               TEXT '                                 :'
+    RESCDE0 PIC (X(4))               TEXT '                                 :'
+    COMPLVL PIC (X(2))               TEXT 'Competency Level                 :'
+    PHYLOC  PIC (X(3))               TEXT 'Employee Physical Location       :'
+    GDTEFRM PIC (X(9)) FORMAT (DATE) TEXT 'Date Gained From                 :'
+    GDTETO  PIC (X(9)) FORMAT (DATE) TEXT 'Date Gained To                   :'
+%VARIABLES
+%* Constants
+    SD  = NUMERIC (%GDTEFRM%)      I-PIC (9(8)) CONSTANT
+    ED  = NUMERIC (%GDTETO%)       I-PIC (9(8)) CONSTANT
+    TDY   = WX-TODAYS-DATE                      CONSTANT
+    TDY9 = WX-TODAYS-DATE-9                     CONSTANT
+    REVTDY = CALC(99999999 - TDY9)              CONSTANT
+    A = 'E'
+    Z = '|'
+    V = ','
+    Q = '"'
+    HEAD1 = 'Employee Type,Staff Category,Employee Id,Employee Name'
+    HEAD2 = ',Business Unit,Group,Branch,Employee Physical Location,Resource Class,Resource Class Description'
+    HEAD3 = ',Resource Code,Resource Code Description,Competency Level,Competency Level Description,Date Gained,Expiry Date,'
+    DUMMY = 'Y'
+    DUM   = CHOOSE ('Y' IF (1 = 1), DUMMY)
+
+%* Non-Employee Start Contract and Non-Employee End Contract dates and Organisation are not required for 
+%* Employee's but still need to be written to the CSV output file
+    NESC  = ' '
+    NEEC  = ' '
+
+%* Primary Reporting Code               
+    PRC1 = SUBSTR (%PRC%,1,4)    CONSTANT
+    PRC2 = SUBSTR (%PRC%,5,4)    CONSTANT
+    PRC3 = SUBSTR (%PRC%,9,4)    CONSTANT
+    PRC4 = SUBSTR (%PRC%,13,4)   CONSTANT
+    PRC5 = SUBSTR (%PRC%,17,4)   CONSTANT
+%*
+
+%*
+%* MSF765 
+    STAT   = EMP-STATUS 
+    C      = STAFF-CATEG 
+    EMP    = EMPLOYEE-ID
+    
+    EMP9 = NUMERIC (EMP) I-PIC (Z(9)9)
+    EMPX = CHOOSE (EMP9 IF (EMP9 <> ZEROS), EMP9) 
+%*All are employees
+    EMPIDX  = CATENATE ('P',EMPX)
+    EMPID = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION = 'S', -
+                        INP-STRING = EMPIDX)
+
+    EMPIDD  = HRGET  (EMPLOYEE-ID FROM ('MSF810,MSSEMP') -
+                     KEY (EMPLOYEE-ID = EMPLOYEE-ID ))
+    EMP-NAME  = FORMATTED-NAME VIA (EMPIDD)
+    EMP-SNAME = SURNAME VIA (EMPIDD)
+    EMP-FNAME = FIRST-NAME VIA (EMPIDD)
+    EMP-CSVX  = CATENATE (EMP-SNAME,',',EMP-FNAME)
+    EMP-CSV   = OUT-STRING OF MSSCNV -
+                WHERE (OPTION = 'S', -
+                       INP-STRING = EMP-CSVX)
+
+%* resource details
+
+    RESTYP  = RESOURCE-TY FROM MSF765A -
+              WHERE (EMPLOYEE-ID-2 = EMP, -
+                     INVERSE-DATE-2 >= REVTDY) -
+              REJECTIF (EMP-RES-IND <> 'C') -
+              REJECTIF (%GDTEFRM% <> SPACES, -
+                        GAINED-DATE-9 < SD) -
+              REJECTIF (%GDTETO%  <> SPACES, -
+                        GAINED-DATE-9 > ED) - 
+              REJECTIF (%COMPLVL% <> SPACES, -
+                        COMPTCY-LEVEL <> %COMPLVL%) 
+                     
+    COMLVL  = COMPTCY-LEVEL VIA (RESTYP)
+    RESCLS  = SUBSTR(RESTYP, 1,1)
+    RC      = SUBSTR(RESTYP, 2,4)
+    DTGAIN  = GAINED-DATE VIA (RESTYP) FORMAT (DATE)
+    DTEXP   = REV-EXP-DATE VIA (RESTYP) FORMAT (DATE)
+    
+    SELCLS  = CHOOSE ('Y' IF (%RESCL1% <> SPACES, -
+                              %RESCL1% = RESCLS), -
+                      'Y' IF (%RESCL2% <> SPACES, -
+                              %RESCL2% = RESCLS), -
+                      'Y' IF (%RESCL3% <> SPACES, -
+                              %RESCL3% = RESCLS), -
+                      'Y' IF (%RESCL4% <> SPACES, -
+                              %RESCL4% = RESCLS), -
+                      'Y' IF (%RESCL5% <> SPACES, -
+                              %RESCL5% = RESCLS), -
+                      'Y' IF (%RESCL6% <> SPACES, -
+                              %RESCL6% = RESCLS), -
+                      'Y' IF (%RESCL7% <> SPACES, -
+                              %RESCL7% = RESCLS), -
+                      'Y' IF (%RESCL8% <> SPACES, -
+                              %RESCL8% = RESCLS), -
+                      'Y' IF (%RESCL9% <> SPACES, -
+                              %RESCL9% = RESCLS), -
+                      'Y' IF (%RESCL10% <> SPACES, -
+                              %RESCL10% = RESCLS), -
+                      'Y' IF (%RESCL1% = SPACES, -
+                              %RESCL2% = SPACES, -
+                              %RESCL3% = SPACES, -
+                              %RESCL4% = SPACES, - 
+                              %RESCL5% = SPACES, -
+                              %RESCL6% = SPACES, -
+                              %RESCL7% = SPACES, -
+                              %RESCL8% = SPACES, - 
+                              %RESCL9% = SPACES, -
+                              %RESCL10% = SPACES), -
+                      'N')      
+       
+    SELCDE  = CHOOSE ('Y' IF (%RESCDE1% <> SPACES, -
+                              %RESCDE1% = RC), -
+                      'Y' IF (%RESCDE2% <> SPACES, -
+                              %RESCDE2% = RC), -
+                      'Y' IF (%RESCDE3% <> SPACES, -
+                              %RESCDE3% = RC), -
+                      'Y' IF (%RESCDE4% <> SPACES, -
+                              %RESCDE4% = RC), -
+                      'Y' IF (%RESCDE5% <> SPACES, -
+                              %RESCDE5% = RC), -
+                      'Y' IF (%RESCDE6% <> SPACES, -
+                              %RESCDE6% = RC), -
+                      'Y' IF (%RESCDE7% <> SPACES, -
+                              %RESCDE7% = RC), -
+                      'Y' IF (%RESCDE8% <> SPACES, -
+                              %RESCDE8% = RC), -
+                      'Y' IF (%RESCDE9% <> SPACES, -
+                              %RESCDE9% = RC), -
+                      'Y' IF (%RESCDE0% <> SPACES, -
+                              %RESCDE0% = RC), -
+                      'Y' IF (%RESCDE1% = SPACES, -
+                              %RESCDE2% = SPACES, -
+                              %RESCDE3% = SPACES, -
+                              %RESCDE4% = SPACES, - 
+                              %RESCDE5% = SPACES, -
+                              %RESCDE6% = SPACES, -
+                              %RESCDE7% = SPACES, -
+                              %RESCDE8% = SPACES, - 
+                              %RESCDE9% = SPACES, -
+                              %RESCDE0% = SPACES), -
+                      'N')             
+   
+    
+%* Physical Location
+    PLOC = PHYSICAL-LOC OF MSF829 -
+           WHERE (EMPLOYEE-ID   = EMPLOYEE-ID, -
+                  INV-STR-DATE >= REVTDY) -
+           MAX (1)
+
+    SELLOC = CHOOSE ('N' IF (%PHYLOC% <> SPACES, -
+                             %PHYLOC% <> PLOC), -
+                     'Y') 
+
+%* PRC
+    PRIM  = RPT-PRC OF MSF820 -
+            WHERE   (EMPLOYEE-ID = EMPLOYEE-ID)
+    PRIM1 = SUBSTR (PRIM,1,4)
+    PRIM2 = SUBSTR (PRIM,5,4)
+    PRIM3 = SUBSTR (PRIM,9,4)
+    PRIM4 = SUBSTR (PRIM,13,4)
+    PRIM5 = SUBSTR (PRIM,17,4)
+
+%*
+    PRC1-OK = CHOOSE ('N' IF (PRC1 <> SPACES, -
+                              PRC1 <> PRIM1), 'Y')
+    PRC2-OK = CHOOSE ('N' IF (PRC2 <> SPACES, -
+                              PRC2 <> PRIM2), 'Y')
+    PRC3-OK = CHOOSE ('N' IF (PRC3 <> SPACES, -
+                              PRC3 <> PRIM3), 'Y')
+    PRC4-OK = CHOOSE ('N' IF (PRC4 <> SPACES, -
+                              PRC4 <> PRIM4), 'Y')
+    PRC5-OK = CHOOSE ('N' IF (PRC5 <> SPACES, -
+                              PRC5 <> PRIM5), 'Y')
+    SELPRC  = CHOOSE ('Y' IF (PRC1-OK = 'Y', -
+                              PRC2-OK = 'Y', -
+                              PRC3-OK = 'Y', -
+                              PRC4-OK = 'Y', -
+                              PRC5-OK = 'Y'),-
+                      'N')             
+%*
+%* MSF875 emp subordinates
+%* Only show emp subordinates
+    
+    EMP-POS = POSITION-ID OF MSF878A -
+          WHERE (EMPLOYEE-ID-1 = EMPLOYEE-ID, -
+                 PRIMARY-POS-1 = '0', -
+                 INV-STR-DATE-1 >= REVTDY) -
+          REJECTIF (POS-STOP-DATE <> '00000000', -
+                    POS-STOP-DATE < TDY) MAX (1)
+    POSX = SUBSTR (EMP-POS, 1, 5)
+    
+    DUMMYZO = CHOOSE ('N' IF (C = 'ZO' AND POSX = 'DUMMY'), 'Y')
+    
+    MGR     = SUPERIOR-ID OF MSF875 -
+          WHERE (HIER-DETAILS = WX-HIER-TYPE & WX-HIER-VERSION, -
+                 POSITION-ID  = EMP-POS)
+
+    SEL875  = CHOOSE ('Y' IF (%MYEMP% = 'Y', -
+                              MGR = WX-POSITION-ID), -
+                      'Y' IF (%MYEMP% = 'N'), -
+                      'Y' IF (%MYEMP% = SPACES), -
+                      'N')
+
+%* Competency Description
+    CL-DESC  = COMPTCY-DESC OF MSF737 -
+               WHERE (RESOURCE-TYPE = RESTYP, -
+                      COMPTCY-LEVEL = COMLVL)    
+                    
+%* MSF010 table descriptions
+
+    RCLS-DESC = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE  = 'RS', -
+                       TABLE-CODE  = RESCLS)
+
+    RES-DESC  = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE  = 'TT', -
+                       TABLE-CODE  = RESTYP)
+
+    PLOC-DESC = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE  = 'PHYL', -
+                       TABLE-CODE  = PLOC)  
+
+    PC01-DESC = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE  = 'PC01', -
+                       TABLE-CODE  = PRIM1) 
+                       
+    ORG  = CHOOSE (PC01-DESC IF (PRC1 <> SPACES), SPACES)
+    
+    PC02-DESC = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE  = 'PC02', -
+                       TABLE-CODE  = PRIM2) 
+    PC03-DESC = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE  = 'PC03', -
+                       TABLE-CODE  = PRIM3) 
+    PC04-DESC = TABLE-DESC OF MSF010 -
+                WHERE (TABLE-TYPE  = 'PC04', -
+                       TABLE-CODE  = PRIM4)   
+%*
+    SELSW = CHOOSE ('Y' IF (SELCLS = 'Y', -
+                            SELCDE = 'Y', -
+                            SELPRC = 'Y', -
+                            SEL875 = 'Y', -
+                            SELLOC = 'Y', -
+                            DUMMYZO = 'Y'), 'N')
+
+    CNT = CHOOSE (1 IF (SELSW = 'Y'), 0)
+    TTL = TOTAL  (CNT )
+    STL = SUM (CNT)
+%*
+%*      ***  End of Program  ***
+%*

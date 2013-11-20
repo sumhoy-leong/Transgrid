@@ -1,0 +1,199 @@
+%**Revision History:
+%** 12-Dec-2012  a9jw6280  MO164 ---
+%** .....................  Change req param Pay-group into Pay-location.
+%** .....................  Separate employee name into surname, first name,
+%** .....................  Initial, preferred name as in the URS.
+%** 02-Aug-2012  a9jw6280  MO164 (Version 0001)
+%** .....................  Changed control %SUBROUTINE to %ROUTINES
+%** .....................  Added quote for words placed after TEXT
+%** .....................  Reset version number to 0001 for E8 upgrade.
+%** 19-Oct-2001 E Fredeluces W01100113
+%** .....................    Additional Request-Parameters:
+%** .....................    1.)  Preferred Name
+%** .....................    2.)  PRC
+%PROGRAM-ID
+       TRR76L
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      ** This report will print address labels
+      ** by Paygroup and sorted by employee id or surname 
+      ** for group certificate purposes.
+      ** NB. Use A4Label form to print labels.
+      **  
+      ** Initial Version : Neel Chandra. (W706240003).
+      **
+%VERSION
+       0001
+%MODULE
+       3880
+%FILES
+        MFILE = MSF820
+        LFILE = MSF760
+        LFILE = MSF010
+        LFILE = MSF810
+        OFILE = TSE76LA
+%ROUTINES
+        MSSCNV
+%SELECTION
+        WHERE    (EMPLOYEE-ID    >= SPACES)
+        REJECTIF (PAY-LOCATION   <> %PL%, -
+                  %PL%           <> SPACES)
+%ORDER
+     PL
+     SRTKEY
+%BREAK-FIELDS
+     DUM     
+%OUTPUT-FILE
+    A
+%CONTROL
+    TRIM-REPORT
+    NO-STD-HEADINGS
+%BREAK DUM HEADING
+'Title,Surname,Init,First Name,Preferred,Employee ID,Address Line 1,Address Line 2,Suburb,State,Post Code'
+%DETAIL
+<IF PRFLAG = 'Y'>
+TTTC{PSURNAME                    }CIC{FNAME     }C{PRNAME    }C{EMP     }C{LINE2                         }C-
+{LINE3                         }C{LINE4                         }C{STATE                       }CPPPP
+<ENDIF>
+%*345678901234567890123456789012345678901234567890123456789012345678901234567890
+%*       1         2         3         4         5         6         7         8
+%REQUEST-PARAMETERS
+        PL      PIC (X(2)) TEXT 'Pay Location   - Blank For All                  :'
+        SRTFLG  PIC (X(1)) TEXT 'Sort Option    - (1)Surname (2)EmpId (3)PrefName:'
+        ILABELT PIC (X(1)) TEXT 'Address type   - (P)ostal (W)ork                :'
+        IPRC    PIC (X(40)) TEXT 'Prim Rptg Code - Blank for All                  :' 
+%VARIABLES
+        DUMMY    = 'Y' CONSTANT
+        DUM      = CHOOSE (DUMMY IF (DUMMY = DUMMY), 'Y')
+    	C   	 = ','
+        EMP      = EMPLOYEE-ID
+        PGRP     = PAY-GROUP 
+%*
+        PL       = %PL%
+        IPRC     = %IPRC%                        CONSTANT
+        IPRC01   = SUBSTR(IPRC,1,4)              CONSTANT
+        IPRC02   = SUBSTR(IPRC,5,4)              CONSTANT
+        IPRC03   = SUBSTR(IPRC,9,4)              CONSTANT
+        IPRC04   = SUBSTR(IPRC,13,4)             CONSTANT
+        IPRC05   = SUBSTR(IPRC,17,4)             CONSTANT
+        IPRC06   = SUBSTR(IPRC,21,4)             CONSTANT
+        IPRC07   = SUBSTR(IPRC,25,4)             CONSTANT
+        IPRC08   = SUBSTR(IPRC,29,4)             CONSTANT
+        IPRC09   = SUBSTR(IPRC,33,4)             CONSTANT
+        IPRC10   = SUBSTR(IPRC,37,4)             CONSTANT
+%*
+        BPRC     = RPT-PRC
+        BPRC01   = SUBSTR(BPRC,1,4)
+        BPRC02   = SUBSTR(BPRC,5,4)
+        BPRC03   = SUBSTR(BPRC,9,4)
+        BPRC04   = SUBSTR(BPRC,13,4)
+        BPRC05   = SUBSTR(BPRC,17,4)
+        BPRC06   = SUBSTR(BPRC,21,4)
+        BPRC07   = SUBSTR(BPRC,25,4)
+        BPRC08   = SUBSTR(BPRC,29,4)
+        BPRC09   = SUBSTR(BPRC,33,4)
+        BPRC10   = SUBSTR(BPRC,37,4)
+
+        PRC01-OK = CHOOSE('N' IF(IPRC01 <> SPACES AND IPRC01 <> BPRC01), -
+                          'Y')
+        PRC02-OK = CHOOSE('N' IF(IPRC02 <> SPACES AND IPRC02 <> BPRC02), -
+                          'Y')
+        PRC03-OK = CHOOSE('N' IF(IPRC03 <> SPACES AND IPRC03 <> BPRC03), -
+                          'Y')
+        PRC04-OK = CHOOSE('N' IF(IPRC04 <> SPACES AND IPRC04 <> BPRC04), -
+                          'Y')
+        PRC05-OK = CHOOSE('N' IF(IPRC05 <> SPACES AND IPRC05 <> BPRC05), -
+                          'Y')
+        PRC06-OK = CHOOSE('N' IF(IPRC06 <> SPACES AND IPRC06 <> BPRC06), -
+                          'Y')
+        PRC07-OK = CHOOSE('N' IF(IPRC07 <> SPACES AND IPRC07 <> BPRC07), -
+                          'Y')
+        PRC08-OK = CHOOSE('N' IF(IPRC08 <> SPACES AND IPRC08 <> BPRC08), -
+                          'Y')
+        PRC09-OK = CHOOSE('N' IF(IPRC09 <> SPACES AND IPRC09 <> BPRC09), -
+                          'Y')
+        PRC10-OK = CHOOSE('N' IF(IPRC10 <> SPACES AND IPRC10 <> BPRC10), -
+                          'Y')
+
+        PRCFLAG  = CHOOSE('Y' IF(PRC01-OK = 'Y', -
+                                 PRC02-OK = 'Y', -
+                                 PRC03-OK = 'Y', -
+                                 PRC04-OK = 'Y', -
+                                 PRC05-OK = 'Y', -
+                                 PRC06-OK = 'Y', -
+                                 PRC07-OK = 'Y', -
+                                 PRC08-OK = 'Y', -
+                                 PRC09-OK = 'Y', -
+                                 PRC10-OK = 'Y'),-
+                          'N')
+
+%*  get MSF760 details      
+        STAT     = EMP-STATUS OF MSF760 -
+                   WHERE(EMPLOYEE-ID = EMP)
+        STFLAG1  = choose ('Y' IF (STAT = 'A'), 'N')
+        SCAT     = STAFF-CATEG via (STAT)
+        STFLAG2  = CHOOSE ('N' IF (SCAT = 'WC'),-
+                           'N' IF (SCAT = 'ZO'), 'Y')
+        STFLAG   = CHOOSE ('Y' IF (STFLAG1 = 'Y' AND STFLAG2 = 'Y'), 'N')                   
+        WLOC     = WORK-LOC    via (STAT)  
+
+%* get MSF810 details       
+        PSURNAME = SURNAME OF MSF810 -
+                           WHERE(EMPLOYEE-ID = EMP)
+        T        = NAME-TITLE         VIA(PSURNAME)
+        I        = FIRST-INITIAL      VIA(PSURNAME)                   
+        FNAME    = FIRST-NAME         via(PSURNAME)
+        PRNAME   = PREF-NAME          via(PSURNAME)
+        PNAME    = CHOOSE (PRNAME IF (PRNAME <> SPACES),FNAME)
+        SORT1    = CATENATE (PSURNAME,' ',FNAME)
+        SORT3    = CATENATE (PSURNAME,' ',PNAME)
+        POST1    = POST-ADDRESS-1     via(PSURNAME)
+        POST2    = POST-ADDRESS-2     via(PSURNAME)
+        POST3    = POST-ADDRESS-3     via(PSURNAME)
+        POSTS    = POST-STATE         via(PSURNAME)
+        POSTZ    = POST-POSTCODE      via(PSURNAME)
+        RES1     = RES-ADDRESS-1      via(PSURNAME)
+        RES2     = RES-ADDRESS-2      via(PSURNAME)
+        RES3     = RES-ADDRESS-3      via(PSURNAME)
+        RESS     = RES-STATE          via(PSURNAME)
+        RESZ     = RES-POSTCODE       via(PSURNAME)
+        ADD1     = choose (POST1 IF(POST1 > SPACES), RES1)
+        ADD2     = choose (POST2 IF(POST1 > SPACES), RES2)
+        ADD3     = choose (POST3 IF(POST1 > SPACES), RES3) 
+        ADDSS    = choose (POSTS IF(POSTS > SPACES), RESS) 
+        ADDZ     = choose (POSTZ IF(POSTZ > SPACES), RESZ)
+
+%* get msf010 details
+        STCATDSC = TABLE-DESC OF MSF010 -
+                              WHERE(TABLE-TYPE = 'STFC', -
+                                    TABLE-CODE = SCAT)
+        WOLOCDSC = TABLE-DESC OF MSF010 -
+                              WHERE(TABLE-TYPE = 'WRKL', -
+                                    TABLE-CODE = WLOC)
+        ADDS     = TABLE-DESC OF MSF010 -
+                              WHERE(TABLE-TYPE = 'SY', -
+                                    TABLE-CODE = ADDSS)    
+
+%* determine printing lines
+%*        PGSRT    = choose (PGRP  IF (%PG% <> SPACES), SPACES)
+        SRTKEY   = choose (SORT1 IF (%SRTFLG% = 1) ,-
+                           EMP   IF (%SRTFLG% = 2) ,-
+                           SORT3)
+        NAMEF    = CATENATE(FNAME,' ',PSURNAME)
+        NAMEP    = CATENATE(PNAME,' ',PSURNAME)
+        EMPNAME  = CHOOSE  (NAMEP IF (%SRTFLG% = '3'), -
+                            NAMEF)
+        LINE1    = OUT-STRING  OF MSSCNV  -
+                               WHERE(OPTION     = 'P',-
+                                     INP-STRING = EMPNAME)
+        LINE2    = choose (ADD1 IF(%ILABELT% = 'P'), STCATDSC)
+        LINE3    = choose (ADD2 IF(%ILABELT% = 'P'), WOLOCDSC)
+        LINE4    = choose (ADD3 IF(%ILABELT% = 'P'), SPACES)        
+        STATE    = choose (ADDS IF(%ILABELT% = 'P'), SPACES)
+        P        = choose (ADDZ IF(%ILABELT% = 'P'), SPACES)
+%*
+        PRFLAG   = choose ('Y' IF (STFLAG  = 'Y', -
+                                   PRCFLAG = 'Y'),-
+                            'N')
+%*End Program

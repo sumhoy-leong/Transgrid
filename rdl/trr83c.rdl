@@ -1,0 +1,365 @@
+%*** TRR83C.RDL
+%***
+%*** Revision History
+%*** ----------------
+%*** 17-Jun-13  Domenic Bof   SC0000004289951 v0002
+%*** ........................ The pay group is now TG1 not T01 to T15
+%*** 18-09-12   a9nh4814      MO164 (Version 0001)
+%***                          - Modified to version 0001 for Ellipe 8 migration
+%***                          - Corrected record length
+%***                          - Removed unecessary whitespaces for compiling
+%***                          - Modified decimal formatting for D-PIC
+%*** 23-02-09   Janak Barar   WC2242297 stated that some transactions which
+%***                          were earlier paid be ignored.  There is a flag
+%***                          named RTR-IGNORE and it should be checked for
+%***                          'Y' to ignore the record.
+%*** 10-11-05   E Fredeluces  P05110870
+%***                          Fix compilation errors in Ellipse 5.2.3.7.
+%*** 14-06-02   E Fredeluces  WHD0008184
+%***                          Added %CONTROL and record-length to prevent
+%***                          it from aborting when the file is read by
+%***                          TRR83D.
+%*** 19-07-00   R K Mahajan   W00070160 - Delete the totals for Employee, Pay
+%***                          Period, Work Group and Earning Code.
+%*** 10-01-00   G Presser     W99120032             (Version 023)
+%***                          Enhance selection for person running
+%***                          report
+%*** 20-10-99   G Presser     W99100497             (Version 022)
+%***                          Allow for Pay Group T15
+%***  3-08-99   G Presser     W99070200             (Version 021)
+%***                          Select all Advance Pays correctly
+%*** 22-07-99   G Presser     W99070253             (Version 020)
+%***                          Check access to Pay Group for person
+%***                          running report
+%***  9-03-99   G Presser     W903080015
+%***                          Allow for 10 PRC codes
+%*** 10-02-99   G Presser     W902030035
+%***                          Include 10 Earnings Codes, Add additional
+%***                          selection of PRC and output info to a file
+%*** 10-11-98   G Presser     W810260035
+%***                          Version 4.3 Modifications
+%*** 01-05-98   Neel Chandra  W804090004
+%***                          Include to read as units/hrs.
+%*** 09-04-98   E Fredeluces  W804090004
+%***                          To include the units next to the amount.
+%***                          Rewrite the program printing logic.
+%*** 24-03-98   E Fredeluces  The report is changed to put a double line
+%***                          to the total amount for readability.
+%*** 20-03-98   E Fredeluces  W803100025
+%***                          The report is changed to print the earnings
+%***                          code when the parameter is "all earnings code".
+%*** 29-05-97   Neel Chandra  Added to run by a selection of earnings code,
+%***                          by employee, by paygroup, and up to max of 10
+%***                          work groups (W704100035).
+%*** 11-03-97   Original program development.
+%***
+%PROGRAM-ID
+       TRR83C
+%AUTHOR
+       Lynne Capple
+%NARRATIVE
+      **  This program produces a report of user defined EARNINGS CODE
+      **  for a user defined start date and employee.
+
+%VERSION
+        0001
+%MODULE
+        3820
+%FILES
+        MFILE = MSF810
+        LFILE = MSF723A
+        LFILE = MSF878A
+        LFILE = MSF870
+        LFILE = MSF820
+        AFILE = MSF835
+        LFILE = MSF801
+        LFILE = MSF802A
+        OFILE = TRT83CA
+%ROUTINES
+        MSSEMP
+        MSSPAY
+%ORDER
+        EMPLOYEE-ID
+        PAY-PER-NO VIA (M835)
+%SELECTION
+       <IF INEMP1 = SPACES>
+            WHERE (EMPLOYEE-ID >= SPACES)
+       <ELSE>
+            WHERE (EMPLOYEE-ID >= SPACES)
+            SELECTIF (%INEMP1% <> SPACES, EMPLOYEE-ID = %INEMP1%)
+            SELECTIF (%INEMP2% <> SPACES, EMPLOYEE-ID = %INEMP2%)
+            SELECTIF (%INEMP3% <> SPACES, EMPLOYEE-ID = %INEMP3%)
+            SELECTIF (%INEMP4% <> SPACES, EMPLOYEE-ID = %INEMP4%)
+            SELECTIF (%INEMP5% <> SPACES, EMPLOYEE-ID = %INEMP5%)
+            SELECTIF (%INEMP6% <> SPACES, EMPLOYEE-ID = %INEMP6%)
+            SELECTIF (%INEMP7% <> SPACES, EMPLOYEE-ID = %INEMP7%)
+            SELECTIF (%INEMP8% <> SPACES, EMPLOYEE-ID = %INEMP8%)
+            SELECTIF (%INEMP9% <> SPACES, EMPLOYEE-ID = %INEMP9%)
+            SELECTIF (%INEMP10% <> SPACES, EMPLOYEE-ID = %INEMP10%)
+       <ENDIF>
+%OUTPUT-FILE
+    A
+%CONTROL
+%*        INCLUDE-EMPTY-SUMMARY
+        COPY-REQUEST  = TRR83D
+        RECORD-LENGTH = 142
+%DETAIL
+<IF SELC = 'Y'>
+PPCCC{PRC               }RRRAAAAAAAAAAUUUUUUUUUUUUU{EMP     }-
+{NAME                                  }FM{TD    }-
+{SNAME                     }LQW
+<ENDIF>
+%REQUEST-PARAMETERS
+       ET1        PIC(X(3))  TEXT 'Earnings Code1 - blank for all     :'
+       ET2        PIC(X(3))  TEXT 'Earnings Code2                     :'
+       ET3        PIC(X(3))  TEXT 'Earnings Code3                     :'
+       ET4        PIC(X(3))  TEXT 'Earnings Code4                     :'
+       ET5        PIC(X(3))  TEXT 'Earnings Code5                     :'
+       ET6        PIC(X(3))  TEXT 'Earnings Code6                     :'
+       ET7        PIC(X(3))  TEXT 'Earnings Code7                     :'
+       ET8        PIC(X(3))  TEXT 'Earnings Code8                     :'
+       ET9        PIC(X(3))  TEXT 'Earnings Code9                     :'
+       ET10       PIC(X(3))  TEXT 'Earnings Code10                    :'
+       FRPER      PIC(X(8))  TEXT 'Start Period Date                  :'
+       TOPER      PIC(X(8))  TEXT 'End   Period Date                  :'
+       INEMP1     PIC(X(10)) TEXT 'Employee 1  - blank for all        :'
+       INEMP2     PIC(X(10)) TEXT 'Employee 2                         :'
+       INEMP3     PIC(X(10)) TEXT 'Employee 3                         :'
+       INEMP4     PIC(X(10)) TEXT 'Employee 4                         :'
+       INEMP5     PIC(X(10)) TEXT 'Employee 5                         :'
+       INEMP6     PIC(X(10)) TEXT 'Employee 6                         :'
+       INEMP7     PIC(X(10)) TEXT 'Employee 7                         :'
+       INEMP8     PIC(X(10)) TEXT 'Employee 8                         :'
+       INEMP9     PIC(X(10)) TEXT 'Employee 9                         :'
+       INEMP10    PIC(X(10)) TEXT 'Employee 10                        :'
+       IDPW       PIC(X(1))  TEXT 'Show Pay Week detail <Y/N>         :'
+       IDEMP      PIC(X(1))  TEXT 'Show Employee detail <Y/N>         :'
+       IPLOC      PIC(X(2))  TEXT 'Pay Location  - blank for all      :'
+       PRC        PIC(X(20)) TEXT 'Primary Reporting Code             :'
+%VARIABLES
+        FRPER       = %FRPER%       FORMAT (DATE)   CONSTANT
+        TOPER       = %TOPER%       FORMAT (DATE)   CONSTANT
+        FRP             = %FRPER%                       CONSTANT
+        FRN             = NUMERIC (FRP)                 CONSTANT
+        FRR             = CALC (99999999 - FRN)         CONSTANT
+        ET1         = %ET1%                         CONSTANT
+        ET2         = %ET2%                         CONSTANT
+        ET3         = %ET3%                         CONSTANT
+        ET4         = %ET4%                         CONSTANT
+        ET5         = %ET5%                         CONSTANT
+        INEMP1      = %INEMP1%                       CONSTANT
+        IDPW        = %IDPW%                        CONSTANT
+        IDEMP       = %IDEMP%                       CONSTANT
+        IPLOC       = %IPLOC%                       CONSTANT
+        PRCI            = %PRC%                         CONSTANT
+        PRCI-1          = SUBSTR (PRCI,1,4)             CONSTANT
+        PRCI-2          = SUBSTR (PRCI,5,4)             CONSTANT
+        PRCI-3          = SUBSTR (PRCI,9,4)             CONSTANT
+        PRCI-4          = SUBSTR (PRCI,13,4)            CONSTANT
+        PRCI-5          = SUBSTR (PRCI,17,4)            CONSTANT
+        PRCI-6          = SUBSTR (PRCI,21,4)            CONSTANT
+        PRCI-7          = SUBSTR (PRCI,25,4)            CONSTANT
+        PRCI-8          = SUBSTR (PRCI,29,4)            CONSTANT
+        PRCI-9          = SUBSTR (PRCI,33,4)            CONSTANT
+        PRCI-10         = SUBSTR (PRCI,37,4)            CONSTANT
+        S               = ','                           CONSTANT
+        DUMMY           = 'Y'                           CONSTANT
+        DUM             = CHOOSE ('Y' IF (PRCI-1 = PRCI-1), DUMMY)
+        PRTH1           = 'Pay,Work,Earnings,Employee,Employee,First,Second,Pay,Amount,Units'
+        PRTH2           = 'Group,Group,Code,ID,Name,Initial,Initial,Date'
+        WXUSRL          = SUBSTR (WX-USER-ID,1,5)       CONSTANT D-PIC (X(5))
+        WXUSR           = CATENATE ('00000',WXUSRL)     CONSTANT D-PIC (X(10))
+%*
+%*        WXPOS           = POSITION-ID OF MSF878A        -
+%*                          WHERE (EMPLOYEE-ID = WXUSR,   -
+%*                                 PRIMARY-POS = '0',     -
+%*                                 POS-DATES  >= SPACES)  -
+%*                          MAX (1)                       CONSTANT D-PIC (X(10))
+%*
+        M802S           = PAY-GROUP OF MSF802A          -
+                          WHERE (PAY-GROUP-2   = 'T01', -
+                          PER-END-DT-2 >= FRPER)        -
+                          MAX (1)                       CONSTANT
+        SYSS            = SYS-PRD-NO      VIA (M802S)   CONSTANT
+        M802E           = PAY-GROUP OF MSF802A          -
+                          WHERE (PAY-GROUP-2   = 'T01', -
+                          PER-END-DT-2 >= TOPER)        -
+                          MAX (1)                       CONSTANT
+        SYSE            = SYS-PRD-NO      VIA (M802E)   CONSTANT
+        M802T           = PAY-GROUP OF MSF802A          -
+                          WHERE (PAY-GROUP-2   = 'T15', -
+                          PER-END-DT-2 >= FRPER)        -
+                          MAX (1)                       CONSTANT
+        SYST            = SYS-PRD-NO      VIA (M802T)   CONSTANT
+        M802F           = PAY-GROUP OF MSF802A          -
+                          WHERE (PAY-GROUP-2   = 'T15', -
+                          PER-END-DT-2 >= TOPER)        -
+                          MAX (1)                       CONSTANT
+        SYSF            = SYS-PRD-NO      VIA (M802F)   CONSTANT
+%*
+
+%* V002 TG1 is now the new pay group after 26/4/2013
+
+       M802TGS          = PAY-GROUP OF MSF802A          -
+                          WHERE (PAY-GROUP-2   = 'TG1', -
+                                 PER-END-DT-2 >= FRPER)   -
+                          MAX (1)                                              CONSTANT
+       SYSTGS           = SYS-PRD-NO          VIA (M802TGS)                    CONSTANT
+
+       M802TGE          = PAY-GROUP OF MSF802A          -
+                          WHERE (PAY-GROUP-2   = 'TG1', -
+                                 PER-END-DT-2 >= TOPER)    -
+                          MAX (1)                                              CONSTANT
+       SYSTGE           = SYS-PRD-NO          VIA (M802TGE)                    CONSTANT
+
+%* V002 end 
+
+        EMP             = EMPLOYEE-ID
+        O               = EMPLOYEE-ID                   SUPPRESS
+        SNAME           = SURNAME                       D-PIC (X(28))
+        F               = FIRST-INITIAL                 D-PIC (X(1))
+        M               = SECOND-INITIAL                D-PIC (X(1))
+        EMPID       = HRGET (EMPLOYEE-ID              -
+                                 from ('MSSEMP,MSF810')   -
+                            key  (EMPLOYEE-ID = EMP))
+    NAME            = FORMATTED-NAME via (EMPID)
+    BNAME           = FORMATTED-NAME via (EMPID)    SUPPRESS
+%*
+%*      Employee Position File (MSF878A)
+%*
+        PID             = POSITION-ID OF MSF878A           -
+                          WHERE (EMPLOYEE-ID-1   = EMP,    -
+                                 PRIMARY-POS-1   = '0',    -
+                                 INV-STR-DATE-1 >= SPACES) -
+                          MAX (1)
+%*
+%*      Pay Location (MSF820)
+%*
+        PLOC            = PAY-LOCATION OF MSF820           -
+                          WHERE (EMPLOYEE-ID = EMP)
+        P               = PLOC
+        PLOC-SEL        = CHOOSE ('Y' IF (IPLOC = SPACES), -
+                                  'Y' IF (IPLOC <> SPACES, -
+                                          PLOC = IPLOC), 'N')
+%*
+%*      Positions File (MSF870)
+%*
+        PRC-GRP         = PRIM-RPT-GRP OF MSF870    -
+                          WHERE (POSITION-ID = PID)
+        PRC-1           = SUBSTR (PRC-GRP,1,4)
+        PRC-2           = SUBSTR (PRC-GRP,5,4)
+        PRC-3           = SUBSTR (PRC-GRP,9,4)
+        PRC-4           = SUBSTR (PRC-GRP,13,4)
+        PRC-5           = SUBSTR (PRC-GRP,17,4)
+        PRC-6           = SUBSTR (PRC-GRP,21,4)
+        PRC-7           = SUBSTR (PRC-GRP,25,4)
+        PRC-8           = SUBSTR (PRC-GRP,29,4)
+        PRC-9           = SUBSTR (PRC-GRP,33,4)
+        PRC-10          = SUBSTR (PRC-GRP,37,4)
+        PRC             = CATENATE (PRC-1,PRC-2,PRC-3,PRC-4,PRC-5,PRC-6,PRC-7,PRC-8,PRC-9,PRC-10)
+%*
+        PRC-OK1    = CHOOSE ('N' IF (PRCI-1 <> SPACES, PRCI-1 <> PRC-1), 'Y')
+        PRC-OK2    = CHOOSE ('N' IF (PRCI-2 <> SPACES, PRCI-2 <> PRC-2), 'Y')
+        PRC-OK3    = CHOOSE ('N' IF (PRCI-3 <> SPACES, PRCI-3 <> PRC-3), 'Y')
+        PRC-OK4    = CHOOSE ('N' IF (PRCI-4 <> SPACES, PRCI-4 <> PRC-4), 'Y')
+        PRC-OK5    = CHOOSE ('N' IF (PRCI-5 <> SPACES, PRCI-5 <> PRC-5), 'Y')
+        PRC-OK6    = CHOOSE ('N' IF (PRCI-6 <> SPACES, PRCI-6 <> PRC-6), 'Y')
+        PRC-OK7    = CHOOSE ('N' IF (PRCI-7 <> SPACES, PRCI-7 <> PRC-7), 'Y')
+        PRC-OK8    = CHOOSE ('N' IF (PRCI-8 <> SPACES, PRCI-8 <> PRC-8), 'Y')
+        PRC-OK9    = CHOOSE ('N' IF (PRCI-9 <> SPACES, PRCI-9 <> PRC-9), 'Y')
+        PRC-OK10   = CHOOSE ('N' IF (PRCI-10 <> SPACES, PRCI-10 <> PRC-10), 'Y')
+%*
+        PR-SEL          = CHOOSE ('Y' IF (PRCI = SPACES), -
+                                  'Y' IF (PRC-OK1 = 'Y', -
+                                          PRC-OK2 = 'Y', -
+                                          PRC-OK3 = 'Y', -
+                                          PRC-OK4 = 'Y', -
+                                          PRC-OK5 = 'Y', -
+                                          PRC-OK6 = 'Y', -
+                                          PRC-OK7 = 'Y', -
+                                          PRC-OK8 = 'Y', -
+                                          PRC-OK9 = 'Y', -
+                                          PRC-OK10 = 'Y'), 'N')
+%*
+%*      M835 FILE
+%*
+
+%* V002 TG1 is now the new pay group after 26/4/2013
+%* need to incorporate the read of TG1 here.
+
+%* It is assumed that T01 to T14 has the same Sys Prod No
+
+        M835 = EMPLOYEE-ID FROM MSF835          -
+               WHERE    (EMPLOYEE-ID   = EMP,   -
+                         PRD-END-DATE >= FRPER) -
+               REJECTIF (TRAN-IND  <> '1')      -
+               REJECTIF (RTR-IGNORE = 'Y')      -
+               REJECTIF (PAY-PER-NO < SYSS,     -
+                         PAY-GROUP  <> 'T15',   -
+                         PAY-GROUP  <> 'TG1')   -
+               REJECTIF (PAY-PER-NO > SYSE,     -
+                         PAY-GROUP  <> 'T15',   -
+                         PAY-GROUP  <> 'TG1')   -
+               REJECTIF (PAY-PER-NO < SYST,     -
+                         PAY-GROUP  =  'T15')   -
+               REJECTIF (PAY-PER-NO > SYSF,     -
+                         PAY-GROUP  =  'T15')   -
+              REJECTIF (PAY-PER-NO   < SYSTGS,  -
+                        PAY-GROUP    =  'TG1')  -
+              REJECTIF (PAY-PER-NO   > SYSTGE,  -
+                        PAY-GROUP    =  'TG1')  
+%*
+        C           = TRAN-CODE        VIA (M835)
+        E               = C                SUPPRESS
+%*      Obtain Earnings Code Description
+        ECODE           = CATENATE ('***',C)             D-PIC (X(10))
+        EDESC           = TNAME-A OF MSF801 -
+                          WHERE (CNTL-REC-TYPE = 'A', -
+                                 CNTL-KEY-REST = ECODE)
+        R           = PAY-PER-NO       VIA (M835)
+        TD          = TRN-DATE         VIA (M835)    FORMAT (REVERSE-DATE)
+%*
+        WCDE            = CHOOSE ('Y' IF (%ET1%  = SPACES), -
+                                  'Y' IF (%ET1% <> SPACES,  -
+                                           C     = %ET1%),  -
+                                  'Y' IF (%ET2% <> SPACES,  -
+                                           C     = %ET2%),  -
+                                  'Y' IF (%ET3% <> SPACES,  -
+                                           C     = %ET3%),  -
+                                  'Y' IF (%ET4% <> SPACES,  -
+                                           C     = %ET4%),  -
+                                  'Y' IF (%ET5% <> SPACES,  -
+                                           C     = %ET5%),  -
+                                  'Y' IF (%ET6% <> SPACES,  -
+                                           C     = %ET6%),  -
+                                  'Y' IF (%ET7% <> SPACES,  -
+                                           C     = %ET7%),  -
+                                  'Y' IF (%ET8% <> SPACES,  -
+                                           C     = %ET8%),  -
+                                  'Y' IF (%ET9% <> SPACES,  -
+                                           C     = %ET9%),  -
+                                  'Y' IF (%ET10% <> SPACES,  -
+                                           C     = %ET10%),  -
+                                  'N')
+%*
+        SELC            = CHOOSE ('Y' IF (PR-SEL   = 'Y', -
+                                          PLOC-SEL = 'Y', -
+                                          WCDE     = 'Y'),-
+                                  'N')
+        L               = SELC
+        Q               = IDEMP
+        W               = IDPW
+%*
+        AMT             = AMOUNT           VIA (M835)
+        HD              = HD-AMOUNT        VIA (M835)
+        HDA             = HDA-EARN-CODE    VIA (M835)
+        I               = CHOOSE (HD IF (HD <> ZEROES, -
+                                         HDA = SPACES), AMT) D-PIC (S99999999.99)
+        D               = CHOOSE (I IF (SELC = 'Y') , 0)
+        A               = TOTAL (D)                      D-PIC (S99999999.99)
+        UNTS            = TRN-UNITS       VIA (M835)
+        UNT             = CHOOSE (UNTS IF (SELC = 'Y'), 0)
+        U               = TOTAL  (UNT)                   D-PIC (S9999999.999999)
+%*
+%*End Program
+%*

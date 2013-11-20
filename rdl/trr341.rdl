@@ -1,0 +1,441 @@
+%*** $Id:el5.2.3.2_dst/2 war341 04-Jul-07 09:00:00 Janak $
+%*** TRR341.RDL
+%***
+%************************************************************************
+%***
+%*** Program Abstract ***
+%***
+%*** ECNSW adaption of MSB341, amended to add a District
+%*** filter and to add a column into the report to display
+%*** the district.
+%***
+%************************************************************************
+%*       REJECTIF (%CCFROM% <> SPACES, COMP-CODE      < %CCFROM%)
+%*       REJECTIF (%CCTO%   <> SPACES, COMP-CODE      > %CCTO%)
+%***
+%*** Revision History ***
+%*** --------------------
+%***
+%*** 13-Aug-12 a9nh4814      MO164 (Version 0001)
+%*** ....................... Renamed RDL from WAR341 to TRR341.
+%*** ....................... Reset version number to 0001 for E8 upgrade.
+%*** 18-Mar-09 Geoff Presser 2280303               (Version 003)
+%*** ....................... Added 'MS' Assoc-Rec into csv file
+%*** 03-Sep-08 Geoff Presser 1994336               (Version 002)
+%*** ....................... Get the program to handle the checking of
+%*** ....................... Component Code correctly
+%*** 03-Jul-07 Janak Barar   SC1520979 requires two additional columns in
+%*** ....................... CSV output file.
+%*** ....................... Amended DB fields used for Upper/Lower Caution
+%*** 15-Jan-05 L Nee         WHD0695431.
+%*** ....................... Amended DB fields used for Upper/Lower Caution
+%*** ....................... and Danger levels on the CSV output file.
+%*** 01-Apr-05 L Nee         WCHG088930.
+%*** ....................... Add the measure description column to the csv file
+%*** 30-Dec-04 L Nee         WCHG081323.
+%*** ....................... Revise the CSV columns 
+%*** 05-Sep-02 RK Mahajan    WCHG005495 - Adding CSV file when Detail is extracted.
+%***                         CSV file is copied to H drive. Report A is not
+%*** 24-MAR-99 Neel Chandra. W902230039.
+%*** ....................... Bring 3.13 program and re-convert ,Incorrect
+%*** ....................... conversion done for 4.3.1.
+%*** .......................
+%*** DAVE J. 12-11-93    Original adaption from MSB341 
+%***
+%************************************************************************
+%***
+%PROGRAM-ID
+       TRR341
+%AUTHOR
+       Dave Johnstone
+%VERSION
+       0001
+%NARRATIVE
+      **  Condition Monitoring Set Report
+%FILES
+        MFILE = MSF340
+        LFILE = MSF010
+        LFILE = MSF340
+        LFILE = MSF600
+        AFILE = MSF341
+        RFILE = TRR341A
+        RFILE = TRR341B
+        OFILE = TRT341C
+%SELECTION
+%*** Enter selection criteria for MSF340
+<IF %STYPE% = 'E' AND (%EQFTY% = 'P' OR %EQTTY% = 'P')>
+       WHERE  (REC-340-TYPE    = 'S' ,-
+               TYPE-REFERENCE >= 'E')
+       STOPIF (REF-340-TYPE    > 'E')
+       REJECTIF (%CMTYPE% <> SPACES, COND-MON-TYPE <> %CMTYPE%)
+       REJECTIF (%DSTRCT% <> SPACES, DSTRCT-CODE <> %DSTRCT%)
+<ELSE>
+       WHERE  (REC-340-TYPE    = 'S', -
+               TYPE-REFERENCE >= %STYPE% & REFROM)
+       STOPIF (REFTO <> SPACES, EQUIP-NO > REFTO)
+       STOPIF (REF-340-TYPE > %STYPE%)
+       REJECTIF (%CMTYPE% <> SPACES, COND-MON-TYPE <> %CMTYPE%)
+       REJECTIF (%DSTRCT% <> SPACES, DSTRCT-CODE   <> %DSTRCT%)
+<ENDIF>
+%SORT-FIELDS
+       DS
+       EQREF
+       COMP-CODE
+       COMP-MOD-CODE
+       COND-MON-POS
+       COND-MON-TYPE
+%CONTROL-BREAKS
+       DUM
+       DS
+       EQREF
+       COMP-CODE
+       COMP-MOD-CODE
+       COND-MON-POS
+       COND-MON-TYPE
+%REPORT
+       A
+%REPORT-TITLE
+       'Condition Monitoring Set Definition DETAIL Report'
+%BREAK COND-MON-TYPE HEADING ON NEW-PAGE
+<IF REQD = 'Y'>
+  <IF %RTYPE% = 'D'>
+    <IF CCFLG = 'Y'>
+      <IF %STYPE% = 'E'>
+      
+'District'  'Equipment'        'Description'                       'Component/'                 'Position/'            'Work Group/'
+                                                                    'Modifier'                    'Type'               'Assigned to'
+{DS  }     {EQREF                       }
+                        {EQDESC1                               } CCCC {CDESC             } {POS  } {PDESC              } {WG   }
+                        {EQDESC2                               } MM   {MDESC             } TT      {TDESC              } {ASS     }
+           {L1   } Z {EQPROF                      }
+      <ELSE>
+      <IF %STYPE% = 'G'>
+'District'  'EGI'             'Description'                         'Component/'               'Position/'           'Work Group/'
+                                                                     'Modifier'                 'Type'                'Assigned to'
+{DS  }   {EGI       }  {EGIDESC                                } CCCC {CDESC             }  {POS  } {PDESC             }  {WG   }
+                                                                 MM   {MDESC             }  TT      {TDESC             }  {ASS     }
+           {L1   } Z {EQPROF                      }
+      <ELSE>
+'District'  'Component'        'Description'                                 'Position/'                        'Work Group/'
+                                                                               'Type'                           'Assigned to'
+ {DS  }    {CNO       } {EQDESC1                               }         {POS  } {PDESC             }             {WG   }
+                        {EQDESC2                               }         TT      {TDESC             }             {ASS     }
+   {L1   } Z {EQPROF                      }
+      <ENDIF>
+    <ENDIF>
+
+'Status'{STATUS }                 'Alternate position description'{APDESC            }  'Statistic Type'     SS {SDESC             }
+'Expected  Life: Component' {ECL     } AA 'Schedule according to'{SCHIND            } I 'Default Sched freq.'{FREQ    }
+                'Position'  {EPL     } BB 'Maint Schedule Task'  {MT}                   'District'           {DS}
+'Critical Process: Variable'{V1} {V1DESC            } 'Level'{V1L          }
+                            {V2} {V2DESC            } 'Level'{V2L          }
+'Standard Jobs to be invoked when following conditions apply:'
+     'Upper danger lvl:  1st meas above'{UD1 } 'Lower danger lvl:  1st meas below'{LD1 } 'Meas. rec above upper danger curve'{RUD }
+                        '2nd meas above'{UD2 }                    '2nd meas below'{LD2 } 'Meas. rec below lower danger curve'{RLD }
+     'Upper caution lvl: 1st meas above'{UC1 } 'Lower caution lvl: 1st meas below'{LC1 } 'Positive rate of change'           {PRC }
+                        '2nd meas above'{UC2 }                    '2nd meas below'{LC2 } 'Negative rate of change'           {NRC }
+'Minimum no. of tests to perform when alarm level reached'NNN
+
+    <ENDIF>
+  <ENDIF>
+<ENDIF>
+%DETAIL
+<IF REQD = 'Y'>
+  <IF %RTYPE% = 'D'>
+   <IF CCFLG = 'Y'>
+    <IF MEAS <> SPACES>
+'Measurement Type'{MEAS   } {MEDESC       }
+        'Base Measurement'  {BM           }'Derived Measurement'{DM1   } X {DM2   }
+        'Danger Meas. Upper'{DMU          }'Caution Meas. Upper'{CMU          }'Rate of change trigger Positive'{RCP          }
+                     'Lower'{DML          }              'Lower'{CML          }                       'Negative'{RCN          }
+'Expected Measurements:'
+                               'New'      '50% Used'      '60% Used'      '70% Used'      '80% Used'      '90% Used'           'End'
+'Upper Danger Curve'{UN           } {U50          } {U60          } {U70          } {U80          } {U90          } {UE           }
+'Normal'            {NN           } {N50          } {N60          } {N70          } {N80          } {N90          } {NE           }
+'Lower Danger Curve'{LN           } {L50          } {L60          } {L70          } {L80          } {L90          } {LE           }
+
+    <ENDIF>
+   <ENDIF>
+  <ENDIF>
+<ENDIF>
+%REPORT-SUMMARY
+
+' ------------------------***   End  Of  the  TRR341A  Report   ***--------------------------------- '
+%REPORT
+       B
+%REPORT-TITLE
+       'Condition Monitoring Set Definition SUMMARY Report'
+%PAGE HEADING
+<IF REQD = 'Y'>
+ <IF CCFLG = 'Y'>
+  <IF %RTYPE% = 'S'>
+    <IF %STYPE% = 'E'>
+'District'  'Equipment'           'Description'                'Component/'              'Position/'                  'Work Group/'
+                                                                'Modifier'                'Type'                       'Assigned to'
+    <ELSE>
+      <IF %STYPE% = 'G'>
+'District' 'EGI'  'Description'                               'Component/'             'Position/'                   'Work Group/'
+                                                              'Modifier'                 'Type'                        'Assigned to'
+      <ELSE>
+'District' 'Component'          'Description'                                         'Position/'                   'Work Group/'
+                                                                                       'Type'                        'Assigned to'
+      <ENDIF>
+    <ENDIF>
+   <ENDIF>
+  <ENDIF>
+<ENDIF>
+%BREAK COND-MON-TYPE HEADING TEST-PAGE (3)
+<IF REQD = 'Y'>
+ <IF CCFLG = 'Y'>
+  <IF %RTYPE% = 'S'>
+    <IF %STYPE% = 'E'>
+ {DS  }  {EQREF                       }
+                      {EQDESC1                               } CCCC {CDESC             } {POS  } {PDESC              } {WG   }
+                      {EQDESC2                               } MM   {MDESC             } TT      {TDESC              } {ASS     }
+         {L1   }    Z {EQPROF                      }
+    <ELSE>
+      <IF %STYPE% = 'G'>
+ {DS  } {EGI       } {EGIDESC                                } CCCC {CDESC             } {POS  } {PDESC             }  {WG   }
+        {L1   }    Z {EQPROF                      }            MM   {MDESC             } TT      {TDESC             }  {ASS     }
+      <ELSE>
+ {DS  } {CNO       } {EQDESC1                               }                            {POS  } {PDESC             }  {WG   }
+                     {EQDESC2                               }                            TT      {TDESC             }  {ASS     }
+        {L1   }    Z {EQPROF                      }
+      <ENDIF>
+     <ENDIF>
+    <ENDIF>
+  <ENDIF>
+
+<ENDIF>
+%REPORT-SUMMARY
+
+' ------------------------***   End  Of  the  TRR341B  Report   ***--------------------------------- '
+%OUTPUT-FILE
+       C
+%CONTROL
+       RECORD-LENGTH = 250
+%BREAK-FIELDS
+       DUM
+%BREAK DUM HEADING
+{HDG1                                                                         }-
+{HDG2                                                                                            }-
+{HDG3                                            }
+%DETAIL
+<IF CSVFLG = 'Y'>
+%*       1         2         3         4         5         6         7         
+%* 4567890123456789012345678901234567890123456789012345678901234567890123456789
+FP{EQREF                        }PCCCCPMMP{POS  }PTTP{STATUS }P{WG   }P{FREQ    }PIP{MEAS   }P{CML          }-
+P{CMU          }P{DML          }P{DMU          }P{BM           }-
+PQ{MEDESC                                }QP{ASSREC      }
+<ENDIF>
+%REQUEST-PARAMETERS
+       RTYPE   PIC (X)     TEXT 'Detail or Summary Report'
+       STYPE   PIC (X)     TEXT 'Reference Type'
+       EQFTY   PIC (X)
+       EQFROM  PIC (X(30)) TEXT 'Equipment Reference Range: from'
+       EQTTY   PIC (X)
+       EQTO    PIC (X(30)) TEXT '                             to'
+       EGIFROM PIC (X(12)) TEXT 'Equipment Group Id Range:  from'
+       EGITO   PIC (X(12)) TEXT '                             to'
+       CCFROM  PIC (X(4))  TEXT 'Component Code Range:      from'
+       CCTO    PIC (X(4))  TEXT '                             to'
+       CMTYPE  PIC (XX)    TEXT 'Condition Monitoring Type'
+       DSTRCT  PIC (X(4))  TEXT 'District Code'
+%VARIABLES
+       EF      = %EQFROM%  CONSTANT
+       ET      = %EQTO%    CONSTANT
+       GF      = %EGIFROM% CONSTANT
+       GT      = %EGITO%   CONSTANT
+
+       REFROM  = choose (EF IF (%STYPE% = 'E'), -
+                         GF IF (%STYPE% = 'G'), -
+                         SPACES) CONSTANT
+       REFTO   = choose (ET IF (%STYPE% = 'E'), -
+                         GT IF (%STYPE% = 'G'), -
+                         SPACES) CONSTANT
+       PON     = choose ('Y' IF (%EQFTY% = 'P' OR %EQTTY% = 'P'), -
+                         'N') CONSTANT
+       F       = REF-340-TYPE
+       C       = COMP-CODE
+%*
+       EQUIP  = EQUIP-NO
+       PNO    = PLANT-NO OF MSF600 WHERE (EQUIP-NO = EQUIP)
+       EQDESC1 = ITEM-NAME-1 VIA (PNO)
+       EQDESC2 = ITEM-NAME-2 VIA (PNO)
+       COMPCDE = COMP-CODE   VIA (PNO)   
+%*
+       CCFLG   = choose ('Y' IF (%CCFROM% = SPACES, %CCTO% = SPACES)   ,-
+                         'Y' IF (C >= %CCFROM%,C <= %CCTO%),-
+                         'N')
+%*
+       EQREF   = choose (PNO IF (PNO <> SPACES), -
+                         EQUIP)
+%*
+       REQD    = choose ('Y' IF (PON = 'N'), -
+                         'N' IF (PON = 'Y', PNO < %EQFROM%), -
+                         'N' IF (PON = 'Y', %EQTO% <> SPACES, PNO > %EQTO%), -
+                         'Y')
+       CNO     = EQUIP-NO
+%*
+       EGI     = EQUIP-GRP-ID
+       EGIDESC = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'GI', -
+                        TABLE-CODE = EGI)
+
+       CDESC   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'CO', -
+                        TABLE-CODE = C)
+       M       = COMP-MOD-CODE
+       MDESC   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'MO', -
+                        TABLE-CODE = M)
+       POS     = COND-MON-POS
+       PDESC   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'PM', -
+                        TABLE-CODE = POS)
+       T       = COND-MON-TYPE
+       TDESC   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'OI', -
+                        TABLE-CODE = T)
+%*
+       WG      = WORK-GROUP
+       ASS     = ASSIGN-TO
+       PROF    = CM-PROFILE-REF
+       Z       = CM-PROFILE-TY
+       PROFPNO = PLANT-NO OF MSF600 -
+                 WHERE (EQUIP-NO = PROF)
+%*
+       L1      = choose ('Profile' IF (PROF <> SPACES), -
+                         SPACES)
+       EQPROF  = choose (PROFPNO IF (PROFPNO <> SPACES), -
+                         PROF)
+       EQ      = choose (PROF IF (PROF <> SPACES), -
+                         EQUIP)
+       TYPE    = choose (Z IF (PROF <> SPACES), -
+                         F)
+       STAT    = STATUS-340
+       STATUS  = choose ('Active'    IF (STAT = 'A'), -
+                         'Deleted'   IF (STAT = 'D'), -
+                         'Inactive'  IF (STAT = 'I'), -
+                         'Processed' IF (STAT = 'P'), -
+                         'Unknown')
+       DS      = DSTRCT-CODE
+       S       = STAT-TYPE  OF MSF340 -
+                 WHERE (REC-340-TYPE   = 'S', -
+                        TYPE-REFERENCE = TYPE & EQ, -
+                        COMP-MOD-DATA  = C & M, -
+                        COND-MON-POS   = POS, -
+                        COND-MON-TYPE  = T)
+       APDESC  = ALT-POS-DESC           VIA (S)
+       SDESC   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'SS', -
+                        TABLE-CODE = S)
+       ECL     = EST-COMP-LIFE OF MSF340 -
+                 WHERE (REC-340-TYPE   = 'C', -
+                        TYPE-REFERENCE = TYPE & EQ, -
+                        COMP-MOD-DATA  = C & M, -
+                        COND-MON-POS   = SPACES, -
+                        COND-MON-TYPE  = SPACES)
+       A       = COMP-STAT-TYPE         VIA (ECL)
+       ADESC   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'SS', -
+                        TABLE-CODE = A)
+       EPL     = EST-POS-LIFE           VIA (S)
+       B       = POS-STAT-TYPE          VIA (S)
+       BDESC   = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'SS', -
+                        TABLE-CODE = B)
+       IND     = SCHED-IND VIA (S)
+       I       = IND
+       SCHIND  = choose ('Last Scheduled Date' IF (IND = '1'), -
+                         'Last Scheduled Stat' IF (IND = '2'), -
+                         'Last Performed Date' IF (IND = '3'), -
+                         'Last Performed Stat' IF (IND = '4'), -
+                         'Schedule Inactive  ' IF (IND = '9'), -
+                         SPACES)
+       FREQ    = DFLT-SCH-FREQ          VIA (S)
+       MT      = MAINT-SCH-TASK         VIA (S)
+       V1      = CRIT-PROC-VAR-1        VIA (S)
+       V1DESC  = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'CP', -
+                        TABLE-CODE = V1)
+       V1L     = CRIT-PROC-LEVL-1       VIA (S)
+       V2      = CRIT-PROC-VAR-2        VIA (S)
+       V2DESC  = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'CP', -
+                        TABLE-CODE = V2)
+       V2L     = CRIT-PROC-LEVL-2       VIA (S)
+       UD1     = SJ-DANGER-1-U          VIA (S)
+       UD2     = SJ-DANGER-2-U          VIA (S)
+       LD1     = SJ-DANGER-1-L          VIA (S)
+       LD2     = SJ-DANGER-2-L          VIA (S)
+       RUD     = SJ-DANG-CVE-U          VIA (S)
+       RLD     = SJ-DANG-CVE-L          VIA (S)
+       UC1     = SJ-CAUTION-1-U         VIA (S)
+       UC2     = SJ-CAUTION-2-U         VIA (S)
+       LC1     = SJ-CAUTION-1-L         VIA (S)
+       LC2     = SJ-CAUTION-2-L         VIA (S)
+       PRC     = SJ-RATE-CHGE-P         VIA (S)
+       NRC     = SJ-RATE-CHGE-N         VIA (S)
+       N       = MIN-ALARM-TEST         VIA (S)
+%*
+       MEAS    = COND-MON-MEAS FROM MSF341 -
+                 WHERE (TYPE-REFERENCE = TYPE & EQ, -
+                        COMP-MOD-DATA  = C & M, -
+                        COND-MON-POS   = POS, -
+                        COND-MON-TYPE  = T, -
+                        COND-MON-MEAS >= SPACES)
+       MEDESC  = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'MS', -
+                        TABLE-CODE = MEAS)
+       ASSREC  = ASSOC-REC              VIA (MEDESC)
+%*
+       BM      = MEAS-BASE              VIA (MEAS) D-PIC ------9.999999
+       DM1     = DERIVE-MEAS-1          VIA (MEAS)
+       X       = DERIVE-OPER            VIA (MEAS)
+       DM2     = DERIVE-MEAS-2          VIA (MEAS)
+       DMU     = MEAS-DANG-UPPR         VIA (MEAS) D-PIC ------9.999999
+       DML     = MEAS-DANG-LOWR         VIA (MEAS) D-PIC ------9.999999
+       CMU     = MEAS-CAUT-UPPR         VIA (MEAS) D-PIC ------9.999999
+       CML     = MEAS-CAUT-LOWR         VIA (MEAS) D-PIC ------9.999999
+       RCP     = RATE-CHNG-POS          VIA (MEAS)
+       RCN     = RATE-CHNG-NEG          VIA (MEAS)
+       NN      = MEAS-PRED-NEW-N        VIA (MEAS)
+       N50     = MEAS-PRED-50-N         VIA (MEAS)
+       N60     = MEAS-PRED-60-N         VIA (MEAS)
+       N70     = MEAS-PRED-70-N         VIA (MEAS)
+       N80     = MEAS-PRED-80-N         VIA (MEAS)
+       N90     = MEAS-PRED-90-N         VIA (MEAS)
+       NE      = MEAS-PRED-END-N        VIA (MEAS)
+       UN      = MEAS-PRED-NEW-U        VIA (MEAS)
+       U50     = MEAS-PRED-50-U         VIA (MEAS)
+       U60     = MEAS-PRED-60-U         VIA (MEAS)
+       U70     = MEAS-PRED-70-U         VIA (MEAS)
+       U80     = MEAS-PRED-80-U         VIA (MEAS)
+       U90     = MEAS-PRED-90-U         VIA (MEAS)
+       UE      = MEAS-PRED-END-U        VIA (MEAS)
+       LN      = MEAS-PRED-NEW-L        VIA (MEAS)
+       L50     = MEAS-PRED-50-L         VIA (MEAS)
+       L60     = MEAS-PRED-60-L         VIA (MEAS)
+       L70     = MEAS-PRED-70-L         VIA (MEAS)
+       L80     = MEAS-PRED-80-L         VIA (MEAS)
+       L90     = MEAS-PRED-90-L         VIA (MEAS)
+       LE      = MEAS-PRED-END-L        VIA (MEAS)
+%*
+       CSVFLG  = choose ('Y' IF (REQD    = 'Y', -
+                                 %RTYPE% = 'D', -
+                                 CCFLG   = 'Y', -
+                                 MEAS   <> SPACES), -
+                         'N')
+%*
+%* Create the info for CSV file headings and DUMMY constant to create First Line
+%* as heading line in CSV file.
+       HDG1    = 'EGI Type,EGI Ref,Comp Code,Mod Code,Position Code,CM Type,CM Status,Work Group,'
+       HDG2    = 'Sched Freq,Sched Ind,Measure Type,Lower Caution,Upper Caution,Lower Danger,Upper Danger,Baseline,'
+       HDG3    = 'Description,Assoc Value'
+       P       = ','                    CONSTANT
+       Q       = '"'                    CONSTANT
+       DUMMY   = 'Y'                    CONSTANT
+       DUM     = choose ('Y' IF (DUMMY = 'Y'), DUMMY)
+%*
+%* -------------------  End  of  the  program  ------------------------------

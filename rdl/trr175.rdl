@@ -1,0 +1,146 @@
+%***  $Id: trr175.rdl,v1.0 23/04/2012 16:00:00 Exp $
+%*** TRR175.RDL
+%***
+%**  Copyright (c) 1999, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 18-Sep-12 N Perry       MO164 ---
+%*** ......................  Changed getting WHOUSE to be from MSF1CS
+%*** ......................  and SOH from MSF1HD
+%*** 27-Jul-12 N Perry       MO164 (Version 0001)
+%*** ......................  Removed 4 unreferenced variables.       
+%*** ......................  Reset version to 0001 to Ellipse 8 format.
+%*** ......................  Changed program to get SOH using MSSSOH 
+%*** ......................  as SOH field is no longer exist in MSF180 now.
+%*** 16-Apr-2012  E Fredeluces  SC3932131
+%***                            Include the warehouse from the report.
+%*** 25-Mar-1999 JN             W903240010
+%***                            Put 'Other' Column in report - as catchall
+%***                            Printed "other" items with values
+%PROGRAM-ID
+       TRR175
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      ***
+      *** This program produces Inventory Dissection Summary Report
+      *** for Stock type 'C','G','S','T'
+      ***
+      *** Initial Coding : Rakesh Kumar Mahajan (W811200016)
+      ***
+%FILES
+       MFILE = MSF170
+       AFILE = MSF1HD
+       LFILE = MSF1CS
+       RFILE = TRR175A
+%VERSION
+      0002
+%ROUTINES
+      MSSSOH
+%SELECTION
+<IF %DC% <> SPACES>
+      WHERE  (DSTRCT-CODE >= %DC%,-
+              DSTRCT-CODE <= %DC%)
+<ELSE>
+      WHERE  (DSTRCT-CODE >= SPACES)
+<ENDIF>
+%ORDER
+      DSTRCT-CODE
+      WH
+%CONTROL-BREAKS 
+      DSTRCT-CODE
+      WH
+%REPORT-TITLE
+'Materials Management Information System'
+%PAGE HEADING 
+                                         'Inventory Dissection Summary Report'
+{UNDERLINE                                                                                                                         }
+ 'Districts'
+
+' Warehouse                     Capital Spares    System Spares     Trans Spares      General Lines        District TOTALS' 
+'                       Other    Stock C - 545    Stock S - 562     Stock T - 546        Stock - G '
+
+%DETAIL
+<IF OAMT <> 0, WH-FLG = 'Y'>
+
+'                        ( "Other" Stock item:'{SC     } {DST} {VAL         }')'
+<ENDIF>
+%BREAK WH FOOTING
+<IF WH-FLG = 'Y', TDAMT <> 0>
+   {WH}        {TOAMT       }   {TCAMT       }   {TSAMT       }   {TTAMT       }    {TGAMT       }        {TDAMT         }
+
+<ENDIF>
+%BREAK DSTRCT-CODE FOOTING
+{DST}          {TOAMT       }   {TCAMT       }   {TSAMT       }   {TTAMT       }    {TGAMT       }        {TDAMT         }
+{UNDERLINE                                                                                                                         }
+
+%REPORT-SUMMARY
+{UNDERLINE                                                                                                                         }
+
+'Totals '      {TOAMT       }   {TCAMT       }   {TSAMT       }   {TTAMT       }    {TGAMT       }        {TDAMT         }
+
+{UNDERLINE                                                                                                                         }
+
+                                                    '*** End Of Report ***'
+%REQUEST-PARAMETERS
+       DC           D-PIC (X(4))   TEXT  'District Code (Blank for all): '
+       WHID         D-PIC (X(4))   TEXT  'Whouse-Id     (Blank for all): '
+%VARIABLES     
+%* Main File
+       DST    = DSTRCT-CODE
+       B1     = STOCK-TYPE
+       SC     = STOCK-CODE
+       MFLAG  = CATEG-MGT-FLG
+       PRC170 = INVENT-COST-PR
+       CATSW  = CAT-COST-SW
+
+       SOH180 = SOH FROM MSF1HD -
+                WHERE    (STOCK-CODE = SC, -
+                          CUSTODIAN-ID >= SPACES) -
+                SELECTIF (STK-OWNERSHP-IND = 'O') -
+                SELECTIF (STK-OWNERSHP-IND = 'C') -
+                REJECTIF (HOLDING-TYPE    <> 'F')
+
+       CUST-ID = CUSTODIAN-ID VIA (SOH180)
+
+       WH = WHOUSE-ID OF MSF1CS -
+            WHERE    (CUSTODIAN-ID   >= CUST-ID, -
+                      CUSTODIAN-ID   <= CUST-ID) -
+            REJECTIF (CUSTODIAN-TYPE <> 'W') -
+            MAX (1)
+
+       WH-FLG = CHOOSE ('N' IF (WH      = SPACES), -
+                        'Y' IF (%WHID%  = SPACES), -
+                        'Y' IF (WH      = %WHID%,  -
+                                %WHID% <> SPACES), -
+                        'N')
+
+%*  Calculate Invetory Value for Non-Category Managed item
+       INVVAL = CALC (SOH180 * PRC170)
+
+       VAL    = CHOOSE (INVVAL IF (WH-FLG = 'Y'), 0) D-PIC (---,---,--9.99)
+
+%* Other Stock Type
+       OT     = CHOOSE (' ' IF (B1 = 'C'), -
+                        ' ' IF (B1 = 'G'), -
+                        ' ' IF (B1 = 'S'), -
+                        ' ' IF (B1 = 'T'), -
+                        'OTH')      
+
+%* Get value for each stock type
+       CAMT     = choose (VAL  IF ( B1 = 'C'), 0)    D-PIC (---,---,--9.99)
+       GAMT     = choose (VAL  IF ( B1 = 'G'), 0)    D-PIC (---,---,--9.99) 
+       SAMT     = choose (VAL  IF ( B1 = 'S'), 0)    D-PIC (---,---,--9.99)
+       TAMT     = choose (VAL  IF ( B1 = 'T'), 0)    D-PIC (---,---,--9.99)
+       OAMT     = choose (VAL  IF ( OT = 'OTH'), 0)  D-PIC (---,---,--9.99) 
+
+%* Totals for each stock type
+       TCAMT     = TOTAL(CAMT)                D-PIC (---,---,--9.99) 
+       TGAMT     = TOTAL(GAMT)                D-PIC (---,---,--9.99) 
+       TSAMT     = TOTAL(SAMT)                D-PIC (---,---,--9.99)
+       TTAMT     = TOTAL(TAMT)                D-PIC (---,---,--9.99)
+       TOAMT     = TOTAL(OAMT)                D-PIC (---,---,--9.99)
+       TDAMT     = TOTAL(VAL)                 D-PIC (---,---,--9.99)
+
+%* End Of Program      

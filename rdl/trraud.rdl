@@ -1,0 +1,361 @@
+%*** TRRAUD.RDL
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History:
+%*** 11-Nov-05 E Fredeluces  P05110870
+%***                         Fix compilation errors in Ellipse 5.2.3.7.
+%*** 08-Nov-2001  D. Rae     WCHG00070
+%***                         Changed read of MSF835 to include RTR-IGNORE
+%***                         transaction and exclude PREV-RETRO Flagged
+%***                         transactions.
+%***                         Also add code to get the employees substantive
+%***                         rate from MSF830 when a transaction is
+%***                         processed. Also output details for both normal
+%***                         and higher duty rates and amounts.
+%***                         The output file is still 1500 bytes, but the
+%***                         actual data is 1324 bytes.
+%*** 04-Oct-2001  D. Rae     W01090763
+%***                         Initial Coding.
+%***
+%PROGRAM-ID
+       TRRAUD
+%AUTHOR
+       David Rae
+%NARRATIVE
+  **  This will extract records records from the Payroll system and
+  **  create a CSV file of these details. Information extracted will be
+  **  the same information as diaplayed on the employee payrol details
+  **  screen MSM820A, the personal details screen MSM760A, the payroll
+  **  transactions screen MSM835A and the employee banking details
+  **  screen MSM8EF.
+  **  The payroll transactions are extracted for the all pay week
+  **  ending dates from the the input parameters.
+  **  The output is a CSV file with a record lenght of 1500 bytes. The
+  **  actaul data is only 1324 bytes, but I have allowed additional
+  **  characters in the event the extra data is required. This means
+  **  that the batch table block/unblock will not need to be changed
+  **  if additional data is added to the output(provided new record
+  **  lenght does not exceed 1500 bytes).
+  **  A header records is output to the CSV with a short description
+  **  of each field.
+  **
+
+%VERSION
+       001A
+%MODULE
+       3140
+%FILES
+        MFILE = MSF820
+        LFILE = MSF760
+        LFILE = MSF822
+        LFILE = MSF827
+        LFILE = MSF828
+        LFILE = MSF829
+        LFILE = MSF830
+        LFILE = MSF824
+        LFILE = MSF835
+        LFILE = MSF878A
+        LFILE = MSF870
+        LFILE = MSF835
+        OFILE = TRTAUDA
+%SELECTION
+<IF %EMPID% = SPACES>
+       WHERE    (EMPLOYEE-ID >= SPACES)
+       SELECTIF (%PPAYGRP% = SPACES)
+       SELECTIF (%PPAYGRP% <> SPACES,-
+                 PAY-GROUP = %PPAYGRP%)
+<ELSE>
+       WHERE    (EMPLOYEE-ID >= %EMPID%,-
+                 EMPLOYEE-ID <= %EMPID%)
+<ENDIF>
+%CONTROL-BREAKS
+       DUM
+%OUTPUT-FILE
+       A
+%CONTROL
+       RECORD-LENGTH = 1500
+%BREAK DUM HEADER
+{HDG                                                                                                -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                                                    -
+                                                                    }
+%DETAIL
+<IF PRT = 'Y'>
+<REPEAT>
+{EMP     }CQ{ENAME                          }QC{POSN    }CQ{PRC                                   }QC-
+{PAYGRP}C{PGPR}C{GTODT }C{AWARD}C{AREAS}C{ATODT }C{PAYLOC}C{SHFT}C-
+{ECLASS}C{CONTHR}C{PROT}C{PTDTE }C-
+{PPDADV}C{LSTDTE}C{DEDFR}C{DEDTO}C{EPOST}C-
+{WKDATE}C-
+{WKHOUR}C{GTDATE}CQ{DREF  }QC{NEGNET}C-
+{GEN}C{DEP}CQ{PLST                        }QC{PREVID  }C{MSTAT}C{UNION}C{ETYPE}C-
+{SCAT}C{WLOC}C{PLOC}C{PREAS}C{PTODT }C-
+{SRATE}C{RREAS}C-
+{NAT}C{REHIRE}C{DOB   }C{COB}C{HIREDT}C{STAT}C-
+{SUSDTE}C{BFTERM}C{TERMDT}C{DOD   }C-
+{DREAS}C{SERVDT}C{PSERVDT}C{RETDT }C-
+{RINSDT}C-
+{BCASH}C{BCSHAMT      }C{BCHQ}C{BCHQAMT      }C-
+{BBANK1}C{BBNKAMT1     }C{BSB1         }C{BATYPE1}C{BANO1             }CQ{BANAME1                               }QC-
+{BBANK2}C{BBNKAMT2     }C{BSB2         }C{BATYPE2}C{BANO2             }CQ{BANAME2                               }QC-
+{BBANK3}C{BBNKAMT3     }C{BSB3         }C{BATYPE3}C{BANO3             }CQ{BANAME3                               }QC-
+{BBANK4}C{BBNKAMT4     }C{BSB4         }C{BATYPE4}C{BANO4             }CQ{BANAME4                               }QC-
+{BBANK5}C{BBNKAMT5     }C{BSB5         }C{BATYPE5}C{BANO5             }CQ{BANAME5                               }QC-
+{PEND  }C{NTYPE}C{TTYPE}C{TCODE}C{TUNIT      }C-
+{NAMT         }CQ{NRATE}QC{HDAMT        }CQ{HDRATE}QC-
+{TDATE }C{BATCH}C{RETRO}
+<ENDREPEAT>
+<ENDIF>
+%REQUEST-PARAMETERS
+    EMPID  PIC (X(10)) TEXT 'Employee Id'
+    PPAYGRP PIC (X(3)) TEXT 'Pay Group '
+    PSTART PIC (X(8))  TEXT 'Period Start Date' FORMAT(DATE)
+    PEND   PIC (X(8))  TEXT 'Period End Date' FORMAT(DATE)
+%VARIABLES
+%*
+%* Constants
+%*
+      HDG1   = 'Emp-Id,Eployee-Name,Position,Rpt-Code,'     constant
+      HDG2   = 'Pay-Grp,Reas,Pay-To,Award,Reas,Award-To,Pay-Locn,Shft-Cat,' constant
+      HDG3   = 'Emp-Class,Cont-Hrs,Auto_Pd,Prot-Net,Paid-To,'    constant
+      HDG4   = 'Pd-Adv,Lv-Start,Deds-From,Deds-To,Post-Slip,'    constant
+      HDG5   = 'Lst-Wk-Dt,'       constant
+      HDG6   = 'Lst-Wk-Hr,Gen-To-Dt,Data-Ref,Neg-Net,'           constant
+      HDG7   = 'Gender,Depend,Prv-Name,Prv-Emp,Marital,Union,Emp-Type,'  constant
+      HDG8   = 'Staff-Cat,Wrk-Loc,Phys-Loc,Ploc-Reas,Ploc-To,'  constant
+      HDG9   = 'Subs-Rate,Rate-Reas,'                           constant
+      HDG10  = 'Nation,Rehire,DOB,Country,Hire-Date,Status,'    constant
+      HDG11  = 'Susp-Date,Bona-Term,Term-Date,Death-Date,'      constant
+      HDG12  = 'Death-Reas,Serv-Date,Pro-Sdate,Retire-Date,'    constant
+      HDG13  = 'Reins-Date,'                                    constant
+      HDG14  = 'Cash,Cash-Amt,Cheque, Cheque-Amt,'             constant
+      HDG15  = 'Bank,Bank-Amt,BSB,Acc-Type,Acc-No,Acc-Name,'    constant
+      HDG16  = 'Bank,Bank-Amt,BSB,Acc-Type,Acc-No,Acc-Name,'    constant
+      HDG17  = 'Bank,Bank-Amt,BSB,Acc-Type,Acc-No,Acc-Name,'    constant
+      HDG18  = 'Bank,Bank-Amt,BSB,Acc-Type,Acc-No,Acc-Name,'    constant
+      HDG19  = 'Bank,Bank-Amt,BSB,Acc-Type,Acc-No,Acc-Name,'    constant
+      HDG20  = 'Per-End,Env-Typ,Trn-Typ,Trn-Cd,Trn-Units,'      constant
+      HDG21  = 'Norm-Amt,Norm-Rate,HD-Amt,HD-Rate,'             constant
+      HDG22  = 'Tran-Dt,Batch,Retro'                            constant
+      HDG    = catenate (HDG1,HDG2,HDG3,HDG4,HDG5,HDG6,HDG7,-
+                         HDG8,HDG9,HDG10,HDG11,HDG12,HDG13,-
+                         HDG14,HDG15,HDG16,HDG17,HDG18,HDG19,-
+                         HDG20,HDG21,HDG22)                      constant
+      C      = ','                                               constant
+      Q      = '"'                                               constant
+      WCURDT = WX-CUR-PERIOD-END-DATE                           constant
+      WCONS = WX-CONS-YTD-TOTS                                  constant
+      WPAYGP = WX-PAY-GROUP                                     constant
+      PAYGP1 = choose(SPACES IF (WCONS = 'Y'),WPAYGP)          constant
+%*
+%* MSF820 Variables
+%*
+      EMP    = EMPLOYEE-ID
+      DUM    = choose ('Y' IF (EMP = EMP), 'Y')
+      EMPZ   = HRGET (EMPLOYEE-ID FROM('MSF810,MSSEMP') -
+                   KEY(EMPLOYEE-ID = EMP ) )
+      ENAME  = FORMATTED-NAME via (EMPZ)
+      PAYGRP = PAY-GROUP
+      PAYLOC = PAY-LOCATION
+      SHFT   = SHIFT-CAT
+      ECLASS = EMPLOYEE-CLASS
+      CONTHR = CONTRACT-HOURS
+%*    APAID   = AUTO-PAID-EMP
+      PROT    = PROTECT-NET
+      PTDTE   = PAID-TO-DATE FORMAT(DATE)
+      PPDADV  = PRD-PAID-ADV
+      LSTDTE  = LVE-ST-DATE FORMAT(DATE)
+      DEDFR   = DED-FROM-PER
+      DEDTO   = DED-TO-PER
+      EPOST   = ENV-TO-POST
+%*    RDOBNK  = AVGE-TIME-BANK
+%*    STBANK  = START-LVE-BANK
+%*    ENBANK  = END-LVE-BANK
+      WKDATE  = WORK-WEEK-DT FORMAT (DATE)
+      WKHOUR  = WORK-WEEK-HRS
+      GTDATE  = GEN-TO-DATE FORMAT (DATE)
+      DREF    = DATA-REF-NO
+      NEGNET  = NEG-NET-ORIDE
+%*
+%* MSF760 Variables
+%*
+      HIREDT = HIRE-DATE of MSF760 -
+                      where (EMPLOYEE-ID = EMP) FORMAT(DATE)
+      GEN    = GENDER via (HIREDT)
+      DEP    = DEPENDANTS via (HIREDT)
+      PLST   = PREV-SURNAME via (HIREDT)
+      PREVID = PREV-EMP-ID via (HIREDT)
+      MSTAT  = MARITAL-STATUS via (HIREDT)
+      UNION  = UNION-CODE via (HIREDT)
+      ETYPE  = EMP-TYPE via (HIREDT)
+      SCAT   = STAFF-CATEG via (HIREDT)
+      WLOC   = WORK-LOC via (HIREDT)
+      NAT    = NATIONALITY via (HIREDT)
+      REHIRE = REHIRE-CODE via (HIREDT)
+      DOB    = BIRTH-DATE via (HIREDT) FORMAT(DATE)
+      COB    = BIRTH-CNTRY via (HIREDT)
+      STAT   = EMP-STATUS via (HIREDT)
+      SUSDTE = SUSPEND-DATE via (HIREDT) FORMAT(DATE)
+      BFTERM = BONAFIDE-TERM via (HIREDT)
+      TERMDT = TERM-DATE via (HIREDT) FORMAT(DATE)
+      DOD    = DEATH-DATE via (HIREDT) FORMAT(DATE)
+      DREAS  = DEATH-REASON via (HIREDT)
+      SERVDT = SERVICE-DATE via (HIREDT) FORMAT(DATE)
+      PSERVDT = PRO-SERV-DATE via (HIREDT) FORMAT(DATE)
+      RETDT   = RETIRE-DATE via (HIREDT) FORMAT(DATE)
+      POSDT1 = choose (HIREDT IF (HIREDT > WCURDT),WCURDT) I-PIC (9(8))
+      POSDT2 = CALC(99999999 - POSDT1)
+      POSDT  = choose (POSDT2 IF(POSDT2 = 0),POSDT2) I-PIC(X(8))
+%*
+%*  MSF878 Variables
+%*
+      POSN   = POSITION-ID of MSF878A                -
+                     where (EMPLOYEE-ID-1   = EMP,   -
+                            PRIMARY-POS-1   = '0',   -
+                            INV-STR-DATE-1 >= POSDT) -
+                       max (1)
+%*
+%*  MSF870 Variables
+%*
+      PRC    = PRIM-RPT-GRP of MSF870 -
+                         where (POSITION-ID = POSN)
+      POSTIT = POS-TITLE via (PRC)
+%*
+%*  MSF827 Variables
+%*
+      PGPR   = CHANGE-REASON of MSF827-
+                          where (EMPLOYEE-ID = EMP,-
+                                 INV-STR-DATE >= POSDT) -
+                            max (1)
+      GTODT  = END-DATE via (PGPR) FORMAT(DATE)
+%*
+%*  MSF828 Variables
+%*
+      AWARD  = AWARD-CODE of MSF828-
+                       where (EMPLOYEE-ID = EMP,-
+                              INV-STR-DATE >= POSDT)-
+                         max (1)
+      AREAS   = CHANGE-REASON via (AWARD)
+      ATODT   = END-DATE via (AWARD) FORMAT(DATE)
+%*
+%*  MSF824 Variables
+%*
+      RINSDT  = REINST-DATE of MSF824 -
+                         where (EMPLOYEE-ID = EMP,-
+                                CONS-PAY-GRP = PAYGRP) FORMAT(DATE)
+%*
+%*  MSF829 Variables
+%*
+      PLOC   = PHYSICAL-LOC of MSF829-
+                         where (EMPLOYEE-ID = EMP,-
+                                INV-STR-DATE >= POSDT)-
+                           max (1)
+      PREAS  = CHANGE-REASON via (PLOC)
+      PTODT  = END-DATE via (PLOC) FORMAT(DATE)
+%*
+%*  MSF830 Variables
+%*
+      SRATE  = RATE-REF-CODE of MSF830-
+                         where (EMPLOYEE-ID = EMP,-
+                                INV-STR-DATE >= POSDT)-
+                           max (1)
+      RREAS  = CHANGE-REASON via (SRATE)
+%*
+%*  MSF822 Variables
+%*
+      BCASH1 = BANKING-TYPE of MSF822 -
+                         where (EMPLOYEE-ID = EMP,-
+                                CONS-PAY-GRP = PAYGP1,-
+                                DEDN-CODE >= SPACES) -
+                      selectif (BANKING-TYPE = 'C')-
+                           max(1)
+      BCASH   = choose ('N' IF(BCASH1 = SPACES),'Y')
+      BCSHAMT = DED-FACTOR via (BCASH1)
+      BCHQ1  = BANKING-TYPE of MSF822 -
+                         where (EMPLOYEE-ID = EMP,-
+                                CONS-PAY-GRP = PAYGP1,-
+                                DEDN-CODE >= SPACES) -
+                      selectif (BANKING-TYPE = 'Q')-
+                           max(1)
+      BCHQ    = choose ('N' IF(BCHQ1 = SPACES),'Y')
+      BCHQAMT = DED-FACTOR via (BCHQ1)
+      BBANKX = BANKING-TYPE of MSF822 -
+                         where (EMPLOYEE-ID = EMP,-
+                                CONS-PAY-GRP = PAYGP1,-
+                                DEDN-CODE >= SPACES) -
+                      selectif (BANKING-TYPE = 'A')-
+                      selectif (BANKING-TYPE = 'B')-
+                           max(5)
+      BBNKAMT = DED-FACTOR via (BBANKX)
+      BBNKAMT1 = single(BBNKAMT (1))
+      BBNKAMT2 = single(BBNKAMT (2))
+      BBNKAMT3 = single(BBNKAMT (3))
+      BBNKAMT4 = single(BBNKAMT (4))
+      BBNKAMT5 = single(BBNKAMT (5))
+      BSB     = BRANCH-CODE via (BBANKX)
+      BSB1    = single(BSB (1))
+      BSB2    = single(BSB (2))
+      BSB3    = single(BSB (3))
+      BSB4    = single(BSB (4))
+      BSB5    = single(BSB (5))
+      BATYPE  = BANK-ACCT-TY via (BBANKX)
+      BATYPE1 = single(BATYPE (1))
+      BATYPE2 = single(BATYPE (2))
+      BATYPE3 = single(BATYPE (3))
+      BATYPE4 = single(BATYPE (4))
+      BATYPE5 = single(BATYPE (5))
+      BANO    = BANK-ACCT-NO via (BBANKX)
+      BANO1   = single(BANO (1))
+      BANO2   = single(BANO (2))
+      BANO3   = single(BANO (3))
+      BANO4   = single(BANO (4))
+      BANO5   = single(BANO (5))
+      BANAME  = BANK-ACCT-NAME via (BBANKX)
+      BANAME1 = single(BANAME (1))
+      BANAME2 = single(BANAME (2))
+      BANAME3 = single(BANAME (3))
+      BANAME4 = single(BANAME (4))
+      BANAME5 = single(BANAME (5))
+      BBANK   = choose ('N' IF(BBANKX  = SPACES),'Y')
+      BBANK1  = single (BBANK (1))
+      BBANK2  = single (BBANK (2))
+      BBANK3  = single (BBANK (3))
+      BBANK4  = single (BBANK (4))
+      BBANK5  = single (BBANK (5))
+%*
+%*  MSF835 Variables
+%*
+      PEND    = PRD-END-DATE of MSF835 -
+                          where (EMPLOYEE-ID = EMP,-
+                                 PRD-END-DATE >= %PSTART%,-
+                                 PRD-END-DATE <= %PEND%) -
+                        REJECTIF (PREV-RETRO = 'Y') -
+                            max(2000) FORMAT(DATE)
+      NTYPE   = ENVELOPE-TYPE via (PEND)
+      TTYPE   = TRAN-IND via (PEND)
+      TCODE   = TRAN-CODE via (PEND)
+      TUNIT   = TRN-UNITS via (PEND)
+      NAMT    = AMOUNT via (PEND)
+      HDAMT   = HD-AMOUNT via (PEND)
+      TDATE   = TRN-DATE via (PEND) FORMAT(DATE)
+      BATCH   = BATCH-ID via (PEND)
+      RETRO   = RTR-IGNORE via (PEND)
+      HDRATE  = HD-RATE-REF via (PEND)
+      NRATE   = RATE-REF-CODE via (PEND)
+%*
+%*  Determine if record is to be printed
+%*
+      PRT     = choose ('Y' IF(%PPAYGRP% = SPACES),-
+                        'Y' IF(%PPAYGRP% > SPACES,-
+                               PAYGRP = %PPAYGRP%),'N')
+%*
+%*     *** End of Program ***
+%*

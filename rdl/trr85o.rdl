@@ -1,0 +1,419 @@
+%*** TRR85O.RDL
+%***
+%*** Revision History ***
+%***
+%*** 17-Jun-13  Domenic Bof     SC0000004289952 v003
+%*** .........................  The pay group is now TG1 not T01 to T15
+%*** 07-Mar-13  AIT Gianakis    v002 
+%*** .........................  Cost centre now derived from MSF874-ACCOUNT-CODE
+%*** .........................  And Fixed param for GST. 
+%*** .........................  Was coming in as 909 instead of 9.09 
+%*** 27-Feb-13  AIT Gianakis    Migrated RDL to ELlipse 8 Environment(v001).
+%PROGRAM-ID
+       TRR85O 
+%AUTHOR
+       Jude Emmanuel
+%NARRATIVE
+      **  This program produces a Flat File of user defined deductions
+      **  for a user defined run no Range.
+%VERSION
+       003
+%MODULE
+       3820
+%FILES
+       MFILE = MSF810
+       AFILE = MSF835
+       LFILE = MSF802A
+       LFILE = MSF878A
+       LFILE = MSF870
+       LFILE = MSF826
+       LFILE = MSF874
+       RFILE = TRR85OA
+       OFILE = TRT85OA
+%*
+%ROUTINES
+       MSSDAT
+%*
+%SELECTION
+            WHERE    (EMPLOYEE-ID >= SPACES)
+%*
+%REPORT-TITLE
+                          'LIST OF DEDUCTION SUMMARY DEFINING GST'
+%PAGE HEADING
+'Tran-code Employee-Id   Last Name            First Name      Deduction Cost-centre              GST-Rate'
+%DETAIL
+<IF INCL = 'Y'>
+ <IF D <> 0>
+   {T}     {E       }    {LNAME             } {I         } {D         } {CSTCEN                } {GSTR}                                       
+ <ENDIF>
+<ENDIF>
+%* REPORT-SUMMARY
+%*
+%*
+%*                          '*** END OF REPORT ***'
+%*
+%CONTROL
+ RECORD-LENGTH = 93
+ COPY-REQUEST  = TRR85P
+%OUTPUT-FILE
+  A
+%BREAK-FIELDS
+      DUMMY
+%BREAK DUMMY HEADING
+%* IG 7/3/13 removed heading - displaying in TRT85O report.
+%*'Tran-code,Employee-Id,  Last Name    ,First Name,Deduction   ,Cost-centre,GST-Rate'
+%DETAIL
+<IF INCL = 'Y'>
+<IF D <> 0>
+{T}K{E       }K{LNAME             }K{I         }K{D         }K{CSTCEN                }K{GSTR}
+<ENDIF>
+<ENDIF>
+%*
+%REQUEST-PARAMETERS
+     DEDTYP1   PIC(X(3))      TEXT 'Deduction Code 1'
+     DEDTYP2   PIC(X(3))      TEXT 'Deduction Code 2'
+     DEDTYP3   PIC(X(3))      TEXT 'Deduction Code 3'
+     DEDTYP4   PIC(X(3))      TEXT 'Deduction Code 4'
+     DEDTYP5   PIC(X(3))      TEXT 'Deduction Code 5'
+     DEDTYP6   PIC(X(3))      TEXT 'Deduction Code 6'
+     DEDTYP7   PIC(X(3))      TEXT 'Deduction Code 7'
+     DEDTYP8   PIC(X(3))      TEXT 'Deduction Code 8'
+     DEDTYP9   PIC(X(3))      TEXT 'Deduction Code 9'
+     DEDTYP10  PIC(X(3))      TEXT 'Deduction Code 10'
+     FRI       PIC(X(8))      TEXT 'Weekend Start Date'
+     TO        PIC(X(8))      TEXT 'Weekend End Date'  
+     GST       PIC(X(6))      TEXT 'GST Rate'
+%*
+%VARIABLES     
+%*
+       DTYPE1  = %DEDTYP1%                                            CONSTANT
+       DTYPE2  = %DEDTYP2%                                            CONSTANT
+       DTYPE3  = %DEDTYP3%                                            CONSTANT
+       DTYPE4  = %DEDTYP4%                                            CONSTANT
+       DTYPE5  = %DEDTYP5%                                            CONSTANT
+       DTYPE6  = %DEDTYP6%                                            CONSTANT
+       DTYPE7  = %DEDTYP7%                                            CONSTANT
+       DTYPE8  = %DEDTYP8%                                            CONSTANT
+       DTYPE9  = %DEDTYP9%                                            CONSTANT
+       DTYPE10 = %DEDTYP10%                                           CONSTANT
+       FRI     = %FRI%                                                CONSTANT
+       TO      = %TO%                                                 CONSTANT
+       GSTRP = %GST%                                                  CONSTANT
+       GSTRI = NUMERIC (GSTRP) I-PIC (9(4)V99)                        CONSTANT
+       GSTR  = CALC (GSTRI / 100)  D-PIC (ZZ9.99)
+%*       GSTR    = GSTRATE D-PIC (999.99) I-PIC (999.99)
+
+       TON     = numeric (TO)                                         CONSTANT
+       TOR     = calc (99999999 - TON)                                CONSTANT
+       K       = ','                                                  CONSTANT
+       DUM     = 'Y'                                                  CONSTANT
+       DUMMY   = choose ('Y' IF (DUM = 'Y'), 'Y')                     CONSTANT
+%*       FR      = DATE2 OF MSSDAT      -
+%*                 WHERE (OPTION = '1', -
+%*                        DATE1  = FRI, -
+%*                        DAYS   = -6)                                CONSTANT
+       M802S   = PAY-GROUP OF MSF802A          -
+                 WHERE (PAY-GROUP-2   = 'T01', -
+                        PER-END-DT-2 >= FRI)   -
+                 MAX (1)                                              CONSTANT
+       SYSS    = SYS-PRD-NO          VIA (M802S)                      CONSTANT 
+       M802E   = PAY-GROUP OF MSF802A          -
+                 WHERE (PAY-GROUP-2   = 'T01', -
+                        PER-END-DT-2 >= TO)    -
+                 MAX (1)                                              CONSTANT
+       SYSE    = SYS-PRD-NO          VIA (M802E)                      CONSTANT 
+       M802F   = PAY-GROUP OF MSF802A          -
+                 WHERE (PAY-GROUP-2   = 'T15', -
+                        PER-END-DT-2 >= FRI)   -
+                 MAX (1)                                              CONSTANT
+       SYSF    = SYS-PRD-NO          VIA (M802F)                      CONSTANT 
+       M802T   = PAY-GROUP OF MSF802A          -
+                 WHERE (PAY-GROUP-2   = 'T15', -
+                        PER-END-DT-2 >= TO)    -
+                 MAX (1)                                              CONSTANT
+       SYST    = SYS-PRD-NO          VIA (M802T)                      CONSTANT 
+
+%* V003 TG1 is now the new pay group after 26/4/2013
+
+       M802TGS = PAY-GROUP OF MSF802A          -
+                 WHERE (PAY-GROUP-2   = 'TG1', -
+                        PER-END-DT-2 >= FRI)   -
+                 MAX (1)                                              CONSTANT
+       SYSTGS  = SYS-PRD-NO          VIA (M802TGS)                    CONSTANT 
+       M802TGE = PAY-GROUP OF MSF802A          -
+                 WHERE (PAY-GROUP-2   = 'TG1', -
+                        PER-END-DT-2 >= TO)    -
+                 MAX (1)                                              CONSTANT
+       SYSTGE  = SYS-PRD-NO          VIA (M802TGE)                    CONSTANT 
+%*
+%*     M810 FILE
+%* 
+       LNAME   = SURNAME
+       I       = FIRST-NAME
+       EMP     = EMPLOYEE-ID
+       E       = EMP         D-PIC(ZZZZZZZZZ9)
+       
+%* IG 7/2/13 E8 now gets the default costing from MSF874
+%*       CSTCEN  = COST-CENTRE OF MSF826 -
+%*                 WHERE (EMPLOYEE-ID = E)
+
+%* first we need the position
+       PID     = POSITION-ID OF MSF878A      -
+                 WHERE (EMPLOYEE-ID-1 = EMP,   -
+                        PRIMARY-POS-1 = '0',   -
+                        INV-STR-DATE-1 >= TOR) -
+                 SELECTIF (POS-STOP-DATE-1 = '00000000') -
+                 MAX (1) 
+       CSTCEN = COST-CENTRE OF MSF874 -
+                WHERE (POSITION-ID = PID)
+
+%* W01090280 - This code is no longer used.                  
+%*
+%* Get Position Id
+%*       PID     = POSITION-ID OF MSF878A      -
+%*                 WHERE (EMPLOYEE-ID = EMP,   -
+%*                        PRIMARY-POS = '0',   -
+%*                        POS-DATES >= TOR) -
+%*                 MAX (1) 
+%*
+%* Get Primary Reporting Code
+%*       PRC     = PRIM-RPT-GRP OF MSF870 -
+%*                 WHERE (POSITION-ID = PID)
+%*
+%*
+%*       AA = 735                                     CONSTANT
+%*       BB = 040                                     CONSTANT
+%*       CC = 739                                     CONSTANT
+%*       DD = 778                                     CONSTANT
+%*       GG = 400                                     CONSTANT
+%*       HH = 460                                     CONSTANT
+%*       II = 364                                     CONSTANT
+%*       LL = 282                                     CONSTANT
+%*       NN = 070                                     CONSTANT
+%*       OO = 770                                     CONSTANT
+%*       QQ = 055                                     CONSTANT
+%*
+%*       A1 =   CHOOSE (AA IF (PRC = 'TG  ................'), -
+%*                      AA IF (PRC = 'TG  CD  ............'), -
+%*                      AA IF (PRC = 'TG  CD  AM  ........'), -
+%*                      AA IF (PRC = 'TG  CD  EA  ........'), -
+%*                      AA IF (PRC = 'TG  CD  ES  ........'), -
+%*                      AA IF (PRC = 'TG  CD  LS  ........'), -
+%*                      AA IF (PRC = 'TG  CD  ND  ........'), -
+%*                      AA IF (PRC = 'TG  CD  ND  ADMN....'), -
+%*                      AA IF (PRC = 'TG  CD  ND  MKCO....'), -
+%*                      AA IF (PRC = 'TG  CD  ND  NETW....'), -
+%*                      AA IF (PRC = 'TG  CD  ND  PLAN....'), -
+%*                      AA IF (PRC = 'TG  CD  ND  PRDV....'), -
+%*                      AA IF (PRC = 'TG  CD  ND  REGU....'), -
+%*                      AA IF (PRC = 'TG  CD  ND  SYST....'), -
+%*                      AA IF (PRC = 'TG  CD  ND  TECH....'), -
+%*                      AA IF (PRC = 'TG  CD  PF  ........'), -
+%*                      AA IF (PRC = 'TG  CD  RA  ........'), SPACES)
+%*         
+%*       B1 =   CHOOSE (BB IF (PRC = 'TG  EN  ............'), -
+%*                      BB IF (PRC = 'TG  EN  AD  ........'), -
+%*                      BB IF (PRC = 'TG  EN  BD  ........'), -
+%*                      BB IF (PRC = 'TG  EN  DS  ........'), -
+%*                      BB IF (PRC = 'TG  EN  DS  CIVI....'), -
+%*                      BB IF (PRC = 'TG  EN  DS  CMDS....'), -
+%*                      BB IF (PRC = 'TG  EN  DS  CTRL....'), -
+%*                      BB IF (PRC = 'TG  EN  DS  HVCA....'), -
+%*                      BB IF (PRC = 'TG  EN  DS  HVDE....'), -
+%*                      BB IF (PRC = 'TG  EN  DS  PLNT....'), -
+%*                      BB IF (PRC = 'TG  EN  DS  PROT....'), -
+%*                      BB IF (PRC = 'TG  EN  DS  STRU....'), -
+%*                      BB IF (PRC = 'TG  EN  EB  ........'), -
+%*                      BB IF (PRC = 'TG  EN  EB  BUSY....'), -
+%*                      BB IF (PRC = 'TG  EN  EB  ENVI....'), -
+%*                      BB IF (PRC = 'TG  EN  EB  PROJ....'), -
+%*                      BB IF (PRC = 'TG  EN  GA  ........'), -
+%*                      BB IF (PRC = 'TG  EN  PR  ........'), -
+%*                      BB IF (PRC = 'TG  EN  PR  PROA....'), -
+%*                      BB IF (PRC = 'TG  EN  PR  PROB....'), -
+%*                      BB IF (PRC = 'TG  EN  PR  PROC....'), -
+%*                      BB IF (PRC = 'TG  EN  PR  PROD....'), -
+%*                      BB IF (PRC = 'TG  EN  PR  PROS....'), SPACES)
+%*
+%*       C1   = CHOOSE (CC IF (PRC = 'TG  CD  CG  ........'), -
+%*                      CC IF (PRC = 'TG  CD  CO  ........'), -
+%*                      CC IF (PRC = 'TG  CD  CO  ACQU....'), -
+%*                      CC IF (PRC = 'TG  CD  CO  ADMN....'), -
+%*                      CC IF (PRC = 'TG  CD  CO  CRPP....'), -
+%*                      CC IF (PRC = 'TG  CD  CO  FNSV....'), -
+%*                      CC IF (PRC = 'TG  CD  CO  MINI....'), -
+%*                      CC IF (PRC = 'TG  CD  CO  PROP....'), -
+%*                      CC IF (PRC = 'TG  CD  CO  SURV....'), SPACES) 
+%*                                                                
+%*       D1   = CHOOSE (DD IF (PRC = 'TG  CS  ............'), -
+%*                      DD IF (PRC = 'TG  CS  CF  ........'), -
+%*                      DD IF (PRC = 'TG  CS  CF  PRFI....'), -
+%*                      DD IF (PRC = 'TG  CS  CF  TREA....'), -
+%*                      DD IF (PRC = 'TG  CS  CK  ........'), -
+%*                      DD IF (PRC = 'TG  CS  FC  ........'), -
+%*                      DD IF (PRC = 'TG  CS  FC  BUSV....'), -
+%*                      DD IF (PRC = 'TG  CS  FC  CRPA....'), -
+%*                      DD IF (PRC = 'TG  CS  FC  ECOM....'), -
+%*                      DD IF (PRC = 'TG  CS  FC  FNOP....'), -
+%*                      DD IF (PRC = 'TG  CS  IA  ........'), -
+%*                      DD IF (PRC = 'TG  CS  IA  FINA....'), -
+%*                      DD IF (PRC = 'TG  CS  IA  INFO....'), -
+%*                      DD IF (PRC = 'TG  CS  MM  ........'), -
+%*                      DD IF (PRC = 'TG  CS  MM  BUSL....'), -
+%*                      DD IF (PRC = 'TG  CS  MM  COND....'), -
+%*                      DD IF (PRC = 'TG  CS  MM  CONT....'), -
+%*                      DD IF (PRC = 'TG  CS  MM  MATE....'), -
+%*                      DD IF (PRC = 'TG  CS  MM  PURC....'), -
+%*                      DD IF (PRC = 'TG  CS  MM  TRAN....'), SPACES)
+%*
+%*       G1   = CHOOSE (GG IF (PRC = 'TG  NT  CR  ........'), -
+%*                      GG IF (PRC = 'TG  NT  CR  MNTC....'), -
+%*                      GG IF (PRC = 'TG  NT  CR  PROJ....'), -
+%*                      GG IF (PRC = 'TG  NT  CR  BUSS....'), -
+%*                      GG IF (PRC = 'TG  NT  CR  ASST....'), -
+%*                      GG IF (PRC = 'TG  NT  CR  METR....'), -
+%*                      GG IF (PRC = 'TG  NT  CR  ORAN....'), SPACES)
+%*  
+%*       H1   = CHOOSE (HH IF (PRC = 'TG  NT  NR  ........'), -
+%*                      HH IF (PRC = 'TG  NT  NR  MNTC....'), -
+%*                      HH IF (PRC = 'TG  NT  NR  PROJ....'), -
+%*                      HH IF (PRC = 'TG  NT  NR  BUSS....'), -
+%*                      HH IF (PRC = 'TG  NT  NR  ASST....'), -
+%*                      HH IF (PRC = 'TG  NT  NR  QNI ....'), -
+%*                      HH IF (PRC = 'TG  NT  NR  TAMW....'), -
+%*                      HH IF (PRC = 'TG  NT  NR  NEWC....'), SPACES)
+%*
+%*       I1   = CHOOSE (II IF (PRC = 'TG  NT  ............'), -
+%*                      II IF (PRC = 'TG  NT  AS  ........'), -
+%*                      II IF (PRC = 'TG  NT  BD  ........'), -
+%*                      II IF (PRC = 'TG  NT  HR  ........'), -
+%*                      II IF (PRC = 'TG  NT  NS  ........'), -
+%*                      II IF (PRC = 'TG  NT  NS  PROS....'), -
+%*                      II IF (PRC = 'TG  NT  TS  ........'), -
+%*                      II IF (PRC = 'TG  NT  TS  PROS....'), -
+%*                      II IF (PRC = 'TG  NT  BM  ........'), SPACES)
+%*
+%*       L1   = CHOOSE (LL IF (PRC = 'TG  NT  SR  ........'), -
+%*                      LL IF (PRC = 'TG  NT  SR  MNTC....'), -
+%*                      LL IF (PRC = 'TG  NT  SR  PROJ....'), -
+%*                      LL IF (PRC = 'TG  NT  SR  BUSS....'), -
+%*                      LL IF (PRC = 'TG  NT  SR  ASST....'), -
+%*                      LL IF (PRC = 'TG  NT  SR  WGGA....'), -
+%*                      LL IF (PRC = 'TG  NT  SR  YASS....'), SPACES)
+%*
+%*       N1   = CHOOSE (NN IF (PRC = 'TG  CD  BD  ........'), -
+%*                      NN IF (PRC = 'TG  CD  BD  COMM....'), -
+%*                      NN IF (PRC = 'TG  CD  BD  MKRE....'), -
+%*                      NN IF (PRC = 'TG  CD  BD  OVER....'), -
+%*                      NN IF (PRC = 'TG  CD  BD  PRDV....'), -
+%*                      NN IF (PRC = 'TG  CD  BD  TELE....'), SPACES)
+%*              
+%*       O1   = CHOOSE (OO IF (PRC = 'TG  BR  ............'), -
+%*                      OO IF (PRC = 'TG  BR  HR  ........'), -
+%*                      OO IF (PRC = 'TG  BR  HR  HRDV....'), -
+%*                      OO IF (PRC = 'TG  BR  HR  HRDVADMN'), -
+%*                      OO IF (PRC = 'TG  BR  HR  HRDVCADT'), -
+%*                      OO IF (PRC = 'TG  BR  HR  HRDVPRDV'), -
+%*                      OO IF (PRC = 'TG  BR  HR  HRDVSKDV'), -
+%*                      OO IF (PRC = 'TG  BR  HR  HRDVTRNG'), -
+%*                      OO IF (PRC = 'TG  BR  HR  ORDV....'), -
+%*                      OO IF (PRC = 'TG  BR  HR  SSRV....'), -
+%*                      OO IF (PRC = 'TG  BR  HR  SSRVEMIS'), -
+%*                      OO IF (PRC = 'TG  BR  HR  SSRVPAYR'), -
+%*                      OO IF (PRC = 'TG  BR  HR  SSRVRECT'), -
+%*                      OO IF (PRC = 'TG  BR  HR  SSRVREMN'), -
+%*                      OO IF (PRC = 'TG  BR  HR  SSRVSUPR'), -
+%*                      OO IF (PRC = 'TG  BR  HS  ........'), -
+%*                      OO IF (PRC = 'TG  BR  HS  ADMN....'), -
+%*                      OO IF (PRC = 'TG  BR  HS  HLTH....'), -
+%*                      OO IF (PRC = 'TG  BR  HS  SFTY....'), -
+%*                      OO IF (PRC = 'TG  BR  HS  WCMP....'), -
+%*                      OO IF (PRC = 'TG  BR  IR  ........'), -
+%*                      OO IF (PRC = 'TG  BR  IS  ........'), -
+%*                      OO IF (PRC = 'TG  BR  IS  ITST....'), -
+%*                      OO IF (PRC = 'TG  BR  IS  MIMS....'), -
+%*                      OO IF (PRC = 'TG  BR  IS  OFSY....'), -
+%*                      OO IF (PRC = 'TG  BR  IS  ORCL....'), -
+%*                      OO IF (PRC = 'TG  BR  IS  TAMI....'), -
+%*                      OO IF (PRC = 'TG  BR  YR  ........'), SPACES)
+%*
+%*       Q1   = CHOOSE (QQ IF (PRC = 'TG  SO  ............'), -
+%*                      QQ IF (PRC = 'TG  SO  AD  ........'), - 
+%*                      QQ IF (PRC = 'TG  SO  OC  ........'), -
+%*                      QQ IF (PRC = 'TG  SO  OC  METR....'), - 
+%*                      QQ IF (PRC = 'TG  SO  OC  NTCO....'), - 
+%*                      QQ IF (PRC = 'TG  SO  OC  OPTR....'), - 
+%*                      QQ IF (PRC = 'TG  SO  OC  SSOC....'), -
+%*                      QQ IF (PRC = 'TG  SO  OL  ........'), -
+%*                      QQ IF (PRC = 'TG  SO  OL  METR....'), -
+%*                      QQ IF (PRC = 'TG  SO  OL  ORAN....'), -
+%*                      QQ IF (PRC = 'TG  SO  ON  ........'), -
+%*                      QQ IF (PRC = 'TG  SO  ON  NEWC....'), -
+%*                      QQ IF (PRC = 'TG  SO  ON  TAMW....'), - 
+%*                      QQ IF (PRC = 'TG  SO  OP  ........'), -
+%*                      QQ IF (PRC = 'TG  SO  OS  ........'), -
+%*                      QQ IF (PRC = 'TG  SO  OS  WGGA....'), -
+%*                      QQ IF (PRC = 'TG  SO  OS  YASS....'), SPACES)       
+%*
+%*       Z     = CHOOSE (A1 IF (A1 <> SPACES), -
+%*                       B1 IF (B1 <> SPACES), -
+%*                       C1 IF (C1 <> SPACES), -
+%*                       D1 IF (D1 <> SPACES), -
+%*                       G1 IF (G1 <> SPACES), -
+%*                       H1 IF (H1 <> SPACES), -
+%*                       I1 IF (I1 <> SPACES), -
+%*                       L1 IF (L1 <> SPACES), -
+%*                       N1 IF (N1 <> SPACES), -
+%*                       O1 IF (O1 <> SPACES), -
+%*                       Q1 IF (Q1 <> SPACES), '999') 
+%*
+%*    M835 FILE
+%*
+
+%* V003 TG1 is now the new pay group after 26/4/2013
+%* need to incorporate the read of TG1 here.
+
+%* It is assumed that T01 to T14 has the same Sys Prod No
+
+       M835 = EMPLOYEE-ID FROM MSF835          -
+              WHERE    (EMPLOYEE-ID  = EMP,    -
+                        PRD-END-DATE >= FRI)   -
+              REJECTIF (PRD-END-DATE > TO, TO > '  ') - 
+              REJECTIF (PAY-PER-NO   < SYSS,   -
+                        PAY-GROUP   <> 'T15',  -
+                        PAY-GROUP   <> 'TG1')  -
+              REJECTIF (PAY-PER-NO   > SYSE,   -
+                        PAY-GROUP   <> 'T15',  -
+                        PAY-GROUP   <> 'TG1')  -
+              REJECTIF (PAY-PER-NO   < SYSF,   -
+                        PAY-GROUP    =  'T15') -
+              REJECTIF (PAY-PER-NO   > SYST,   -
+                        PAY-GROUP    =  'T15') -
+              REJECTIF (PAY-PER-NO   < SYSTGS,   -
+                        PAY-GROUP    =  'TG1') -
+              REJECTIF (PAY-PER-NO   > SYSTGE,   -
+                        PAY-GROUP    =  'TG1') -
+              REJECTIF (TRAN-IND    <> '4',    -
+                        TRAN-IND    <> '2')    -
+              REJECTIF (PAY-RUN-TYPE <> 'U')
+
+%* V003 end
+
+       AMT     = AMOUNT                      VIA (M835)
+       HD      = HD-AMOUNT                   VIA (M835)
+       HDA     = HDA-EARN-CODE               VIA (M835)
+       T       = TRAN-CODE                   VIA (M835)
+       TIND    = TRAN-IND                    VIA (M835)
+       INCL    = CHOOSE ('Y' IF (T      =  DTYPE1),             -  
+                         'Y' IF (DTYPE2 <> SPACES, T = DTYPE2), -
+                         'Y' IF (DTYPE3 <> SPACES, T = DTYPE3), -
+                         'Y' IF (DTYPE4 <> SPACES, T = DTYPE4), -
+                         'Y' IF (DTYPE5 <> SPACES, T = DTYPE5), -
+                         'Y' IF (DTYPE6 <> SPACES, T = DTYPE6), -
+                         'Y' IF (DTYPE7 <> SPACES, T = DTYPE7), -
+                         'Y' IF (DTYPE8 <> SPACES, T = DTYPE8), -
+                         'Y' IF (DTYPE9 <> SPACES, T = DTYPE9), -
+                         'Y' IF (DTYPE10 <> SPACES, T = DTYPE10), -
+                         'N')
+       D       = choose (HD IF (HD <> ZEROES, HDA = SPACES), AMT) D-PIC (--------9.99)
+%*END PROGRAM       

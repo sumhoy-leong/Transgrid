@@ -1,0 +1,158 @@
+%*** TRR6M2.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%***
+%***  29-Apr-13  a9wp3261     Added single when retrieve the WO-JOB-CODE,
+%***  24-Apr-13  a9nl6176     Set MFILE620I to MSF620
+%***  24-Apr-13  a9nl6176     Add details in error message text
+%***  17-Apr-13  a9nl6176     Changed MSF010 AFILE to LFILE. Removed MSF623. Replaced
+%***  ......................  some variables sources (from MSF623 to MSF620).
+%***  ......................  Set MFILE to MSF620I. Removed PUT.
+%***  04-Mar-13  a9is6175     Change ' ' to SPACES on SELECTION
+%***                          Clean Unnecessary variables.
+%***  23-Nov-12  a9ra4993     Modify to check equipment class
+%***                          on #MEC table file.
+%***  30-Jul-12  Neil Perry   MO164 (Version 0001)
+%***  ......................  Reset version number to 0001 for E8 upgrade.
+%***  02-Apr-09  G Presser    2285989        (Version 001)
+%***                          Initial Version
+%***
+%***
+%PROGRAM-ID
+       TRR6M2
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report will extract Open Work Orders
+%VERSION
+       0007
+%MODULE
+       3880
+%FILES
+        MFILE = MSF620
+        LFILE = MSF010
+        LFILE = MSF096
+        LFILE = MSF600
+        LFILE = MSF621
+        RFILE = TRR6M2A
+        OFILE = TRT6M2A
+%ORDER
+        WORK-ORDER
+%SELECTION
+        WHERE    (DSTRCT-CODE = 'GRID',  -
+                  WORK-ORDER  >= SPACES)
+        REJECTIF (WO-STATUS-M = 'C')
+%REPORT
+       A
+%REPORT-TITLE
+       'SUMMARY ERROR REPORT'
+%PAGE HEADING
+'Line/Field Ref/Value            Error/Warning Message'
+%DETAIL
+%SUMMARY
+<IF TOT = 0>
+  <IF CW = 0>
+  'MSF620                        No open work order records found'
+  <ENDIF>
+  <IF CTC = 0>
+  'MSF010                        No equipment class define'
+  <ENDIF>
+  <IF CW > 0 AND CTC > 0>
+  'MSF600                        No work order with match equipment class'EE'found'
+  <ENDIF>
+<ELSE>
+'                                Open work order records successfully extracted'
+<ENDIF>
+%CONTROL REPORT A
+       TRIM-REPORT
+       PAGE-WIDTH = 132
+       PAGE-LENGTH = 68
+%OUTPUT-FILE
+        A
+%CONTROL
+        RECORD-LENGTH = 487
+%DETAIL
+<IF SEL = 'Y'>
+{WO    }XC{WD                                    }CX{SJ  }X{WOT          }-
+XC{MT                          }CX{CC}X{PP      }X{WG   }X{EQ        }-
+X{PN        }X{RD    }X{OI      }X{UR      }X{UC      }-
+XC{WOET                                           }CX{CB      }X{CO}-
+X{CD    }XC{CCOM1                                           }-
+{CCOM2                                           }CX{RWO   }X{PSD   }-
+X{W0 }X{W1 }X{W2 }X{W3 }X{W4 }X{W5 }X{W6 }X{MS}-
+X{ODN               }X{EOC     }X{ADH     }
+<ENDIF>
+%VARIABLES
+       X         = ','  CONSTANT
+       C         = '"'  CONSTANT
+
+       WO        = WORK-ORDER
+       WD        = WO-DESC
+       SJ        = STD-JOB-NO
+       WOT       = WO-TYPE
+       ODN       = ORIG-DOC-NO
+       MT        = MAINT-TYPE
+       CC        = COMP-CODE
+       DE        = DSTRCT-CODE OF MSF621        -
+                   WHERE (DSTRCT-CODE = 'GRID', -
+                          WORK-ORDER  = WO)
+       EOC       = EST-OTHER-COST        VIA (DE) D-PIC (ZZZZZZ9.99)
+       ADH       = ACT-DUR-HRS           VIA (DE) D-PIC (ZZZZZZ9.99)
+       UR        = UNITS-REQUIRED                 D-PIC (ZZZZZZ9.99)
+       UC        = UNITS-COMPLETE                 D-PIC (ZZZZZZ9.99)
+       PP        = PLAN-PRIORITY
+       WG        = WORK-GROUP
+       EQ        = EQUIP-NO
+%*
+       DC        = DSTRCT-CODE OF MSF600    -
+                   WHERE (EQUIP-NO = EQ)
+       EC        = EQUIP-CLASS           VIA (DC)
+
+       TC        = TABLE-CODE OF MSF010       -
+                   WHERE (TABLE-TYPE  = '#MEC', -
+                          TABLE-CODE >= ' ')
+       E         = TC
+       CTC       = choose (1 IF (TC <> SPACES), 0)
+       CW        = choose (1 IF (WO <> SPACES), 0)
+       SEL       = choose ('Y' IF (EC = TC), 'N')
+       SC        = choose (1 IF (SEL = 'Y'), 0)
+       TOT       = total(SC)
+%*
+       PN        = PLANT-NO              VIA (DC)
+       RD        = RAISED-DATE
+       OI        = ORIGINATOR-ID
+%*
+       ST1       = get (READ-TEXT FROM ('MSF096') -
+                        CODE ('WO') -
+                        KEY  ('GRID',WO)) -
+                   MAX (1) -
+                   TEXT-WIDTH (50)
+       PST1      = ST1
+       WOET      = single (PST1 (1))
+       CB        = COMPLETED-BY
+       CO        = COMPLETED-CODE
+       CD        = CLOSED-DT
+       ST2       = get (READ-TEXT FROM ('MSF096') -
+                        CODE ('CW') -
+                        KEY  ('GRID',WO)) -
+                   MAX (2) -
+                   TEXT-WIDTH (50)
+       PST2      = ST2
+       CCOM1     = single (PST2 (1))
+       CCOM2     = single (PST2 (2))
+       RWO       = RELATED-WO
+       PSD       = PLAN-STR-DATE
+       W0        = SINGLE (WO-JOB-CODE (1))
+       W1        = SINGLE (WO-JOB-CODE (2))
+       W2        = SINGLE (WO-JOB-CODE (3))
+       W3        = SINGLE (WO-JOB-CODE (4))
+       W4        = SINGLE (WO-JOB-CODE (5))
+       W5        = SINGLE (WO-JOB-CODE (6))
+       W6        = SINGLE (WO-JOB-CODE (7))
+       MS        = MAINT-SCH-TASK
+%*
+%*            End of Program
+%*

@@ -1,0 +1,741 @@
+%PROGRAM-ID
+      TRR62L
+%*******************************************************************************
+%*** Revision History ***
+%*** 28-Feb-13 a9nl6176      Lengthen equipment reference number's field.
+%***                         Move WO & Task closer to maintenance type.
+%*** 22-Jan-13 a9nl6176      Fix code and layout based on 
+%***                         FDD Reporting WAR621 Job Card Print V01
+%*** 09-Nov-12 a9ra4993      Convert from ellipse 5 to ellipse 8.
+%*** 21-Nov-07 E Fredeluces  SC1665835
+%***                         Use the same parameters as MSR621. (Ver 003)
+%*** 30-May-07 G Presser     1302025 - Revert back to 61 lines. (Ver 002)
+%*** 11-Dec-06 Janak Barar   Change page length from 61 to 56
+%***                         to fix overflow of work order data        
+%*** 18-Nov-05 E Fredeluces  P05110870
+%***                         Fix compilation errors in Ellipse 5.2.3.7.
+%*** 10-Aug-04 i Gianakis    AMSIP/WCHG066892 - Work order job card not printing
+%***                         in wo task order. Added WO-TASK-NO to sort order.
+%*** 09-Sep-02 RK Mahajan    WCHG005665 - Cleaned out all the redundant code related
+%***                         to Organisations other than TransGrid - Deleted Layouts
+%***                         2,3,4 and 5. Fixed the structure of the program. Deleted
+%***                         the history dated before May 1996. Added 2 fields
+%***                         Planners Priority and Originators priority.
+%*** 31-May-01 R Casagrande  W?
+%*** ......................  Moved date field left 2 characters.
+%*** 19-Oct-00 R Yeung       W00100075
+%*** ......................  Print additional document when Equip_class = 'SS'
+%*** ......................  and District_code = 'SWST'
+%*** 12-May-99 G Presser     W
+%*** ......................  They want to process 15 work orders at a time
+%*** 11-May-99 G Presser     W99050292
+%*** ......................  Only process 1 work order at a time
+%*** 10-Mar-99 E Fredeluces  W902040037
+%*** ......................  Revised to remove the printing of check sheets
+%*** ......................  VIA MSO096.  Also, to fix the problem of a 
+%*** ......................  blank page for multi-items work orders.
+%*** 23-SEP-96 L CAPPLE      W609160045
+%*** ......................  Replace HRget macros with direct read of MSF810. 
+%*** 
+%NARRATIVE
+%***
+%***   This program prints the Job Cards for up to 30 work orders
+%***   It is derived from the ECNSW version of MSB621.
+%*** 
+%***   Layout 1 is the "original" layout: now used by Sydney West
+%***   Layout 2 is the 1992 Wallerawang layout
+%***   Layout 3 is the Mt Piper layout
+%***   Layout 4 is the Bayswater layout
+%***   Layout 5 is the Eraring layout
+%******************************************************************************
+%VERSION
+       0003
+%FILES
+       MFILE = MSF623
+       LFILE = MSF010
+       LFILE = MSF096
+       LFILE = MSF620
+       LFILE = MSF621
+       LFILE = MSF623
+       LFILE = MSF600
+       LFILE = MSF693
+       LFILE = MSF700
+       LFILE = MSF720
+       LFILE = MSF735
+       LFILE = MSF810
+       AFILE = MSF581A
+       LFILE = MSF580
+       LFILE = MSF586
+       RFILE = TRR62LA
+%******************* SELECTION - COMMON TO ALL LAYOUTS ************************
+%SELECTION
+<IF %WKORDFM% <> SPACES OR %WKORDTO% <> SPACES>
+    WHERE    (DSTRCT-CODE  = %DISTRICT-CODE%, -
+              WORK-ORDER  >= %WKORDFM%)
+    REJECTIF (WORK-ORDER   > %WKORDTO%)
+    STOPIF   (WORK-ORDER   > %WKORDTO%)
+<ELSE>
+    WHERE    (DSTRCT-CODE  = %DISTRICT-CODE%, -
+              WORK-ORDER   = %WONO%,          -
+              WO-TASK-NO  >= %WOTASK%)
+    REJECTIF (WORK-ORDER   > %WONO%)
+    STOPIF   (WORK-ORDER   > %WONO%)
+    STOPIF   (%WOTASK%    <> '000' AND WO-TASK-NO > %WOTASK%)
+<ENDIF>
+%******************* ORDER - COMMON TO ALL LAYOUTS *****************************
+%ORDER
+       WORK-ORDER
+       WO-TASK-NO
+%******************* CONTROL BREAKS - COMMON TO ALL LAYOUTS ********************
+%CONTROL-BREAKS
+       WORK-ORDER
+       WO-TASK-NO
+%******************* CONTROL - COMMON TO ALL LAYOUTS **************************
+%CONTROL 
+       TRIM-REPORT
+       NO-STD-HEADINGS
+       DYNAMIC-PRINTER
+       PAGE-LENGTH = 100
+       PAGE-WIDTH = 80
+%*******************************************************************************
+%REPORT
+       A
+%******************* PAGE HEADING - LAYOUT 1 ***********************************
+%**%PAGE HEADING
+%BREAK WO-TASK-NO HEADING ON NEW-PAGE
+<IF PARAMVAL = '0'>
+<IF LAYOUT = '1'>
+%*EF1107 X{UNDERLINE                                                                    }
+{UNDERLINE                                                                     }
+{ELD             } {EQDESC1                               }           {DATE  }
+                   {EQDESC2                               }
+{PNO             }  'Work Order' {WO    }  'Task 'BBB' of '{MT}   {MTTYPE      }
+{UNDERLINE                                                                     }
+<ENDIF>
+<ENDIF>   
+%***%BREAK WO-TASK-NO HEADING ON NEW-PAGE
+%******************* DETAIL - LAYOUT 1 *****************************************
+%BREAK WO-TASK-NO DETAIL TEST-PAGE(1)
+<IF PARAMVAL = '0'>
+  <IF LAYOUT = '1'>
+                   {WOD                                     }
+<SUPPRESS>
+                   {MSDESC1                                    }
+%*EF1107 -- remove blank line
+'Lead Work Group:'     {LWG  }
+'Assign To:'           {ASS                         }
+'Outage Status:'       {SIDESC                                  }
+<IF SHSAFTY = 'Y'>
+      <REPEAT>
+                       {SHSITEXT                                              } 
+      <ENDREPEAT>
+<ENDIF>
+'Task Start Date:'     {TSTART}     'Component:' UUUU {CODESC           }
+'Standard Job:'        {STDJ  }     'Modifier:'   VV  {MODESC           }
+'Cost Code:'           {ACCTCD                } 'Orig Pri' LL   'Plan Pri' GG
+'Resource Type    No.  Est.Hours     Resource Type    No.  Est.Hours'
+ {RESTYPE       } CC   {SETEST}      {RESTYPE       } CC   {SETEST}
+{UNDERLINE                                                                     }
+'WORK DESCRIPTION'
+%*EF1107 -- remove blank line
+         {WOD                                     }
+    <REPEAT>
+         {WOTEXT                                                               }
+    <ENDREPEAT>
+
+{UNDERLINE                                                                     }
+<IF MISIZE > 0>
+'MAINTENANCE INSTRUCTIONS'
+%*EF1107 -- remove blank line
+    <REPEAT>
+    <SUPPRESS>
+         {MITEXT                                                               }
+    <ENDREPEAT>
+
+{UNDERLINE                                                                     }
+<ENDIF>
+'JOB INSTRUCTIONS'
+%*EF1107 -- remove blank line
+         {TSKDESC                                 }
+    <REPEAT>
+         {WITEXT                                                               }
+    <ENDREPEAT>
+
+{UNDERLINE                                                                     }
+<IF CWSIZE > 0>
+'HISTORY COMMENTS'
+%*EF1107 -- remove blank line
+    <REPEAT>
+    <SUPPRESS>
+         {CWTEXT                                                               }
+    <ENDREPEAT>
+
+{UNDERLINE                                                                     }
+<ENDIF>
+'NOTES.'
+'                                                                               '
+'                                                                               '
+'                                                                               '
+'                                                                               '
+'                                                                               '
+'                                                                               '
+'                                                                               '
+'                                                                               '
+'                                                                               '
+'                                                                               '
+  <ENDIF>
+<ELSE>
+  <IF PARAMVAL = '1'>
+'Request Parameters cannot be empty.'
+'Please input Work Order No or input both Work Order From - To.'
+    <ELSE>
+      <IF PARAMVAL = '2'>
+'Both Work Order From & Work Order To must be entered.'
+      <ENDIF>
+  <ENDIF>
+<ENDIF>
+%******************* FOOTER - LAYOUT 1 ****************************************
+%BREAK WO-TASK-NO PAGE-FOOTER TEST-PAGE (11)
+<IF PARAMVAL = '0'>
+   <IF LAYOUT = '1'>
+{UNDERLINE                                                                     }
+'Related W/O '           'Paper Hist Y/N   Signature of Team Leader ___________'
+
+' Task Complete   Actual Hours    Date Completed  Completed By     Service No'
+
+'   YES / NO      _____________    __ / __ / __   ______________   ____________'
+
+{UNDERLINE                                                                     }
+'*** CHECK SHEETS ***'{693-KEY    }  {SS-FG  }
+
+   <ENDIF>
+<ENDIF>
+%******************* REPORT SUMMARY - COMMON TO ALL LAYOUTS *******************
+%REPORT-SUMMARY ON NEW-PAGE
+<IF PARAMVAL = '0'>
+  <IF TSKCNT = 0>
+   '********************************************************'
+   '*'                                                    '*'
+   '*'      'No Tasks found for Work Order' {WO    }      '*'
+   '*'                                                    '*'
+   '********************************************************'
+  <ENDIF>
+  <IF B00 <> SPACES>
+{A94                  }
+  <SUPPRESS>
+{B20                                                                      }
+  <SUPPRESS>
+{B20A                                                                     }
+  <SUPPRESS>
+{B20B                                                                     }
+  <SUPPRESS>
+{B20C                                                                     } 
+  <SUPPRESS>
+{B22                                                                      } 
+  <SUPPRESS>
+{B22A                                                                     }
+  <SUPPRESS>
+{B22B                                                                     }
+  <SUPPRESS>
+{B22C                                                                     }
+  <SUPPRESS>
+{B24                                                                      } 
+  <SUPPRESS>
+{B24A                                                                     }
+  <SUPPRESS>
+{B24B                                                                     }
+  <SUPPRESS>
+{B24C                                                                     }
+  <SUPPRESS>
+{B26                                                                      } 
+  <SUPPRESS>
+{B26A                                                                     }
+  <SUPPRESS>
+{B26B                                                                     }
+  <SUPPRESS>
+{B26C                                                                     }
+  <SUPPRESS>
+{B28                                                                      } 
+  <SUPPRESS>
+{B28A                                                                     }
+  <SUPPRESS>
+{B28B                                                                     }
+  <SUPPRESS>
+{B28C                                                                     }
+  <SUPPRESS>
+{B30                                                                      } 
+  <SUPPRESS>
+{B30A                                                                     }
+  <SUPPRESS>
+{B30B                                                                     }
+  <SUPPRESS>
+{B30C                                                                     }
+  <SUPPRESS>
+{B32                                                                      }  
+  <SUPPRESS>
+{B32A                                                                     }  
+  <SUPPRESS>
+{B32B                                                                     } 
+  <SUPPRESS>
+{B32C                                                                     }
+  <SUPPRESS>
+{B34                                                                      }  
+  <SUPPRESS>
+{B34A                                                                     }  
+  <SUPPRESS>
+{B34B                                                                     } 
+  <SUPPRESS>
+{B34C                                                                     }
+  <SUPPRESS>
+{B36                                                                      }  
+  <SUPPRESS>
+{B36A                                                                     }  
+  <SUPPRESS>
+{B36B                                                                     } 
+  <SUPPRESS>
+{B36C                                                                     }
+  <SUPPRESS>
+{B38                                                                      }  
+  <SUPPRESS>
+{B38A                                                                     }  
+  <SUPPRESS>
+{B38B                                                                     } 
+  <SUPPRESS>
+{B38C                                                                     }
+  <ENDIF>
+<ENDIF>
+%******************* REQUEST PARAMETERS - COMMON TO ALL LAYOUTS ***************
+%REQUEST-PARAMETERS
+    WONO        PIC (X(8))  TEXT 'Work Order Number'
+    WOTASK      PIC (X(3))  TEXT 'Work Order Task'
+    WKORDFM     PIC (X(8))  TEXT 'Work Order Number From'
+    WKORDTO     PIC (X(8))  TEXT 'Work Order Number To'
+    DEFPRIN     LIKE PRINTER1 OF MSF080
+%******************* VARIABLES - COMMON TO ALL LAYOUTS ************************
+%VARIABLES
+%***
+%***   CONSTANTS
+%***
+       X        = '=' CONSTANT
+       PT       = '.' CONSTANT
+       ESC      = '.'   CONSTANT
+       BN       = catenate (ESC,'[1m')   CONSTANT
+       BF       = catenate (ESC,'[0m')   CONSTANT
+       UNDERLN  = '________________________________________________________________________________'
+       PGE      = PAGE ()
+%***
+%***   Layout variables
+%*       LAY    = TABLE-DESC OF MSF010 
+%*                WHERE (TABLE-TYPE = '3T', -
+%*                       TABLE-CODE = %DISTRICT-CODE%)   CONSTANT
+%*       LAY1   = substr (LAY, 1, 1)                     CONSTANT
+%*       LAYOUT = choose (LAY1 IF (LAY1 <> SPACES), '1') CONSTANT
+       LAYOUT   = '1'
+%***
+%***   MSF623 variables
+%***
+       WO       = WORK-ORDER
+       A1       = numeric (WO)           PIC (Z(7)9)
+       B        = WO-TASK-NO
+       B1       = WO-TASK-NO             PIC (Z(2)9)
+       TSKCNT   = count (B)
+       TSKDESC  = WO-TASK-DESC
+       TSKWG    = WORK-GROUP
+       TSTART   = get (DISPLAY-DATE FROM (PLAN-STR-DATE))
+       P        = COMP-CODE
+       Q        = COMP-MOD-CODE
+       R        = APL-SEQ-NO
+       CC       = COMPL-TEXT-CDE
+       SI       = SAFETY-INSTR
+       CI       = COMPLETE-INSTR
+       COMPDT   = get (DISPLAY-DATE FROM (CLOSED-DT))
+%***
+%***   MSF623 Variables to do with APLs
+%***
+       APLTYP   = APL-TYPE
+       APLLIT1  = choose ('APL Equipment' IF (APLTYP = 'E'), -
+                          'APL Group Id'  IF (APLTYP = 'G'), -
+                          SPACES)
+       APLLIT2  = choose ('Component Modifier Sequence' IF (APLTYP <> SPACES), -
+                          SPACES)
+       O1       = EQUIP-GRP-ID
+       O2       = PLANT-NO OF MSF600 -
+                  WHERE (EQUIP-NO = O1)
+       O        = choose (O2 IF (O2 <> SPACES), -
+                          O1)
+%***
+%***   MSF620 variables
+%***   
+       EQNO     = EQUIP-NO OF MSF620 -
+                  WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                         WORK-ORDER  = WO)
+       Z        = NO-OF-TASKS    VIA (EQNO)
+       ACCTCD   = ACCOUNT-CODE   VIA (EQNO)
+       B2       = NO-OF-TASKS-9  VIA (EQNO) D-PIC 9(3)
+       G1       = ORIGINATOR-ID  VIA (EQNO)
+%*       PLAN-P   = PLAN-PRIORITY  VIA (EQNO)
+       G        = PLAN-PRIORITY  VIA (EQNO)
+%*       ORIG-P   = ORIG-PRIORITY  VIA (EQNO)
+       L        = ORIG-PRIORITY  VIA (EQNO)
+       ORIG-M   = ORIG-METHOD    VIA (EQNO)
+%*       J        = choose (PLAN-P IF (PLAN-P <> SPACES), -
+%*                          ORIG-P)
+       K1       = WO-TYPE        VIA (EQNO)
+       M1       = MAINT-TYPE     VIA (EQNO)
+       S        = RELATED-WO     VIA (EQNO)
+       T        = PAPER-HIST     VIA (EQNO)
+       U        = COMP-CODE      VIA (EQNO)
+       V        = COMP-MOD-CODE  VIA (EQNO)
+       PWO      = PARENT-WO      VIA (EQNO)
+       WOD      = WO-DESC        VIA (EQNO)
+       LWG      = WORK-GROUP     VIA (EQNO)
+       MAINT620 = MAINT-SCH-TASK VIA (EQNO)
+       STDJ     = STD-JOB-NO     VIA (EQNO)
+       MT       = NO-OF-TASKS    VIA (EQNO)
+       H1       = RAISED-DATE    VIA (EQNO)
+       I1       = PLAN-STR-DATE  VIA (EQNO)
+       WOASSIGN = ASSIGN-PERSON  VIA (EQNO)
+       WORAISE  = get (DISPLAY-DATE FROM (H1))
+       WOSTART  = get (DISPLAY-DATE FROM (I1))
+       STATUS   = WO-STATUS      VIA (EQNO)
+       COMPBY   = COMPLETED-BY   VIA (EQNO)
+%*
+%*  MSF621 - Estimates and Actuals
+%*
+       MSF621   = WORK-ORDER OF MSF621 -
+                  WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                         WORK-ORDER  = WO)  
+       ACTHRS   = ACT-LAB-HRS    VIA (MSF621)
+%***
+%***   MSF623 LFILE variables
+%***   
+       H        = WO-TASK-NO OF MSF623 -
+                  WHERE  (DSTRCT-CODE = %DISTRICT-CODE%, -
+                          WORK-ORDER >= WO) -
+                  STOPIF (WORK-ORDER <> WO) -
+                  MAX (20)
+       WO-ORD   = WORK-ORDER     VIA (H)
+       TSKDESC1 = WO-TASK-DESC   VIA (H)
+       TSWG1    =  WORK-GROUP    VIA (H)
+       GI       =  SAFETY-INSTR  VIA (H)
+%***
+%***   MSF600 variables
+%***
+       PNO      = PLANT-NO OF MSF600 -
+                  WHERE (EQUIP-NO = EQNO)
+       EQUIP    = choose (PNO IF (PNO <> SPACES), -
+                          EQNO)
+       EQDESC1  = ITEM-NAME-1    VIA (PNO)
+       EQDESC2  = ITEM-NAME-2    VIA (PNO)
+       EQL      = EQUIP-LOCATION VIA (PNO)
+%*
+       EQC      = EQUIP-CLASS    VIA (PNO)
+       DSTC     = DSTRCT-CODE    VIA (PNO) 
+%*
+%* RY 19/10/00
+       SS-FG    = choose ('SS-FLAG' IF (EQC  = 'SS', -
+                                        DSTC = 'SWST', -
+                                        B    = '001'), -
+                          '       ') 
+%***
+%***   MSF693 variables
+%***
+       693-KEY  = KEY-693 OF MSF693 -
+                  WHERE (DSTRCT-CODE  = %DISTRICT-CODE%, -
+                         STD-JOB-NO   = STDJ, -
+                         STD-JOB-TASK = WO-TASK-NO)
+%***
+%***   MSF735 variables
+%***
+       C1       = RESOURCE-TYPE OF MSF735 -
+                  WHERE (REC-735-TYPE   = 'ST', -
+                         KEY-735-ID     = %DISTRICT-CODE% & STDJ & WO-TASK-NO, -
+                         RESOURCE-TYPE >= SPACES) -
+                         MAX (10)
+       C2       = RESOURCE-TYPE OF MSF735 -
+                  WHERE (REC-735-TYPE = 'WT', -
+                         KEY-735-ID = %DISTRICT-CODE% & WO & B, -
+                         RESOURCE-TYPE >= SPACES) -
+                         MAX (10)
+       RSIZE1   = SIZE (C1)
+       RSIZE2   = SIZE (C2)
+       D1       = CREW-SIZE-9    VIA (C1) PIC ZZ
+       E1       = EST-RESRCE-HRS VIA (C1) PIC Z(3)9.99
+       D2       = CREW-SIZE-9    VIA (C2) PIC ZZ
+       E2       = EST-RESRCE-HRS VIA (C2) PIC Z(3)9.99
+       CTYPE    = choose (C2 IF (ORIG-M  = 'W'), -
+                          C1)
+       RSIZE    = choose (RSIZE2 IF (ORIG-M = 'W'), -
+                          RSIZE1)
+       D        = choose (D2 IF (ORIG-M  = 'W'), -
+                          D2)
+       DSTR     =    GET (DISPLAY-NUMBER FROM (D))
+       C        = CHOOSE (SPACES IF (D = 0), DSTR)   
+       ESTHRS   = choose (E2 IF (ORIG-M  = 'W'), -
+                          E2)
+       ESTSTR   = GET (DISPLAY-NUMBER FROM (ESTHRS))
+       SETEST   = CHOOSE (SPACES IF (ESTHRS = 0), ESTSTR) 
+%***
+%***   MSF700/720 variables
+%***
+       WGDESC   = WORK-GRP-DESC OF MSF720 -
+                  WHERE (WORK-GROUP = WORK-GROUP)
+       LWGDESC  = WORK-GRP-DESC OF MSF720 -
+                  WHERE (WORK-GROUP = LWG)
+       MSDESC1  = SCHED-DESC-1 OF MSF700 -
+                  WHERE (REC-700-TYPE   = 'ES', -
+                         EQUIP-NO       = EQNO, -
+                         COMP-CODE      = U, -
+                         COMP-MOD-CODE  = V, -
+                         MAINT-SCH-TASK = MAINT620)
+       MSDESC2 = SCHED-DESC-2    VIA (MSDESC1)
+%***
+%***   MSF010 variables
+%***
+       RESTYPE1 = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'TT', -
+                         TABLE-CODE = C1)
+       RESTYPE2 = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'TT', -
+                         TABLE-CODE = C2)
+       RESTYPE  = choose (RESTYPE2 IF (ORIG-M = 'W'), -
+                          RESTYPE2)
+%*
+       ASS1     = SURNAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = ASSIGN-PERSON)
+       ASS1I    = FIRST-INITIAL  VIA (ASS1)
+       ASS      = catenate (ASS1I, ' ', ASS1)  
+%*
+       WOASS1   = SURNAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = WOASSIGN)
+       WOASS1I  = FIRST-INITIAL  VIA (WOASS1)
+       WOASS    = catenate (WOASS1I, ' ', WOASS1)
+       JDDESC   = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'JD', -
+                         TABLE-CODE = JOB-DESC-CODE)
+%*
+       ORIGINAT1= SURNAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = G1)
+       ORIGINAT1I= FIRST-INITIAL VIA (ORIGINAT1)
+       ORIGINAT = catenate (ORIGINAT1I,' ',ORIGINAT1)
+       K        = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'WO', -
+                         TABLE-CODE = K1)
+       MTTYPE   = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'MT', -
+                         TABLE-CODE = M1)
+       CCDESC   = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'CC', -
+                         TABLE-CODE = CC)
+       SIDESC   = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'SI', -
+                         TABLE-CODE = SI)
+       CIDESC   = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'CI', -
+                         TABLE-CODE = CI)
+       ELD      = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'EL', -
+                         TABLE-CODE = EQL)
+       CODESC   = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'CO', -
+                         TABLE-CODE = U)
+       MODESC   = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'MO', -
+                         TABLE-CODE = V)
+       GIDESC   = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'SI', -
+                         TABLE-CODE = GI)
+       N        = substr (GIDESC, 48, 3)
+%*
+       COMPDES1 = SURNAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = COMPBY)
+       COMPDES1I= FIRST-INITIAL  VIA (COMPDES1)
+       COMPDES  = catenate (COMPDES1I,' ',COMPDES1)
+%***
+%***  Check sheet existance verification : check MSF010 list
+%***
+%***   CKKEY    = catenate (%DISTRICT-CODE%, STDJ, B, '12345') line spaces
+       CKKEY    = catenate (%DISTRICT-CODE%, STDJ, B, '     ')
+       CKDESC   = TABLE-DESC OF MSF010 -
+                  WHERE (TABLE-TYPE = 'CK', -
+                         TABLE-CODE = CKKEY)
+       CKSHEET  = choose ('Y' IF (CKDESC > SPACES), -
+                          'N')
+%***   MSF096 variables
+%***
+       WATEXT   = get (READ-TEXT FROM ('MSF096') CODE ('WA') -
+                  KEY (%DISTRICT-CODE%, WO, B) ) MAX (200)
+       CCTEXT   = get (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                  KEY ('CC', CC)) MAX (200)
+       CITEXT   = get (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                  KEY ('CI', CI)) MAX (200)
+       CWTEXT   = get (READ-TEXT FROM ('MSF096') CODE ('CW') -
+                  KEY (%DISTRICT-CODE%, WO)) MAX (200)
+       GTTEXT   = get (READ-TEXT FROM ('MSF096') CODE ('GT') -
+                  KEY ('PPSAFETY')) MAX (120) 
+       WITEXT   = get (READ-TEXT FROM ('MSF096') CODE ('WI') -
+                  KEY (%DISTRICT-CODE%,WO,B) ) MAX (200)
+       MITEXT   = get (READ-TEXT FROM ('MSF096') CODE ('MI') -
+                  KEY (EQNO, U, V, MAINT620)) MAX (120)
+       SITEXT   = get (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                  KEY ('SI', SI)) MAX (200)
+       WOTEXT   = get (READ-TEXT FROM ('MSF096') CODE ('WO') -
+                  KEY (%DISTRICT-CODE%, WO)) MAX (120)
+       WASIZE   = SIZE (WATEXT)
+       CISIZE   = SIZE (CITEXT)
+       CCSIZE   = SIZE (CCTEXT)
+       CWSIZE   = SIZE (CWTEXT)
+       WISIZE   = SIZE (WITEXT)
+       MISIZE   = SIZE (MITEXT)
+       SISIZE   = SIZE (SITEXT)
+       MPSITEXT = get (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                  KEY ('2S','AA')) MAX (12)
+       WASITEXT = get (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                  KEY ('2S','BB')) MAX (12)
+       ERSITEXT = get (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                  KEY ('2S','CC')) MAX (12)
+       BYSITEXT = get (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                  KEY ('2S','DD')) MAX (12)
+       SHSITEXT = get (READ-TEXT FROM ('MSF096') CODE ('TT') -
+                  KEY ('2S','EE')) MAX (12)
+       MPSISIZE = SIZE (MPSITEXT)
+       WASISIZE = SIZE (WASITEXT)
+       ERSISIZE = SIZE (ERSITEXT)
+       BYSISIZE = SIZE (BYSITEXT)
+       SHSISIZE = SIZE (SHSITEXT)
+       SHSAFTY  = choose ('Y' IF (%DISTRICT-CODE% = 'SHVN'), -
+                          'N')
+%***
+%***  Check sheet TEXT held in MSF096
+%***
+%***   TEXTKEY  = catenate ('CK  ', %DISTRICT-CODE%, STDJ, B, '123456789')
+       TEXTKEY  = catenate ('CK  ', %DISTRICT-CODE%, STDJ, B, '         ')
+       CKTEXT   = STD-TEXT-REC-X-1 OF MSF096 -
+                  WHERE (STD-TEXT-CODE = 'TT', -
+                         STD-KEY       = TEXTKEY, -
+                         STD-LINE-NO  >= 0) -
+                  MAX (300)
+%*
+       WG1      = WORK-GROUP     VIA (EQNO)
+       TC2      = ASSIGN-PERSON  VIA (EQNO)
+       TC3      = AUTHSD-BY      VIA (EQNO)
+       TC4      = ORIGINATOR-ID  VIA (EQNO)
+       PN1      = PRINTER-NAME   VIA (WGDESC)
+       PN2      = PRINTER-NAME OF MSF720 -
+                  WHERE (WORK-GROUP = WG1)
+       ASSC1    = PRINTER-ID     VIA (ASS1)
+       PRIN1    = PRINTER OF MSF010 -
+                  WHERE (TABLE-TYPE = 'PR', -
+                         TABLE-CODE = '    ' & PN1)
+       PRIN2    = substr (ASSC1, 1, 2)
+       PRIN3    = PRINTER OF MSF010 -
+                  WHERE (TABLE-TYPE = 'PR', -
+                         TABLE-CODE = '    ' & PN2)
+       PRIN41   = EMPLOYEE-ID OF MSF810 -
+                  WHERE (EMPLOYEE-ID = TC2)
+       PRIN4    = PRINTER-ID     VIA (PRIN41)
+%*
+       PRIN51   = EMPLOYEE-ID OF MSF810 -
+                  WHERE (EMPLOYEE-ID = TC3)
+       PRIN5    = PRINTER-ID     VIA (PRIN51)
+%*
+       PRIN61   = EMPLOYEE-ID OF MSF810 -
+                  WHERE (EMPLOYEE-ID = TC4)
+       PRIN6    = PRINTER-ID     VIA (PRIN61)
+%*
+       PRINA    = choose (%DEFPRIN% IF (%DEFPRIN% <> SPACES), -
+                          PRIN1     IF (PRIN1     <> SPACES), -
+                          PRIN2     IF (PRIN2     <> SPACES), -
+                          PRIN3     IF (PRIN3     <> SPACES), -
+                          PRIN4     IF (PRIN4     <> SPACES), -
+                          PRIN5     IF (PRIN5     <> SPACES), -
+                          PRIN6     IF (PRIN6     <> SPACES), -
+                          PRIN1)
+       PRINX    = PRINTER (PRINA)
+       PARAMVAL = choose ('1', IF (%WKORDFM% = SPACES AND %WKORDTO% = SPACES AND %WONO% = SPACES), -
+                          '2', IF (%WKORDFM% <> SPACES AND %WKORDTO% = SPACES), -
+                          '2', IF (%WKORDFM% = SPACES AND %WKORDTO% <> SPACES), -
+                          '0')
+    DSTCDE = DSTRCT-CODE
+    A84 = DSTRCT-CODE FROM MSF581A -
+    WHERE (DOC-REF-TYPE-2         = 'WO', -
+           DOC-REFERENCE-2        = WORK-ORDER, -
+           DOC-REF-OTHER-2       >= SPACES) -
+    REJECTIF (DSTRCT-CODE-2 <> DSTCDE)
+    A85 = DOCUMENT-NO VIA (A84)
+    A90 = DOC-STATUS OF MSF580 -
+    WHERE (DSTRCT-CODE            = A84, -
+           DOCUMENT-NO            = A85)
+    A95 = VER-NO-LATEST VIA (A90)
+    A86 = DSTRCT-CODE VIA (A90)
+    A87 = DOCUMENT-NO VIA (A90)
+    A89 = ELEC-REF OF MSF586 -
+    WHERE (DSTRCT-CODE            = A86, -
+           DOCUMENT-NO            = A87, -
+           DOC-VER-NO             = A95)
+    A93 = CHOOSE(A89  IF (A90 = 'A' ) , SPACES )
+    A91 = PUT(A93 ) MAX (20 )
+    B00 = SINGLE(A91 (1 ))
+    B01 = SINGLE(A91 (2 ))
+    B02 = SINGLE(A91 (3 ))
+    B03 = SINGLE(A91 (4 ))
+    B04 = SINGLE(A91 (5 ))
+    B05 = SINGLE(A91 (6 ))
+    B06 = SINGLE(A91 (7 ))
+    B07 = SINGLE(A91 (8 ))
+    B08 = SINGLE(A91 (9 ))
+    B09 = SINGLE(A91 (10 ))
+    B10 = SINGLE(A91 (11 ))
+    B11 = SINGLE(A91 (12 ))
+    B12 = SINGLE(A91 (13 ))
+    B13 = SINGLE(A91 (14 ))
+    B14 = SINGLE(A91 (15 ))
+    B15 = SINGLE(A91 (16 ))
+    B16 = SINGLE(A91 (17 ))
+    B17 = SINGLE(A91 (18 ))
+    B18 = SINGLE(A91 (19 ))
+    B19 = SINGLE(A91 (20 ))
+    B20 = SUBSTR(B00 ,1,75)
+    B20A= SUBSTR(B00 ,76,75)
+    B20B= SUBSTR(B00 ,151,75)
+    B20C= SUBSTR(B00 ,226,31)
+    B22 = SUBSTR(B01 ,1,75)
+    B22A= SUBSTR(B01 ,76,75) 
+    B22B= SUBSTR(B01 ,151,75)
+    B22C= SUBSTR(B01 ,226,31)
+    B24 = SUBSTR(B02 ,1,75)
+    B24A= SUBSTR(B02 ,76,75) 
+    B24B= SUBSTR(B02 ,151,75)
+    B24C= SUBSTR(B02 ,226,31)
+    B26 = SUBSTR(B03 ,1,75)
+    B26A= SUBSTR(B03 ,76,75) 
+    B26B= SUBSTR(B03 ,151,75)
+    B26C= SUBSTR(B03 ,226,31)
+    B28 = SUBSTR(B04 ,1,75)
+    B28A= SUBSTR(B04 ,76,75) 
+    B28B= SUBSTR(B04 ,151,75)
+    B28C= SUBSTR(B04 ,226,31)
+    B30 = SUBSTR(B05 ,1,75)
+    B30A= SUBSTR(B05 ,76,75) 
+    B30B= SUBSTR(B05 ,151,75)
+    B30C= SUBSTR(B05 ,226,31)
+    B32 = SUBSTR(B06 ,1,75)
+    B32A= SUBSTR(B06 ,76,75) 
+    B32B= SUBSTR(B06 ,151,75)
+    B32C= SUBSTR(B06 ,226,31)
+    B34 = SUBSTR(B07 ,1,75)
+    B34A= SUBSTR(B07 ,76,75) 
+    B34B= SUBSTR(B07 ,151,75)
+    B34C= SUBSTR(B07 ,226,31)
+    B36 = SUBSTR(B08 ,1,75)
+    B36A= SUBSTR(B08 ,76,75) 
+    B36B= SUBSTR(B08 ,151,75)
+    B36C= SUBSTR(B08 ,226,31)
+    B38 = SUBSTR(B09 ,1,75)
+    B38A= SUBSTR(B09 ,76,75) 
+    B38B= SUBSTR(B09 ,151,75)
+    B38C= SUBSTR(B09 ,226,31)
+    A94 = 'Associated Documents v1'
+       
+%*
+%* ----------------------  End  of  the  Program  ----------------

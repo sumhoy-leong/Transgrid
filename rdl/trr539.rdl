@@ -1,0 +1,163 @@
+%*** Revision History:
+%*** ----------------
+%*** 31-Jan-13 a9nh4814   MO164 ---
+%*** .................... Fixed employee and claim only condition
+%*** 23-Jan-13 a9nh4814   MO164 ---
+%*** .................... Changed date range to be optional
+%*** 28-Dec-12 a9is6175   Add Fix total exclude first transaction,
+%*** .................... Change first name to initial,
+%*** .................... Add Claim No parameters.
+%*** 13-Sep-12 a9is6175   MO14 (Version 0001)
+%*** .................... Reset version number to 0001 for E8 upgrade. 
+%*** 07-Jun-2000  E Fredeluces   W00050394
+%***                             Initial Coding.
+%PROGRAM-ID
+       TRR539
+%AUTHOR
+       Elizabeth Fredeluces
+%NARRATIVE
+      **  This will generate the Monthly Workers
+      **  Compensation Payments Report.
+%VERSION
+       0001
+%MODULE
+       3140
+%FILES
+        MFILE = MSF539A
+        LFILE = MSF010
+        LFILE = MSF536A
+        LFILE = MSF810
+		LFILE = MSF510
+        RFILE = TRR539A
+%SELECTION
+       WHERE    (CLAIM-TYP-2    = 'P', -
+                 ABS-AUTH      >= SPACES)
+       REJECTIF (INVERSE-DATE-2 > %INVFR% AND %INVFR% <> SPACES)
+       REJECTIF (INVERSE-DATE-2 < %INVTO% AND %INVTO% <> SPACES)
+%ROUTINES
+       MSSCNV
+%ORDER 
+%*  Order by Employee-id & Paid Date 
+       EMP
+       CLAIM-NO-2
+       PDTE
+       SRT
+	   
+%CONTROL-BREAKS
+       BEMP
+       CLAIM-NO-2
+       BCDT
+%TITLE
+'Workers Compensation Payments Report'
+%PAGE HEADING
+'                                        Period Date : '{INVFR }'To'{INVTO } 
+                                                  
+'Employee-Id  Employee Name Incident No. Incident       Incident   Claim No.   Payment          Paym     Paid                    '
+'                                        Description    Date                   Type             Code     Date    Hours   Amount  '
+%BREAK BEMP HEADING
+%BREAK BCDT FOOTING
+<IF EMPFLG = 'Y'>
+    <IF CLNFLG = 'Y'>
+ {EMP     }   {ENAME       } {DINUM    } {DINDESC     } {INDATE  }{DCLAIM  } {DESC            } {CDESC}{PDTE  }{THM  }{TAMT      }
+    <ENDIF>
+<ENDIF>
+%BREAK CLAIM-NO-2 FOOTING
+    <IF TCNT <> 0>
+
+'                                                                            ----------------------------------------------------'
+'                                                                            Claim Totals            -->'     {THM   }{TAMT      }
+
+    <ENDIF>
+%SUMMARY
+'================================================================================================================================'
+'                                                                            Grand Total             -->'     {THM   }{TAMT      }
+'--------------------------------------------------------------------------------------------------------------------------------'
+
+
+'                                                 ***  End Of Report  ***'
+%REQUEST-PARAMETERS
+   INVFR  PIC (X(8)) FORMAT (REVERSE-DATE) TEXT  'Paid Date From                :'
+   INVTO  PIC (X(8)) FORMAT (REVERSE-DATE) TEXT  'Paid Date To                  :'
+   EMP1   PIC (X(10))                      TEXT  'Employee Id 1 (blank for all) :'
+   EMP2   PIC (X(10))                      TEXT  'Employee Id 2                 :'
+   EMP3   PIC (X(10))                      TEXT  'Employee Id 3                 :'
+   EMP4   PIC (X(10))                      TEXT  'Employee Id 4                 :'
+   EMP5   PIC (X(10))                      TEXT  'Employee Id 5                 :'
+   CLN1   PIC (X(10))                      TEXT  'Claim No 1    (blank for all) :'
+   CLN2   PIC (X(10))                      TEXT  'Claim No 2                    :'
+   CLN3   PIC (X(10))                      TEXT  'Claim No 3                    :'
+   CLN4   PIC (X(10))                      TEXT  'Claim No 4                    :'
+   CLN5   PIC (X(10))                      TEXT  'Claim No 5                    :'
+   
+%VARIABLES
+   INVFR = %INVFR%  FORMAT (REVERSE-DATE)   CONSTANT
+   INVTO = %INVTO%  FORMAT (REVERSE-DATE)   CONSTANT
+   CLAIM = CLAIM-NO-2
+   DCLAIM = CLAIM SUPPRESS
+   PCDE  = PAY-RECOV-CODE
+   PDTE  = INVERSE-DATE-2 FORMAT (REVERSE-DATE)
+   AMT   = WC-PAYMENT-AMT 
+   
+   CLNFLG= CHOOSE ('Y' IF (%CLN1% = SPACES),                -
+                   'Y' IF (%CLN1% = CLAIM, %CLN1% <> SPACES), -
+                   'Y' IF (%CLN2% = CLAIM, %CLN2% <> SPACES), -
+                   'Y' IF (%CLN3% = CLAIM, %CLN3% <> SPACES), -
+                   'Y' IF (%CLN4% = CLAIM, %CLN4% <> SPACES), -
+                   'Y' IF (%CLN5% = CLAIM, %CLN5% <> SPACES), -
+                   'N')
+%*
+%* Payment Type Desc
+   DESC  = TABLE-DESC OF MSF010        -
+           WHERE (TABLE-TYPE = 'WCPT', -
+                  TABLE-CODE = PCDE)
+   CDESC = TABLE-CODE VIA (DESC)
+%*
+%* Employee
+   EMP   = CLAIM-ENTITY OF MSF536A         -
+           WHERE    (CLAIM-NO-2 >= SPACES) -
+           SELECTIF (CLAIM-NO-2  = CLAIM)  -
+           MAX   (1)  SUPPRESS
+   EMPFLG= CHOOSE ('Y' IF (%EMP1% = SPACES),                -
+                   'Y' IF (%EMP1% = EMP, %EMP1% <> SPACES), -
+                   'Y' IF (%EMP2% = EMP, %EMP2% <> SPACES), -
+                   'Y' IF (%EMP3% = EMP, %EMP3% <> SPACES), -
+                   'Y' IF (%EMP4% = EMP, %EMP4% <> SPACES), -
+                   'Y' IF (%EMP5% = EMP, %EMP5% <> SPACES), -
+                   'N')
+%*
+%*
+   CNT   = CHOOSE (1 IF (EMPFLG = 'Y' AND CLNFLG = 'Y'), 0)
+   TCNT  = TOTAL (CNT)
+   CAMT  = CHOOSE (AMT IF (EMPFLG = 'Y' AND CLNFLG = 'Y'), 0)
+   TAMT  = TOTAL  (CAMT)   D-PIC $$$,$$$,$$9.99
+   EMCD  = CATENATE (EMP,CLAIM,PCDE,PDTE)
+   SRT   = CHOOSE (EMCD IF (EMCD <> SPACES), EMCD)
+   BEMP  = SUBSTR (SRT,1,10)
+   BCDT  = SUBSTR (SRT,11,20)
+%*
+%* Hours
+   HM    = HOURS-MINS
+   CHM   = CHOOSE (HM IF (EMPFLG = 'Y' AND CLNFLG = 'Y'), 0)
+   THM   = TOTAL (CHM)  
+%*   
+%* Employee Name
+   SNAME = SURNAME OF MSF810 -
+           WHERE (EMPLOYEE-ID = EMP)
+   FNAME = FIRST-NAME VIA (SNAME)
+   IFNAM = SUBSTR (FNAME,1,1)
+   NAME  = CATENATE (SNAME,' ',IFNAM,'.')
+   ENAME = OUT-STRING OF MSSCNV - 
+           WHERE (OPTION     = 'P', -
+                  INP-STRING = NAME) SUPPRESS
+%*
+%* Incident
+   INUM   = INCIDENT-NO OF MSF536A -
+            WHERE (CLAIM-NO = CLAIM)
+   DINUM  = INUM SUPPRESS
+   INDESC = INCIDENT-DESC OF MSF510 -
+            WHERE (INCIDENT-NO = INUM)
+   DINDESC = INDESC SUPPRESS
+   INDATE = REV-OCC-DATE VIA (INDESC) FORMAT (REVERSE-DATE) SUPPRESS
+%*
+%*     ***  End Of Program  ***
+%*

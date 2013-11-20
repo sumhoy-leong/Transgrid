@@ -1,0 +1,289 @@
+%*** TRR898.rdl
+%***
+%*** Revision History ***
+%*** 24-May-13  a9wp3261    Added validation of shift 
+%*** .....................  type of rostered code in MSF898 
+%*** .....................  (only needs to report working days
+%*** .....................  ie. day, morning, afternoon 
+%*** .....................  or night shift)
+%*** 14-Feb-13  a9ma2656    Rework coding 
+%*** .....................  to meet the requirements.
+%*** 30-Nov-12  O Santa-Ana Initial Coding.
+%***
+%PROGRAM-ID
+    TRR898
+%AUTHOR
+    Ventyx
+%NARRATIVE
+    Exception Report - Non-merged Overtime Within Thresholds.
+      
+    This report is to produce a list of instances where employees have
+    claimed non-merged overtime within a prescribed threshold from their
+    start or finish time.  A hard copy report is required for manual action
+    by Payroll users.
+%MODULE
+    3820
+%VERSION
+    0003
+%ROUTINES
+    MSSDAT
+    MSSTIM
+%FILES
+    MFILE = MSF820
+    AFILE = MSF891
+    LFILE = MSF010
+    LFILE = MSF810
+    LFILE = MSF801
+    LFILE = MSF898
+    RFILE = TRR898A
+%BREAK-FIELDS
+    PAY-LOCATION
+%SELECTION
+<IF %PAYLOC% <> SPACES>
+    WHERE    (EMPLOYEE-ID   >= SPACES)
+    SELECTIF (PAY-LOCATION   = %PAYLOC%)
+<ELSE>
+    WHERE    (EMPLOYEE-ID   >= SPACES)
+    REJECTIF (PAY-LOCATION   = SPACES)
+<ENDIF>
+%ORDER
+    PL         TEXT 'Pay Location (if requested)'
+    EMPNAME    TEXT 'Employee Name'
+    TRNDATE    TEXT 'Transaction Date'
+    OTSTART    TEXT 'Transaction Start Time'
+%REPORT
+    A
+%REPORT-TITLE
+    'EXCEPTION REPORT - NON-MERGED OVERTIME WITHIN THRESHOLDS'
+%PAGE HEADING
+'                               Pay Location: 'JJ'(Blank for all)             Pay Period:' YYYYYYYY
+%BREAK PAY-LOCATION HEADER
+'                                                                                                                                  '
+'                                                                                                                                  '
+'Pay Location: 'ZZ' - '{PLD                         }
+'----------------------------------------------------------------------------------------------------------------------------------'
+'|Employee ID    |Employee Name                    |Day |Date       |Rostered    |Rostered    |Work   |Start    |Stop    |Status  |'
+'|               |                                 |    |           |Start Time  |Stop Time   |Code   |Time     |Time    |        |'
+'----------------------------------------------------------------------------------------------------------------------------------'
+%DETAIL
+<IF WC1-CHK = 'Y' AND BST-CHK = 'Y' AND AST-CHK = 'Y' AND SH-CK = 'Y'>
+ L{EMP          }L{EMPNAME                        }LDDD L{TDT     } LRRQSS       LTTQUU       LWWW    LOOQPP    LEEQFF   L{ST    }L
+<ENDIF>
+%BREAK PAY-LOCATION FOOTER
+'----------------------------------------------------------------------------------------------------------------------------------'
+%REPORT-SUMMARY
+'                                                                                                                                  '
+'                                                        *** END of REPORT ***'
+%REQUEST-PARAMETERS
+    PAYLOC    PIC (X(2))  TEXT 'Pay Location          - Blank for All : '
+    PERIOD    PIC (9(3))  TEXT 'Pay Periods to Process                : '
+    WCODE1    PIC (X(2))  TEXT 'Overtime Code 1       - Blank for All : '
+    WCODE2    PIC (X(2))  TEXT 'Overtime Code 2                       : '
+    WCODE3    PIC (X(2))  TEXT 'Overtime Code 3                       : '
+    WCODE4    PIC (X(2))  TEXT 'Overtime Code 4                       : '
+    WCODE5    PIC (X(2))  TEXT 'Overtime Code 5                       : '
+    WCODE6    PIC (X(2))  TEXT 'Overtime Code 6                       : '
+    WCODE7    PIC (X(2))  TEXT 'Overtime Code 7                       : '
+    WCODE8    PIC (X(2))  TEXT 'Overtime Code 8                       : '
+    WCODE9    PIC (X(2))  TEXT 'Overtime Code 9                       : '
+    WCODE10   PIC (X(2))  TEXT 'Overtime Code 10                      : '
+    BST       PIC (X(5))  TEXT 'Before Shift Threshold (hh.mm)        : '
+    AST       PIC (X(5))  TEXT 'After Shift Threshold  (hh.mm)        : '
+%VARIABLES
+%*
+%*  Constants
+    BSTNUM = NUMERIC (%BST%) I-PIC (S9(2)V9(2)) CONSTANT
+    ASTNUM = NUMERIC (%AST%) I-PIC (S9(2)V9(2)) CONSTANT
+    C24    = NUMERIC (24) I-PIC (S9(2)V9(2)) CONSTANT
+    PRD    = %PERIOD% CONSTANT
+    J      = %PAYLOC% CONSTANT
+    Q      = ':' CONSTANT
+    L      = '|' CONSTANT
+    H      = '-' CONSTANT
+    
+%*
+%*  Get fields from master file MSF820
+    PL  = PAY-LOCATION
+    EMP = EMPLOYEE-ID
+    PG  = PAY-GROUP
+    RPL = RPT-PHY-LOC
+
+%*
+%*  Get fields from lookup file MSF010
+    PLD = TABLE-DESC OF MSF010 -
+          WHERE (TABLE-TYPE = 'PAYL', -
+                 TABLE-CODE = PL)
+%*
+%*  Get employee name
+    EMPGET  = HRGET (EMPLOYEE-ID -
+                     FROM ('MSF810, MSSEMP') -
+                     KEY  (EMPLOYEE-ID = EMP))
+    EMPNAME = FORMATTED-NAME VIA (EMPGET)
+    
+%*
+%*  MSF801-PG
+%*  Obtain Current Period End Date for Employee's Pay Group
+    PP-END = CUR-END-DT-PG OF MSF801 -
+             WHERE (CNTL-REC-TYPE = 'PG', -
+                    CNTL-KEY-REST = PG)
+    
+%*
+%*  Formula to calculate Start Date from End Date and Period
+%*  Start Date = End date - (number of weeks x 7) + 1.
+%*
+%*  Use MSSDAT to obtain the Current Pay Period End Date
+    DAYSP  = CALC ((PRD * -7) + 1) I-PIC (S9(6))
+    PP-STR = DATE2 OF MSSDAT -
+             WHERE (OPTION  = '1', -
+                    DATE1   = PP-END, -
+                    DAYS    = DAYSP)
+
+%*
+%*  MSF891
+%*  Obtain Allowance Transactions
+    WC1  = WORK-CODE FROM MSF891 -
+           WHERE    (PAY-GROUP        = PG, -
+                     TRN-DATE        >= SPACES) -
+           SELECTIF (TRN-DATE        >= PP-STR, - 
+                     TRN-DATE        <= PP-END, -
+                     EMPLOYEE-ID      = EMP, -
+                     TRAN-APPR-STATUS = 'APPR') -
+           REJECTIF (WORK-CODE        = SPACES)
+    
+    TRNDATE = TRN-DATE VIA (WC1)
+    OTSTART = FROM-TIME VIA (WC1)
+    OTSTOP  = END-TIME VIA (WC1)
+    TRAPPST = TRAN-APPR-STATUS VIA (WC1)
+    TRREVST = REVERSE-STATUS VIA (WC1)
+    TRAPST  = TRAN-APPR-STATUS VIA (WC1)
+    EMPID   = EMPLOYEE-ID VIA (WC1)
+    WC1-CHK = CHOOSE ('Y' IF (WC1 <> SPACES AND (-
+                              WC1 = %WCODE1% OR WC1 = %WCODE2% OR -
+                              WC1 = %WCODE3% OR WC1 = %WCODE4% OR -
+                              WC1 = %WCODE5% OR WC1 = %WCODE6% OR -
+                              WC1 = %WCODE7% OR WC1 = %WCODE8% OR -
+                              WC1 = %WCODE9% OR WC1 = %WCODE10%)), 'N')
+%*
+%*  MSF801-R1
+%*  Obtain Work Code description
+    GWC1   = CATENATE ('***', WC1)
+    WC1-D  = TNAME-R1 OF MSF801 -
+             WHERE (CNTL-REC-TYPE = 'R1', -
+                    CNTL-KEY-REST = GWC1)
+    
+%*
+%*  MSF898
+%*  Rosters
+    WC2 = WORK-CODE OF MSF898 -
+          WHERE (EMPLOYEE-ID = EMP, -
+                 TRN-DATE    = TRNDATE, -
+                 TRN-STATUS  = 'RGEN')
+    
+    ROSSTR = ROST-STR-TIME VIA (WC2)
+    ROSSTP = ROST-STOP-TIME VIA (WC2)
+    
+%*
+%*  MSF801-R1
+%*  Obtain Work Code description for the MSF898-WORK-CODE
+    GWC2   = CATENATE ('***', WC2)
+    WC2-D  = TNAME-R1 OF MSF801 -
+             WHERE (CNTL-REC-TYPE = 'R1', -
+                    CNTL-KEY-REST = GWC2)
+%*
+%* Added new validation for shift TYPE
+%* only D,M,A,N allowed
+%*
+    SH-TY  = SHIFT-TYPE-R1 VIA (WC2-D)
+    SH-CK  = CHOOSE ('Y' IF (SH-TY = 'D'), -
+                     'Y' IF (SH-TY = 'M'), -
+                     'Y' IF (SH-TY = 'A'), -
+                     'Y' IF (SH-TY = 'N'), -
+                     'N')             
+                    
+%*
+%*  Check thresholds value
+    CALCB = CHOOSE (BSTNUM IF (BSTNUM < C24), -
+                     ZERO) I-PIC (S9(2)V9(2))
+
+    CALCA = CHOOSE (ASTNUM IF (ASTNUM < C24), -
+                     ZERO) I-PIC (S9(2)V9(2))
+
+%*
+%*  Get hours
+    HH-BST     = TIME6 OF MSSTIM -
+                 WHERE (OPTION      = '9', -
+                        TIME4       = CALCB, -
+                        TIME-FORMAT = 'D')
+    HH-AST     = TIME6 OF MSSTIM -
+                 WHERE (OPTION      = '9', -
+                        TIME4       = CALCA, -
+                        TIME-FORMAT = 'D')
+    HH-ROSSTR  = TIME6 OF MSSTIM -
+                 WHERE (OPTION      = '9', -
+                        TIME4       = ROSSTR, -
+                        TIME-FORMAT = 'D')
+    HH-ROSSTP  = TIME6 OF MSSTIM -
+                 WHERE (OPTION      = '9', -
+                        TIME4       = ROSSTP, -
+                        TIME-FORMAT = 'D')
+    HH-OTSTOP  = TIME6 OF MSSTIM -
+                 WHERE (OPTION      = '9', -
+                        TIME4       = OTSTOP, -
+                        TIME-FORMAT = 'D')
+    HH-OTSTART = TIME6 OF MSSTIM -
+                 WHERE (OPTION      = '9', -
+                        TIME4       = OTSTART, -
+                        TIME-FORMAT = 'D')
+%*
+%*  Get minutes
+    MM-OTSTART = CALC ((OTSTART - HH-OTSTART) * 100) I-PIC (S9(3))
+    MM-OTSTOP  = CALC ((OTSTOP - HH-OTSTOP) * 100) I-PIC (S9(3))
+    MM-ROSSTR  = CALC ((ROSSTR - HH-ROSSTR) * 100) I-PIC (S9(3))
+    MM-BST     = CALC ((CALCB - HH-BST) * 100) I-PIC (S9(3))
+    MM-ROSSTP  = CALC ((ROSSTP - HH-ROSSTP) * 100) I-PIC (S9(3))
+    MM-AST     = CALC ((CALCA - HH-AST) * 100) I-PIC (S9(3))
+    
+%*
+%*  Get calculated Before Shift Threshold time (hh.mm)
+    HH-DIFF1 = CALC (HH-ROSSTR - HH-BST) I-PIC (S9(3))
+    CALB1    = CALC (24 + HH-DIFF1) I-PIC (S9(3))
+    HHBST    = CHOOSE (HH-DIFF1 IF (HH-DIFF1 > 0), CALB1) I-PIC (S9(3))
+    MM-DIFF1 = CALC (MM-ROSSTR - MM-BST) I-PIC (S9(3))
+    CALB2    = CALC (HHBST + (MM-DIFF1 / 100)) I-PIC (S9(3)V9(2))
+    CALB3    = CALC ((HHBST - 1) + ((60 + MM-DIFF1) / 100)) I-PIC (S9(3)V9(2))
+    CAL-BST  = CHOOSE (CALB2 IF (MM-DIFF1 >= 0), CALB3) I-PIC (S9(3)V9(2))
+    BST-CHK  = CHOOSE ('Y' IF (OTSTOP >= CAL-BST), 'N')
+    
+%*
+%*  Get calculated After Shift Threshold time (hh.mm)
+    HH-DIFF2 = CALC (HH-ROSSTP + HH-AST) I-PIC (S9(3))
+    CALA1    = CALC (HH-DIFF2 - 24) I-PIC (S9(3))
+    HHAST    = CHOOSE (HH-DIFF2 IF (HH-DIFF2 < 24), CALA1) I-PIC (S9(3))
+    MM-DIFF2 = CALC (MM-ROSSTP + MM-AST) I-PIC (S9(3))
+    CALA2    = CALC (HHAST + (MM-DIFF2 / 100)) I-PIC (S9(3)V9(2))
+    CALA3    = CALC ((HHAST + 1) + ((MM-DIFF2 - 60) / 100)) I-PIC (S9(3)V9(2))
+    CAL-AST  = CHOOSE (CALA2 IF (MM-DIFF2 < 60), CALA3) I-PIC (S9(3)V9(2))
+    AST-CHK  = CHOOSE ('Y' IF (OTSTART <= CAL-AST), 'N')
+
+%*
+%*  Get display
+    CAT1 = CATENATE (TRAPPST,'/',TRREVST)
+    ST   = CHOOSE (CAT1 IF (TRREVST <> SPACES), TRAPPST)
+    D    = DAY-NAME OF MSSDAT -
+           WHERE (OPTION = '6', -
+                  DATE1  = TRNDATE)
+    W    = WC1
+    Z    = PL
+    Y    = PP-END  FORMAT (DATE)
+    TDT  = TRNDATE FORMAT (DATE)
+    R    = HH-ROSSTR D-PIC (99)
+    S    = MM-ROSSTR D-PIC (99)
+    T    = HH-ROSSTP D-PIC (99)
+    U    = MM-ROSSTP D-PIC (99)
+    O    = HH-OTSTART D-PIC (99)
+    P    = MM-OTSTART D-PIC (99)
+    E    = HH-OTSTOP D-PIC (99)
+    F    = MM-OTSTOP D-PIC (99)
+
+%*
+%*  End of Program

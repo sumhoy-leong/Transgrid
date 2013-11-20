@@ -1,0 +1,201 @@
+%*** TRR83D.RDL
+%***
+%*** Revision History 
+%*** ----------------
+%*** 18-09-12   a9nh4814      MO164 (Version 0001)
+%***                          - Modified to version 0001 for Ellipe 8 migration
+%***                          - Corrected record length
+%***                          - Removed unecessary whitespaces for compiling
+%*** 29-04-2003 L NEE         WCHG019776
+%***                          Changed the D-PIC on the 'amount' and 'units'
+%***                          fields, to display the negative sign on the LSH.
+%*** 14-06-2002 E Fredeluces  WHD0008184
+%***                          Added filler of one char to the input file
+%***                          to match the record length with TRR83C.
+%*** 21-09-2001 E Fredeluces  W01090576
+%***                          Added Record Length of file.
+%*** 29-08-2000 R K Mahajan   W00070603 - 
+%***
+%PROGRAM-ID
+       TRR83D
+%AUTHOR
+       Mincom Ltd - Rakesh K Mahajan.
+%NARRATIVE
+      **  This program produces a report of user defined EARNINGS CODE
+      **  for a user defined start date and employee.
+%*
+%VERSION
+        0001
+%MODULE
+        3820
+%FILES
+        IFILE = TRT83C
+        LFILE = MSF010
+        RFILE = TRR83DA
+        OFILE = TRT83DA
+%INPUT-FILE
+        PAY-LOCATION         PIC (X(2))
+        TRAN-CODE            PIC (X(3))
+        PRC-GRP              PIC (X(20))
+        PAY-PER-NO           PIC (X(3))
+        TRAN-AM              PIC (S9(8)V9(2))
+        TRN-UNITS            PIC (S9(7)V9(6))
+        EMP-ID               PIC (X(10))
+        EMP-NAME             PIC (X(40))
+        IST-INITIAL          PIC (X(1))
+        IIND-INITIAL         PIC (X(1))
+        TRAN-DATE            PIC (X(8))
+        EMP-SNAME            PIC (X(28))
+        SEL-YN               PIC (X(1))
+        IDEMP-YN             PIC (X(1))
+        IDPW-YN              PIC (X(1))
+%*
+%ROUTINES
+        MSSDAT
+        MSSCNV
+%ORDER
+        PAY-LOCATION
+        TRAN-CODE
+        PRC-GRP
+        PAY-PER-NO
+        EMP-ID
+%CONTROL-BREAKS
+        DUM
+        PAY-LOCATION
+        TRAN-CODE
+        PRC-GRP
+        PAY-PER-NO
+        EMP-ID
+%REPORT
+        A
+%CONTROL
+        INCLUDE-EMPTY-SUMMARY
+%REPORT-TITLE
+'EARNINGS CODE TOTALS REPORT'
+%PAGE HEADING
+                                                    'FOR PAY WEEKS'{FRPER }'TO'{TOPER }
+
+<IF IDPW = 'Y'>
+    <IF IDEMP = 'Y'>
+'PAY               EARNINGS PRC                  PAY        AMOUNT           UNITS  EMPLOYEE                                DATE'
+'LOCATION          CODE                          WEEK                        HRS'
+    <ELSE>
+'PAY               EARNINGS PRC                  PAY        AMOUNT           UNITS'
+'LOCATION          CODE                          WEEK                        HRS'
+    <ENDIF>
+<ELSE>
+    <IF IDEMP = 'Y'>
+'PAY               EARNINGS PRC                             AMOUNT           UNITS  EMPLOYEE                                DATE' 
+'LOCATION          CODE                                                      HRS'
+    <ELSE>
+'PAY               EARNINGS PRC                             AMOUNT           UNITS'
+'LOCATION          CODE                                                      HRS'
+    <ENDIF>
+<ENDIF>
+%DETAIL      
+<IF SELT = 'Y'>
+ <IF IDEMP = 'Y'>               
+   <IF IDPW = 'Y'>   
+{DLOC            } EEE      {DPRC              } RRR  AAAAAAAAAAAAA UUUUUUUUUUUUUUU OOOOOOOOOO {BNAME                     } {TD    }
+   <ELSE>
+{DLOC            } EEE      {DPRC              }      AAAAAAAAAAAAA UUUUUUUUUUUUUUU OOOOOOOOOO {BNAME                     } {TD    }
+   <ENDIF>
+ <ENDIF> 
+<ENDIF>
+%*
+%BREAK PAY-LOCATION FOOTER
+<IF A = 0, U = 0>
+<ELSE>
+                                                     '------------- ---------------'
+{WLOC              }                                  AAAAAAAAAAAAA UUUUUUUUUUUUUUU   'Pay Location Total'
+                                                     '============= ==============='
+
+<ENDIF>
+%*
+%REPORT-SUMMARY
+
+'                                                        *** END REPORT ***'
+%OUTPUT-FILE
+        A
+%CONTROL
+        RECORD-LENGTH = 126
+%BREAK DUM HEADER
+{PRTH1                                            }-
+{PRTH2                                       }
+%*
+%DETAIL
+<IF SELT = 'Y'>
+{WLOC              }S{WPRC              }SCCCS{EMP     }S{SNAME                     }SFS{TD    }S-
+AAAAAAAAAAAAASUUUUUUUUUUUUUUU
+<ENDIF>
+%*
+%REQUEST-PARAMETERS
+       ET1        PIC(X(3))  TEXT 'Earnings Code1 - blank for all     :'
+       ET2        PIC(X(3))  TEXT 'Earnings Code2                     :'
+       ET3        PIC(X(3))  TEXT 'Earnings Code3                     :'
+       ET4        PIC(X(3))  TEXT 'Earnings Code4                     :'
+       ET5        PIC(X(3))  TEXT 'Earnings Code5                     :'
+       ET6        PIC(X(3))  TEXT 'Earnings Code6                     :'
+       ET7        PIC(X(3))  TEXT 'Earnings Code7                     :'
+       ET8        PIC(X(3))  TEXT 'Earnings Code8                     :'
+       ET9        PIC(X(3))  TEXT 'Earnings Code9                     :'
+       ET10       PIC(X(3))  TEXT 'Earnings Code10                    :'
+       FRPER      PIC(X(8))  TEXT 'Start Period Date                  :'
+       TOPER      PIC(X(8))  TEXT 'End   Period Date                  :'
+       INEMP1     PIC(X(10)) TEXT 'Employee 1  - blank for all        :'
+       INEMP2     PIC(X(10)) TEXT 'Employee 2  - blank for all        :'
+       INEMP3     PIC(X(10)) TEXT 'Employee 3  - blank for all        :'
+       INEMP4     PIC(X(10)) TEXT 'Employee 4  - blank for all        :'
+       INEMP5     PIC(X(10)) TEXT 'Employee 5  - blank for all        :'
+       INEMP6     PIC(X(10)) TEXT 'Employee 6  - blank for all        :'
+       INEMP7     PIC(X(10)) TEXT 'Employee 7  - blank for all        :'
+       INEMP8     PIC(X(10)) TEXT 'Employee 8  - blank for all        :'
+       INEMP9     PIC(X(10)) TEXT 'Employee 9  - blank for all        :'
+       INEMP10    PIC(X(10)) TEXT 'Employee 10 - blank for all        :'
+       IDPW       PIC(X(1))  TEXT 'Show Pay Week detail <Y/N>         :'
+       IDEMP      PIC(X(1))  TEXT 'Show Employee detail <Y/N>         :'
+       IPLOC      PIC(X(2))  TEXT 'Pay Location  - blank for all      :'
+       PRC        PIC(X(20)) TEXT 'Primary Reporting Code             :'
+%*
+%VARIABLES
+        FRPER           = %FRPER%    FORMAT (DATE)      CONSTANT      
+        TOPER           = %TOPER%    FORMAT (DATE)      CONSTANT      
+        SELT            = SEL-YN
+        IDEMP           = IDEMP-YN
+        IDPW            = IDPW-YN
+%*
+        M010            = TABLE-CODE OF MSF010 -
+                          WHERE (TABLE-TYPE = 'PAYL', -
+                                 TABLE-CODE = PAY-LOCATION)
+        WLOC            = TABLE-DESC VIA (M010)
+        DLOC            = WLOC            SUPPRESS
+        C               = TRAN-CODE
+        E               = C               SUPPRESS
+        WPRC            = PRC-GRP
+        DPRC            = WPRC            SUPPRESS
+        R               = PAY-PER-NO      SUPPRESS
+        EMP             = EMP-ID
+        O               = EMP             SUPPRESS
+        NAME            = EMP-NAME
+        BNAME           = NAME            SUPPRESS
+        SNAME           = EMP-SNAME
+        F               = IST-INITIAL
+        TD              = TRAN-DATE
+%*
+        S               = ','                           CONSTANT
+        DUMMY           = 'Y'                           CONSTANT
+        DUM             = CHOOSE ('Y' IF (S = S), DUMMY)
+        PRTH1           = 'Pay-Loc,PRC,Earn-Code,Emp-Id,Emp-Name,1st-Init,'
+        PRTH2           = 'Pay-Date,Amount,Units'
+        WXUSRL          = substr (WX-USER-ID,1,5)       CONSTANT D-PIC (X(5))
+        WXUSR           = catenate ('00000',WXUSRL)     CONSTANT D-PIC (X(10))
+%*
+        AM              = TRAN-AM
+        D               = CHOOSE (AM IF (SELT = 'Y'), 0)
+        A               = TOTAL (D)                     D-PIC(-Z(7)9.99)
+        UNTS            = TRN-UNITS
+        UNT             = CHOOSE (UNTS IF (SELT = 'Y'), 0)
+        U               = TOTAL (UNT)                   D-PIC (-Z(6)9.9(6))
+%*
+%*End Program       
+%*

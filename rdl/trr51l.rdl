@@ -1,0 +1,158 @@
+%*** Revision History ***
+%*** 06-Feb-13 a9is6175        MO164
+%*** .......................   Reset version number to 0001 for E8 upgrade
+%*** 17-May-01 R Casagrande    WO??????? 
+%***                           Output file record size was 50 bytes
+%***                           instead of the 34 as set by record-length
+%***                           clause. Moved %CONTROL section into
+%***                           %OUTPUT-FILE section to ensure the 
+%***                           record size attributes gets picked up for
+%***                           the particular output file.
+%*** 15-Sep-00 E Fredeluces    W00090340
+%***                           To include the followig Injury Type:
+%***                           1.  Nature of Injury
+%***                           2.  Bodily Location of Injury
+%***                           3.  Mechanism of Injury
+%***                           4.  Agency of Injury
+%***                           5.  Result of Injury
+%***                           6.  Duty Status
+%*** 28-Mar-00 D Diolaso       W00030614
+%*** ......................    New report on Specific Nature of Injury
+%***
+%***
+%PROGRAM-ID
+       TRR51L
+%NARRATIVE
+      **  This program generates the Type of Injury based on specified
+      **  parameter.  It will provide details of the Injury for a selected
+      **  code or all.
+%VERSION
+       0001
+%MODULE
+       3820
+%FILES
+       MFILE = MSF510
+       AFILE = MSF514
+       LFILE = MSF760
+       OFILE = TRO51LA
+%SELECTION
+%**  Selection criteria for the main file
+%OUTPUT-FILE
+       A
+%CONTROL
+       COPY-REQUEST  = TRR51M
+       RECORD-LENGTH = 34
+%DETAIL
+<IF PR1 = 'Y', PR2 = 'Y', INJ > SPACES, PR3 = 'Y'>
+{EMP     }S{INJ}{DTEO  }{INCNO   }
+<ENDIF>
+%REQUEST-PARAMETERS
+        TYPE    PIC (X(1))  TEXT  'Injury Type (A/B/D/M/N/R)         :'
+        FILLER1 PIC (X(1))  TEXT  'A-gency of Injury                 :'
+        FILLER2 PIC (X(1))  TEXT  'B-odily Location of Injury        :'
+        FILLER3 PIC (X(1))  TEXT  'D-uty Status                      :'
+        FILLER4 PIC (X(1))  TEXT  'M-echanism of Injury              :'
+        FILLER5 PIC (X(1))  TEXT  'N-ature of Injury                 :'
+        FILLER6 PIC (X(1))  TEXT  'R-esult of Injury                 :'
+        ICD1    PIC (X(5))  TEXT  'Injury Code 1                     :'
+        ICD2    PIC (X(5))  TEXT  'Injury Code 2                     :'
+        ICD3    PIC (X(5))  TEXT  'Injury Code 3                     :'
+        ICD4    PIC (X(5))  TEXT  'Injury Code 4                     :'
+        ICD5    PIC (X(5))  TEXT  'Injury Code 5                     :'
+        ICD6    PIC (X(5))  TEXT  'Injury Code 6                     :'
+        ICD7    PIC (X(5))  TEXT  'Injury Code 7                     :'
+        ICD8    PIC (X(5))  TEXT  'Injury Code 8                     :'
+        ICD9    PIC (X(5))  TEXT  'Injury Code 9                     :'
+        ICD10   PIC (X(5))  TEXT  'Injury Code 10                    :'
+        DTEFR   PIC (9(8))  TEXT  'Date - From                       :'
+        DTETO   PIC (9(8))  TEXT  'Date - To                         :'
+        CE      PIC (X(1))  TEXT  'C-urrent/Ex-employee/Both (C/E/B) :'
+%VARIABLES
+        IC1    = %ICD1%                                               CONSTANT
+        IC2    = %ICD2%                                               CONSTANT
+        IC3    = %ICD3%                                               CONSTANT
+        IC4    = %ICD4%                                               CONSTANT
+        IC5    = %ICD5%                                               CONSTANT
+        IC6    = %ICD6%                                               CONSTANT
+        IC7    = %ICD7%                                               CONSTANT
+        IC8    = %ICD8%                                               CONSTANT
+        IC9    = %ICD9%                                               CONSTANT
+        IC10   = %ICD10%                                              CONSTANT
+
+        DCE    = %CE%                                                 CONSTANT
+%*                  
+        NDTEFR  = NUMERIC (%DTEFR%)             I-PIC (9(8))          CONSTANT
+        NDTETO1 = NUMERIC (%DTETO%)             I-PIC (9(8))          CONSTANT
+        NDTETO  = CHOOSE(99999999 IF (%DTETO% = SPACES), -
+                         NDTETO1)                                     CONSTANT
+        RDTEFR  = CALC (99999999 - NDTEFR)      I-PIC (9(8))          CONSTANT
+        RDTETO  = CALC (99999999 - NDTETO)      I-PIC (9(8))          CONSTANT
+
+        DTEOCC  = REV-OCC-DATE-9        
+
+        DOCC    = CALC (99999999 - DTEOCC)      I-PIC (9(8))
+
+        DTEOY   = SUBSTR (DOCC,1,4)
+        DTEOM   = SUBSTR (DOCC,5,2)
+        DTEOD   = SUBSTR (DOCC,7,2)
+
+        DTEO    = CATENATE (DTEOY,DTEOM,DTEOD)
+
+        INCNO   = INCIDENT-NO
+
+        PR1     = CHOOSE ('N' IF (DTEOCC > RDTEFR), -
+                          'N' IF (DTEOCC < RDTETO), 'Y')
+
+        EMP     = EMPLOYEE-ID FROM MSF514 -
+                  WHERE (INCIDENT-NO    = INCNO, -
+                         PERSON-DATA   >= SPACES)
+%*  Types of Injury
+%*
+        NATU    = NATURE-INJURY VIA (EMP)
+        BODY    = BODILY-LOC    VIA (EMP)
+        MECH    = MECH-INJURY   VIA (EMP)
+        AGCY    = AGENCY-INJURY VIA (EMP)
+        RESU    = RESULT-INJURY VIA (EMP)
+        DUTY    = DUTY-STATUS   VIA (EMP)
+        INJ     = CHOOSE (NATU IF (%TYPE% = 'N'), -
+                          BODY IF (%TYPE% = 'B'), -
+                          MECH IF (%TYPE% = 'M'), -
+                          AGCY IF (%TYPE% = 'A'), -
+                          RESU IF (%TYPE% = 'R'), -
+                          DUTY IF (%TYPE% = 'D'), -
+                          SPACES)
+%* Obtain Employee Status
+%*  A - active
+%*  I - inactive
+%*  X - Term-this-day
+%*  Z - Terminated
+%*
+        S       = EMP-STATUS OF MSF760 -
+                  WHERE (EMPLOYEE-ID = EMP)
+
+        PR3     = CHOOSE('Y' IF (DCE = 'B'),          -
+                         'Y' IF (DCE = ' '),          -
+                         'Y' IF (DCE = 'C', S = 'A'), -
+                         'Y' IF (DCE = 'E', S = 'Z'), -
+                         'Y' IF (DCE = 'E', S = 'X'), -
+                         'N')
+%*
+        PR2     = CHOOSE ('Y' IF (IC1  <> SPACES AND INJ = IC1), -
+                          'Y' IF (IC2  <> SPACES AND INJ = IC2), -
+                          'Y' IF (IC3  <> SPACES AND INJ = IC3), -
+                          'Y' IF (IC4  <> SPACES AND INJ = IC4), -    
+                          'Y' IF (IC5  <> SPACES AND INJ = IC5), -
+                          'Y' IF (IC6  <> SPACES AND INJ = IC6), -
+                          'Y' IF (IC7  <> SPACES AND INJ = IC7), -
+                          'Y' IF (IC8  <> SPACES AND INJ = IC8), -
+                          'Y' IF (IC9  <> SPACES AND INJ = IC9), -
+                          'Y' IF (IC10 <> SPACES AND INJ = IC10), -
+                          'Y' IF (IC1   = SPACES AND IC2 = SPACES AND -
+                                  IC4   = SPACES AND IC5 = SPACES AND -
+                                  IC6   = SPACES AND IC7 = SPACES AND -
+                                  IC8   = SPACES AND IC9 = SPACES AND -
+                                  IC10  = SPACES),                    - 
+                          'N')
+%*
+%*      End of Program
+%*

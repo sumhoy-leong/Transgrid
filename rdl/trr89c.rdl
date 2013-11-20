@@ -1,0 +1,245 @@
+%PROGRAM-ID
+       TRR89C
+%AUTHOR
+       Ventyx
+%ROUTINES
+       MSSDAT
+%*
+%NARRATIVE
+      **************************************************************************
+      **  This report will produce both a csv output file and report.
+      **  Exception Report - Use of Allowances.
+      **
+      **  This report will pick up all instances of nominated allowances for
+      **  which Transgrid Payroll can monitor.  The report can be run for a
+      **  current pay period or historical transactions.  Users can run this
+      **  report as required.
+      **
+      **************************************************************************
+      **  Revision History
+      **
+      **  02-Oct-2012 O Santa-Ana   Initial Coding.
+      **
+      **************************************************************************
+%FILES
+       MFILE = MSF820
+       AFILE = MSF89W
+       LFILE = MSF010
+       LFILE = MSF891
+       LFILE = MSF810
+       LFILE = MSF801
+       LFILE = MSF817
+       OFILE = TRT89CA
+       RFILE = TRR89CA
+%*
+%VERSION
+        001
+%SELECTION
+   REJECTIF (PAY-LOCATION <> %PAYLOC% , %PAYLOC% <> SPACES)
+%*
+%REPORT
+       A
+%REPORT-TITLE
+       'Exception Report - Use of Allowances'
+%BREAK-FIELDS
+      GRP-FLD
+      EARN
+%ORDER
+      GRP-FLD    TEXT 'Pay Location (if requested)'
+      EARN       TEXT 'Earnings Code'
+      EMPNAME    TEXT 'Employee Name'
+      T-DATE     TEXT 'Transaction Date'
+      FR-TIME    TEXT 'Transaction Start Time'
+%PAGE HEADING
+'Employee   Name                        Day  Date      Work   Start      End       Status   Units      Amount             Loc  Loc'
+'                                                        Code   Time       Time                                           From To'
+%BREAK GRP-FLD HEADER
+      'Pay Location: '{PAY-LOC}' - '{PLDESC}
+%BREAK EARN HEADER
+      {EARN} ' - ' {EARNDESC}
+%DETAIL
+{EMP      } {EMPNAME                  } DDD {T-DATE  } {WRKC} {FR-TIME} {ED-TIME} {STATUS} {TR-UNITS} {AMT             } {LFR} {LTO}
+%SUMMARY
+'(end of report)'
+%*
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 249
+%DETAIL
+{PAY-LOC}C{PLDESC                  }C{EMP     }C{EMPNAME                     }CSSSC{T-DATE}CEEEC{TR-UNITS}C{AMT89W          }C -
+{EARNFAC}C{LFR}C{LTO}CWWC{WKC-DESC          }{FR-TIME}C{ED-TIME}CAAAACRRRRC{LM-DATE}C{LM-TIME}C{LM-USER}
+%REQUEST-PARAMETERS
+   PAYLOC    PIC (X(2))  TEXT 'Pay Location          - Blank for All : '
+   CURRENT   PIC (X(1))  TEXT 'Current Period Only (Y)es (N)o        : '
+   PERIODS   PIC (9(3))  TEXT 'Current Pay Periods to Process        : '
+   DATEFR    PIC (X(8))  TEXT 'Transaction Date From                 : '
+   DATETO    PIC (X(8))  TEXT 'Transaction Date To                   : '
+   ACODE1    PIC (9(3))  TEXT 'Allowance Code 1      - Blank for All : '
+   ACODE2    PIC (9(3))  TEXT 'Allowance Code 2                      : '
+   ACODE3    PIC (9(3))  TEXT 'Allowance Code 3                      : '
+   ACODE4    PIC (9(3))  TEXT 'Allowance Code 4                      : '
+   ACODE5    PIC (9(3))  TEXT 'Allowance Code 5                      : '
+   ACODE6    PIC (9(3))  TEXT 'Allowance Code 6                      : '
+   ACODE7    PIC (9(3))  TEXT 'Allowance Code 7                      : '
+   ACODE8    PIC (9(3))  TEXT 'Allowance Code 8                      : '
+   ACODE9    PIC (9(3))  TEXT 'Allowance Code 9                      : '
+   ACODE10   PIC (9(3))  TEXT 'Allowance Code 10                     : '
+   GRP       PIC (X(1))  TEXT 'Group By Region (Y)es (N)o            : '
+%*
+%VARIABLES
+%*
+%* Parameters
+%*
+   PLOC  = %PAYLOC%
+   D-FR  = %DATEFR%
+   D-TO  = %DATETO%
+   PDS   = %PERIODS%
+   CURSW = %CURRENT%
+%*
+%* MSF820
+%*
+   PAY-LOC = PAY-LOCATION
+   EMP = EMPLOYEE-ID
+   PG = PAY-GROUP
+   PHY-LOC = RPT-PHY-LOC
+%*
+%* MSF010 - PAYL
+%*
+   PLDESC    = TABLE-DESC OF MSF010
+                  WHERE (TABLE-TYPE = 'PAYL', -
+                         TABLE-CODE = PAY-GROUP)
+%*
+%* MSF810
+%*
+   SNAME     = SURNAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = EMP)
+   FNAME     = FIRST-NAME VIA (SNAME)
+   EMPNAME   = CATENATE (SNAME,' ',FNAME)
+%*
+%* MSF801-PG
+%* Obtain Current Period End Date for Employee's Pay Group
+%*
+   PP-END    = CUR-END-DT-PG OF MSF801 -
+                  WHERE (CNTL-REC-TYPE = 'PG', -
+                         CNTL-KEY-REST = PG)
+%*
+   RUNNO     = CUR-PRD-NO-PG VIA (PP-END)
+%*
+%*
+%* Use MSSDAT to obtain the Current Pay Period End Date
+%*
+%*
+   DAYSP     = CALC (PDS * -7) D-PIC (S9(6))
+   PP-START  = DATE1-X OF MSSDAT -
+                   WHERE (OPTION = '1', -
+                          DATE1 = PP-END ,-
+                          DAYS = DAYSP) FORMAT (DATE)
+%*
+%* MSF89W
+%* Obtain Allowance Transactions
+%*
+%* Firstly, choose the appropriate date, depending on the Current Period
+%* Parameter
+%*
+   DT-FROM = CHOOSE (PP-START IF (CURSW = 'Y'), D-FR)
+   DT-TO = CHOOSE (PP-END IF (CURSW = 'N'), D-TO)
+%*
+   AMT89W    = AMOUNT FROM MSF89W -
+                  WHERE (PAY-GROUP = PG, -
+                         TRN-DATE >= SPACES) -
+                  REJECTIF (TRN-DATE < DT-FROM) -
+                  REJECTIF (TRN-DATE > DT-TO) -
+                  REJECTIF (EMPLOYEE-ID <> EMP) -
+                  SELECTIF (%ACODE1% <> SPACES, EARN-CODE = %ACODE1%) -
+                  SELECTIF (%ACODE2% <> SPACES, EARN-CODE = %ACODE2%) -
+                  SELECTIF (%ACODE3% <> SPACES, EARN-CODE = %ACODE3%) -
+                  SELECTIF (%ACODE4% <> SPACES, EARN-CODE = %ACODE4%) -
+                  SELECTIF (%ACODE5% <> SPACES, EARN-CODE = %ACODE5%) -
+                  SELECTIF (%ACODE6% <> SPACES, EARN-CODE = %ACODE6%) -
+                  SELECTIF (%ACODE7% <> SPACES, EARN-CODE = %ACODE7%) -
+                  SELECTIF (%ACODE8% <> SPACES, EARN-CODE = %ACODE8%) -
+                  SELECTIF (%ACODE9% <> SPACES, EARN-CODE = %ACODE9%) -
+                  SELECTIF (%ACODE10% <> SPACES, EARN-CODE = %ACODE10%)  D-PIC (-(12)9.99)
+%*
+   T-DATE    = TRN-DATE VIA (AMT89W)  FORMAT (DATE)
+   TR-UNITS  = UNITS VIA (AMT89W)
+   EARN      = EARN-CODE VIA (AMT89W)
+   SEQ-89W   = SEQ-NO VIA (AMT89W)
+   LM-DATE   = LAST-MOD-DATE VIA (AMT89W) FORMAT (DATE)
+   LM-TIME   = LAST-MOD-TIME VIA (AMT89W)
+   LM-USER   = LAST-MOD-USER VIA (AMT89W)
+%*
+%* MSF801-A
+%* Obtain the Earning Factor
+%*
+   PGEARN    = CATENATE (PG, EARN)
+%*
+   EARNFAC   = EARN-FACTOR-A OF MSF801 -
+                  WHERE (CNTL-REC-TYPE = 'A ', -
+                         CNTL-KEY-REST = PGEARN) D-PIC (-(11)9.9999)
+%*
+   EARNDESC  = TNAME-A VIA (EARNFAC)
+%*
+%* MSF891
+%* Obtain transaction Information
+%*
+   WRKC      = WORK-CODE OF MSF891 -
+                 WHERE (PAY-GROUP = PG, -
+                        TRN-DATE = T-DATE, -
+                        EMPLOYEE-ID = EMP, -
+                        SEQ-NO - SEQ-89W)
+%*
+   FR-TIME   = FROM-TIME VIA (WRKC)
+   ED-TIME   = END-TIME VIA (WRKC)
+   TRAPPST   = TRAN-APPR-STATUS VIA (WRKC)
+   TRREVST   = TRAN-REVERSAL-STATUS VIA (WRKC)
+   LFR       = TRAN-LOC-FR VIA (WRKC)
+   LTO       = TRAN-LOC-TO VIA (WRKC)
+   STATUS    = CATENATE (TRAPPST,'/',TRREVST)
+%*
+%& MSF801-R1
+%* Obtain Work Code description
+%*
+    WKEARN   = CATENATE (WRKC, EARN)
+    WKC-DESC = TNAME-R1 OF MSF801 -
+                  WHERE (CNTL-REC-TYPE = 'R1', -
+                         CNTL-KEY-REST = WKEARN)
+%*
+%* MSF817
+%* Obtain run date and run time from this file
+%* This is only required if the current period is requested
+%*
+%*
+   INV-DT    = CALC (99999999 - PP-END)
+   INV-RUN   = CALC (999 - CUR-PRD-NO-PG)
+%*
+   RUN-DT    = RUN-DATE OF MSF817 -
+                 WHERE (PAY-GROUP = PG, -
+                        INV-END-DATE = INV-DT, -
+                        PAY-RUN-TYPE = 'U', -
+                        INV-RUN-NO = INV-RUN)
+%*
+   RUN-TIME  = RUN-TIME VIA (RUN-DT)
+%*
+%* Misc. calculated fields for printing, totals etc.
+%*
+   AMT       = CHOOSE (AMT89W IF (AMT89W <> 0), EARNFAC)
+   GRP-FLD   = CHOOSE (PAY-LOC IF (%GRP% = 'Y'), SPACES)
+%*
+   D         = DAY-NAME OF MSSDAT
+                   WHERE (OPTION = '6', -
+                          DATE1 = T-DATE)
+   E = EARN
+   S = SEQ-89W
+   W = WRKC
+   A = TRAPPST
+   R = TRREVST
+   C = ',' CONSTANT
+   Q = '~' CONSTANT
+%*
+   F-HDR     = 'Pay Location,Pay Location Desc, Employee ID, Employee Name, Sequence No, Tran Date, Earnings Code, Units, Timesheet Amount, -
+Factor Amount, Tran Location From, Tran Location To, Work Code, Work Code Desc, Start Time, Stop Time, Reverse Status, Trans Status, -
+Last Mod Date, Last Mod Time, Last Mod Emp'
+%*
+%*End of Program

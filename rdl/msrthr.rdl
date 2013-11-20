@@ -1,0 +1,160 @@
+%*** TRR17M.RDL
+%*** Revision History
+%*** 18-Sep-07 E Fredeluces SC1587838 Not picking-up records based on the
+%*** ..................     Last Movement Date parameter entered.
+%*** 03-Jul-07 Janak Barar SC1520894 requires another parameter to be added
+%*** ..................... to filter the report on Last Movement Date.
+%*** 16-Jun-04 R Yeung   WCHG059342   
+%*** ..................  To display all bin records even SOH is zero.
+%*** 05-May-04 R Yeung   WCHG054086
+%*** ..................  Change the program logic from Primary bin to all bin.
+%*** 24-Sep-01 L Nee     W01090140
+%*** ..................  Added a field of 'Category' to the report.
+%*** 02-Nov-98 D Diolaso
+%*** ..................  Fix for MIMS 4.3
+%*** 15-Jan-98 N Chandra W801070020.
+%*** ..................  Changed the SOH refrence to test SOHA from msf170 
+%*** ..................  file. 
+%*** 13-Jan-98 N Chandra
+%*** .................. Removed WHOUSE-ID <> SPACES from the selection 
+%*** .................. criteria of the Main file in %SELECTION.
+%*** .................. REJECTIF (%WH% <> SPACES AND WHOUSE-ID <> %WH% AND
+%*** ..................           WHOUSE-ID <> SPACES). <- NB.
+%*** 26-MAR-97 R Chiarot
+%*** .................. Include an additional parameter to include/exclude
+%*** .................. stock codes where ROP, SOH and ROQ all equal zero.
+%*** 15-NOV-95 Peter Lacey
+%*** .................. Converted from 3.010 to 3.013. Changed PRIME-LOCATION
+%*** .................. & BIN-CODE to BIN-DETAILS.
+%*** 18-Jan-93 MaryW .. Vers. 002 Amend report to print last moved date and  
+%*** .................. rearrange layout to print bin codes on the right side
+%*** .................. of the report. Correct total number of items reported.
+%PROGRAM-ID
+       MSRTHR
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  This program prints stock take count sheets.
+%*****************
+%* Version 1 Format
+%*'Primary/           Item Name and Descriptions/                                  UNIT      STOCK       Owned             New Bin'
+%* 'Other Bins         Manufacturers Part Numbers & Preferences UOI  TYPE CLASS    PRICE      CODE       S.O.H   COUNT     Location'
+%*  BBBBBBBBBBBB       {INAME                                 } EEEE   O    N MMMMMMMMMM   CCCCCCCCC KKKKKKKKK  {DASH               }
+%*      HHHHHHHHHHHH   {IDESC2                                }                                      GGGGGGGGG 
+%*
+%* Old version 2 format (by R. Yeung on 05/05/04)
+%*'Item Name and Descriptions/                             LAST         UNIT     STOCK    Primary/         Owned             New Bin'
+%*'Manufacturers Part Numbers & Preferences UOI TP CL CAT MOVED        PRICE     CODE     Other Bins      S.O.H   COUNT     Location'
+%*****************
+%VERSION
+       0001
+%MODULE
+       3140
+%FILES
+        MFILE = MSF1HB
+        LFILE = MSF100
+        LFILE = MSF110A
+        RFILE = MSRTHRA
+%ROUTINES
+    MSSSOH
+%SELECTION
+       WHERE (CUSTODIAN-ID >= SPACES)
+       REJECTIF (BIN-CODE        < %FROM-BIN%)
+       REJECTIF (BIN-CODE        > %TO-BIN%)
+%ORDER
+       BIN-CODE 
+       STOCK-CODE
+%REPORT-TITLE
+       'STOCK TAKE COUNT SHEETS'
+%PAGE HEADING
+'WAREHOUSE:'AAAA 
+
+'Item Name and Descriptions/                             LAST         UNIT     STOCK                     Owned             New Bin'
+ 'Manufacturers Part Numbers & Preferences UOI TP CL CAT MOVED        PRICE     CODE    Bins Location    S.O.H   COUNT     Location'
+%DETAIL TEST-PAGE (5)
+<IF   PSP = 'Y'>
+ {INAME                                 }  EEEE                     CCCCCCCCC                        {DASH                 }
+<SUPPRESS>
+ {IDESC1                                }                                                 HHHHHHHHHHHHGGGGGGG 
+<SUPPRESS>
+                                                                                                      JJJJJJJ
+<SUPPRESS>
+ {IDESC2                                }                                                 HHHHHHHHHHHHGGGGGGG 
+<SUPPRESS>
+                                                                                                      JJJJJJJ
+<SUPPRESS>
+ {IDESC3                                }                                                 HHHHHHHHHHHHGGGGGGG 
+<SUPPRESS>
+                                                                                                      JJJJJJJ
+<SUPPRESS>
+ {IDESC4                                }                                                 HHHHHHHHHHHHGGGGGGG 
+<SUPPRESS>
+    <REPEAT>
+ {MNEM  } {PARTNO                      } II                                               HHHHHHHHHHHHJJJJJJJ 
+<SUPPRESS>
+                                                                                                      GGGGGGG
+    <ENDREPEAT>
+
+<ENDIF>
+%PAGE FOOTING
+                                                                   'COUNTED BY ________________________ DATE _____/_____/____'
+
+%SUMMARY
+
+
+'Total Number of Items reported = '{CNT1   }
+
+
+%REQUEST-PARAMETERS
+       WH       PIC (X(4))     TEXT Warehouse
+       FROM-BIN PIC (X(12))    TEXT From Bin Location
+       TO-BIN   PIC (X(12))    TEXT To Bin Location
+       CLSS     PIC (X)        TEXT Stock Class
+       TYP      PIC (X)        TEXT Stock Type
+       CLSS1    PIC (X)        TEXT Stock Class
+       TYP1     PIC (X)        TEXT Stock Type
+       LMOVEDT  PIC (X(8))     TEXT Last Movement Date 
+       CLSS2    PIC (X)        TEXT Stock Class
+       TYP2     PIC (X)        TEXT Stock Type
+       ZSEL     PIC (X)        TEXT Include Zero SOH/ROP/ROQ
+%VARIABLES
+       L1 = '     Owned' 
+       L2 = ' Consigned' 
+       PDT = %LMOVEDT% CONSTANT
+       XSEL = %ZSEL% CONSTANT 
+       PSW = CHOOSE ('N' IF (XSEL = 'N'), 'Y')
+       A = %WH% CONSTANT
+       A1 = CHOOSE (A IF (A <> SPACES), WX-WHOUSE-ID) CONSTANT
+       C = STOCK-CODE
+       D = STOCK-TYPE OF MSF100 WHERE (STOCK-CODE = STOCK-CODE)
+       INAME = ITEM-NAME VIA (D)
+       IDESC1 = DESC-LINE (1) VIA (D)
+       IDESC2 = DESC-LINE (2) VIA (D)
+       IDESC3 = DESC-LINE (3) VIA (D)
+       IDESC4 = DESC-LINE (4) VIA (D)
+       E = UNIT-OF-ISSUE VIA (D)
+       F = CLASS VIA (D)
+       MNEM = MNEMONIC OF MSF110A WHERE (DSTRCT-CODE = '    ', -
+              STOCK-CODE = STOCK-CODE, PREF-PART-IND >= SPACES) MAX (3)
+       PARTNO = PART-NO VIA (MNEM)
+       I = PREF-PART-IND VIA (MNEM)
+       B = BIN-CODE 
+       H = RET-BIN-CODE OF MSSSOH -
+           WHERE (OPTION-SOH        = '6', -
+                  DSTRCT-CODE       = %DISTRICT-CODE%, -
+                  STOCK-CODE        = STOCK-CODE, -
+                  WHOUSE-ID         = A1, -
+                  BIN-SOH-REQ-SW     = 'Y')
+       HSIZE = SIZE(H)
+       G1 = RET-OWNED-SOH VIA (H)
+       G = G1 FORMAT (BWZ)
+       J1 = RET-CONSIGN-SOH VIA (H)
+       J = J1 FORMAT (BWZ)
+      DASH = '________ ______________'
+       DASHX = CHOOSE (SPACES IF (HSIZE = 0), DASH)
+       DSW = choose ('N' IF (PDT <> SPACES), 'Y')
+
+     CNT = CHOOSE (1 IF (%CLSS%  =  SPACES AND %TYP% = SPACES), 0)
+      CNTA = CHOOSE (1   IF (CNT = 1 AND PSW = 'Y' AND DSW = 'Y'), 0)
+      PSP  = CHOOSE ('Y' IF (CNT = 1 AND PSW = 'Y' AND DSW = 'Y'),'N')
+      CNT1 = TOTAL (CNTA)

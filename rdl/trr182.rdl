@@ -1,0 +1,268 @@
+%*** TRR182.RDL
+%***
+%*** Revision History ***
+%*** 25-Apr-2013 a9is6175      MO164 (Version 0003)
+%*** ......................... Added Output file TRT182 for CSV. 
+%*** 20-Mar-2013 a9nh4814      MO164 (Version 0002)
+%*** ......................... Fixed period defaulting
+%*** 20-Dec-2012 a9jw6280      MO164 ---
+%*** ......................... Fix total closing and open balance values.
+%*** ......................... Changed display format all values into 2 decimals. 
+%*** ......................... Changed output files format and length as some process
+%*** ......................... were being moved here from TRR183.
+%*** 02-Nov-2012 a9jw6280      MO164 ---
+%*** ......................... Read all input file records as characters then
+%*** ......................... converted the numeric data when needed to avoid
+%*** ......................... shifting when read the input file for numeric data.
+%*** ......................... Fix format display for numeric data to avoid
+%*** ......................... strange character for COMP-3 datatype written into file.
+%*** ......................... Adjust length of numeric fields to current
+%*** ......................... data structure.
+%*** ......................... Reset version number into 0001 for e8 upgrade.
+%*** 03-Mar-2007 EFredeluces   SC1392689
+%*** ......................... Added the Copy-Request to run ESR179.
+%*** 13-Apr-06 I Gianakis      Ellipse Upgrade
+%*** ......................... Transaction Number increased to 24 chars.
+%*** 05-Feb-06 D Diolaso       Ellipse Upgrade
+%*** ......................... Created a 3-step   process out of the
+%*** ......................... MIMS version of ESR181. Consisting this
+%*** ......................... 3-step process are the following programs:
+%*** .........................  a) esr180.rdl - The first data xtract process
+%*** .........................  b) esr181.rdl - The second data extract process
+%*** .........................  c) esr179.rdl - The 3rd and final process that
+%*** .........................     generates the report
+%PROGRAM-ID
+       TRR182
+%AUTHOR
+      D Diolaso
+%NARRATIVE
+      **  These reports produce details and summaries of inventory
+      **  movements and performance for an accounting period.
+      **
+      **         Outstanding:
+      **         Turnover to appear on Report E
+      **         Planned and Actual turnover on Report C
+      **         Need to take into account Inter-District - In-transit
+      **            for owned stock ie Receipts need 'STR' - 'SRI'.
+      **
+%VERSION
+       0003
+%MODULE
+       3140
+%FILES
+       IFILE = TRO181
+       LFILE = MSF000
+       AFILE = MSF175
+       LFILE = MSF100
+       LFILE = MSF110A
+       OFILE = TRO182A
+       OFILE = TRT182B
+%INPUT-FILE
+       I-DS                      PIC (X(4))
+       I-STK                     PIC (X(9))
+       I-IC                      PIC (X(6))
+       I-SOH170                  PIC (X(9))
+       I-PR170                   PIC (X(15))      
+       I-VAL170                  PIC (X(17)) 
+       I-PD                      PIC (X(8))
+       I-TNO                     PIC (X(11))
+       I-USRNO                   PIC (X(4))
+       I-MINSTK                  PIC (X(10))
+       I-REORDQ                  PIC (X(10))
+       I-ROPX                    PIC (X(10))
+       I-INVTPR                  PIC (X(15))
+       I-FRT                     PIC (X(13))
+       I-CUST                    PIC (X(13))
+       I-DI                      PIC (X(10))
+       I-RES                     PIC (X(10))
+       I-DO                      PIC (X(15))
+       I-PICK                    PIC (X(10))
+       I-LID                     PIC (X(8))
+       I-CRD                     PIC (X(8))
+       I-ABC                     PIC (X(1))
+       I-XYZ                     PIC (X(1))
+       I-TTY                     PIC (X(1))
+       I-OSOHO                   PIC (X(10))
+       I-OSOHC                   PIC (X(10))
+       I-OINVT                   PIC (X(17))
+%ROUTINES
+       MSSDAT
+       MSS1HB
+%OUTPUT-FILE
+       A
+%CONTROL
+       COPY-REQUEST = TRR183
+       RECORD-LENGTH = 415
+%DETAIL
+{DS}{STK    }{IC  }{SOH170 }{PR170        }{VAL170         }{PD    }{TNO      }{US}{MINSTK  }{REORDQ  }{ROPX    }-
+{INVTPR       }{FRT        }{CUST       }{DI      }{RES     }{DO           }{PICK    }{LID   }{CRD   }AXY{OSOHO   }-
+{OSOHC   }{OINVT          }{CSOHO1  }{CSOHC1  }{CINVT1         }{I-T }{I-P }{I-N }{I-L }{SIT }{SIP }{SIN }{SIL }-
+{INAME1                                }{PART }{BIN       }{BIN       }{UI}
+%OUTPUT-FILE
+       B
+%CONTROL
+       RECORD-LENGTH = 470
+%DETAIL
+{DS}I{STK    }I{IC  }I{SOH170 }I{PR170        }I{VAL170         }I{PD    }I{TNO      }I{US}I{MINSTK  }I{REORDQ  }I{ROPX    }I-
+{INVTPR       }I{FRT        }I{CUST       }I{DI      }I{RES     }I{DO           }I{PICK    }I{LID   }I{CRD   }IAIXIYI{OSOHO   }I-
+{OSOHC   }I{OINVT          }I{CSOHO1  }I{CSOHC1  }I{CINVT1         }I{I-T }I{I-P }I{I-N }I{I-L }I{SIT }I{SIP }I{SIN }I{SIL }I-
+Q{INAME1                                }QI{PART }I{BIN       }I{BIN       }I{UI}
+%REQUEST-PARAMETERS
+       PERIN        PIC (X(4)) TEXT 'Period:'
+       ISS1         PIC (X(4)) TEXT 'Issue Types:'
+       ISS2         PIC (X(4)) TEXT ' '
+       ISS3         PIC (X(4)) TEXT ' '
+       ISS4         PIC (X(4)) TEXT ' '
+       ISS5         PIC (X(4)) TEXT ' '
+       CHECK170     PIC (X(1)) TEXT 'Check Closing balance against Current balance (Y/N)?:'
+       CHECKSOH-PR  PIC (X(1)) TEXT 'Check SOH x Price = Value (Y/N)?:'
+       ALL-ITEMS    PIC (X(1)) TEXT 'Report ALL items including unmoved (Y/N) or summary (S)?:'
+       END-TNO-REV1 PIC (X(11)) TEXT 'End tran-time (Reversed) default = 99999999 = 00:00:00:00'
+%VARIABLES
+%* From input file
+       DS     = I-DS                 D-PIC X(4)               
+       STK    = I-STK                D-PIC X(9)                  
+       IC     = I-IC                 D-PIC X(6)      
+       SOH170 = NUMERIC (I-SOH170)   D-PIC (Z(8)9)                    
+       PR170  = NUMERIC (I-PR170)    D-PIC (-Z(10)9.9(2))               
+       VAL170 = NUMERIC (I-VAL170)   D-PIC (-Z(12)9.9(2))        
+       PD     = NUMERIC (I-PD)       D-PIC (Z(7)9)                  
+       TNO    = NUMERIC (I-TNO)      D-PIC (Z(10)9)              
+       US     = I-USRNO              D-PIC (X(4))
+       MINSTK = NUMERIC (I-MINSTK)   D-PIC (-Z(8)9) 
+       REORDQ = NUMERIC (I-REORDQ)   D-PIC (-Z(8)9) 
+       ROPX   = NUMERIC (I-ROPX)     D-PIC (-Z(8)9) 
+       INVTPR = NUMERIC (I-INVTPR)   D-PIC (-Z(10)9.9(2))
+       FRT    = NUMERIC (I-FRT)      D-PIC (-Z(8)9.9(2))
+       CUST   = NUMERIC (I-CUST)     D-PIC (-Z(8)9.9(2))
+       DI     = NUMERIC (I-DI)       D-PIC (-Z(8)9)
+       RES    = NUMERIC (I-RES)      D-PIC (-Z(8)9)
+       DO     = NUMERIC (I-DO)       D-PIC (-Z(10)9.9(2))  
+       PICK   = NUMERIC (I-PICK)     D-PIC (-Z(8)9)
+       LID    = I-LID                D-PIC (X(8))         
+       CRD    = I-CRD                D-PIC (X(8))              
+       A      = I-ABC                D-PIC (X(1))          
+       X      = I-XYZ                D-PIC (X(1))          
+       Y      = I-TTY                D-PIC (X(1))          
+       OSOHO  = NUMERIC (I-OSOHO)    D-PIC (-Z(8)9)
+       OSOHC  = NUMERIC (I-OSOHC)    D-PIC (-Z(8)9)
+       OINVT  = NUMERIC (I-OINVT)    D-PIC (-Z(12)9.9(2))
+ 
+       C = %ISS1% CONSTANT
+       D = %ISS2% CONSTANT
+       E = %ISS3% CONSTANT
+       F = %ISS4% CONSTANT
+       G = %ISS5% CONSTANT
+       I = ','    CONSTANT
+       Q = '"'    CONSTANT
+       PER-CONSTANT = WX-STORES-CP CONSTANT
+
+       PER-DFT = PERIOD-YRMN OF MSSDAT -
+                 WHERE (OPTION = 'J',  -
+                        PERIOD-YRMN = PER-CONSTANT, DAYS = -1) CONSTANT
+%*  PER is the period for which report is required
+       PER     = CHOOSE (%PERIN% IF (%PERIN% <> '0000', %PERIN% <> SPACES), -
+                          PER-DFT) I-PIC (9(4)) CONSTANT
+       YYPER   = SUBSTR (PER,1,2)          CONSTANT
+       PERC    = CHOOSE ('20' IF (YYPER < '19'), '19') CONSTANT
+       CCPER   = CATENATE (PERC,PER)       CONSTANT
+       PER-DT  = PERIOD-YRMN OF MSSDAT -
+                 WHERE (OPTION = 'H',  -
+                        PERIOD-YRMN = PER)  CONSTANT
+       PER-ST  = STARTING-DATE-1-9 VIA (PER-DT) CONSTANT
+       PER-END = ENDING-DATE-1-9 VIA (PER-DT) CONSTANT
+       PX      = GET (DISPLAY-PERIOD FROM (PER)) CONSTANT
+	   FPER    = CATENATE (YYPER,'01')
+       REVPER  = REVSD-PERIOD OF MSSDAT-
+                 WHERE (OPTION     = 'H', -
+                        REV-FORMAT = '2', -
+                        PERIOD-YRMN = PER) CONSTANT
+       FSTPER  = REVSD-PERIOD OF MSSDAT-
+                 WHERE (OPTION     = 'H', -
+                        REV-FORMAT = '2', -
+                        PERIOD-YRMN = FPER) CONSTANT						
+       ST-TRAN = FIRST-TRAN-KEY OF MSF000 -
+                 WHERE (DSTRCT-CODE      = %DISTRICT-CODE%, -
+                        CONTROL-REC-TYPE = 'PC',            -
+                        CONTROL-REC-NO   = PER) CONSTANT
+       END-TRAN   = LAST-TRAN-KEY VIA (ST-TRAN) CONSTANT
+       ME-DATE    = THIS-ME-DATE VIA (ST-TRAN) CONSTANT
+       ST-DST     = SUBSTR(ST-TRAN,1,4) CONSTANT
+       ST-PDX     = SUBSTR (ST-TRAN,5,8) CONSTANT
+       ST-PD      = NUMERIC (ST-PDX) I-PIC (9(8)) CONSTANT
+       ST-TNOX    = SUBSTR (ST-TRAN,13,11) CONSTANT
+       ST-TNO     = NUMERIC (ST-TNOX) I-PIC (9(11)) CONSTANT
+       ST-PD-REV  = CALC (99999999 - ST-PD) I-PIC (9(8)) CONSTANT
+       ST-TNO-REV = CALC (99999999999 - ST-TNO) I-PIC (9(11)) CONSTANT
+       ST-TRAN-ID = CATENATE(ST-PD-REV,ST-TNO-REV) CONSTANT
+       END-DST    = SUBSTR(END-TRAN,1,4) CONSTANT
+       END-PDX    = SUBSTR (END-TRAN,5,8) CONSTANT
+       END-PD     = NUMERIC (END-PDX) I-PIC (9(8)) CONSTANT
+       END-TNOX   = SUBSTR (END-TRAN,13,11) CONSTANT
+       END-TNO    = NUMERIC (END-TNOX) I-PIC (9(11)) CONSTANT
+       END-TY     = SUBSTR (END-TRAN,24,1) CONSTANT
+       END-PD-REV = CALC (99999999 - END-PD) I-PIC (9(8)) CONSTANT
+       END-TNO-REV  = CALC (99999999999 - END-TNO) I-PIC (9(11)) CONSTANT
+       END-TRAN-ID  = CATENATE(END-PD-REV,END-TNO-REV) CONSTANT
+       END-TNO-REV1 = CHOOSE (%END-TNO-REV1% IF (%END-TNO-REV1% <> SPACES), '99999999999')
+       LREVPER      = REVSD-PERIOD OF MSSDAT   -
+                      WHERE (OPTION      = 'J',-
+                             REV-FORMAT  = '2',-
+                             PERIOD-YRMN = PER,-
+                             DAYS = -1) CONSTANT
+%* Closing Balances
+%* dg Browse ">=" (dont read "=") so that if a record for that month does not
+%* dg                             exist you use the previous record.
+       
+        ISTOT = NO-ISS-TOTAL OF MSF175        -
+                WHERE (DSTRCT-CODE = DS,   -
+                      STOCK-CODE   = STK,  -
+                      WHOUSE-ID   = SPACES,-
+                      REVS-ACCT-PER >= REVPER) -
+					  STOPIF (REVS-ACCT-PER >= FSTPER) MAX (12) D-PIC (-Z(8)9)
+
+       CSOHO1 = SOH OF MSF175        -
+                WHERE (DSTRCT-CODE = DS,   -
+                      STOCK-CODE   = STK,  -
+                      WHOUSE-ID   = SPACES,-
+                      REVS-ACCT-PER >= REVPER) -
+					  MAX (1) D-PIC (-Z(8)9)
+					  
+       CSOHC1 = CONSIGN-SOH VIA (CSOHO1)  D-PIC (-Z(8)9)
+       CINVT1 = INVENT-VALUE VIA (CSOHO1) D-PIC (-Z(12)9.99)
+	   
+%*  Inventory performance
+       I-T = ISTOT                    D-PIC (-Z(4)9)
+       I-P = NO-ISS-PART VIA  (ISTOT) D-PIC (-Z(4)9)
+       I-N = NO-ISS-NOT VIA   (ISTOT) D-PIC (-Z(4)9)
+       I-L = NO-ISS-LATE VIA  (ISTOT) D-PIC (-Z(4)9)
+	   
+	   SIT = SUM (I-T) D-PIC (-Z(4)9)
+	   SIP = SUM (I-P) D-PIC (-Z(4)9)
+	   SIN = SUM (I-N) D-PIC (-Z(4)9)
+	   SIL = SUM (I-L) D-PIC (-Z(4)9)
+
+      INAME1 = STK-DESC OF MSF100 WHERE (STOCK-CODE = STK)
+      PP     = CATENATE ('-', %DISTRICT-CODE%) CONSTANT
+      PARTD  = PART-NO OF MSF110A WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                                         STOCK-CODE = STK, -
+                                         PREF-PART-IND >= '97') -
+                               SELECTIF (MNEMONIC = PP) -
+                               SELECTIF (MNEMONIC = '-TRAN') -
+                               SELECTIF (MNEMONIC = '-GENL') -
+                               STOPIF   (PREF-PART-IND > '97') MAX (1)
+       PARTG = PART-NO OF MSF110A WHERE (DSTRCT-CODE = '    ', -
+                                         STOCK-CODE = STK, -
+                                         PREF-PART-IND >= '97') -
+                               SELECTIF (MNEMONIC = PP) -
+                               SELECTIF (MNEMONIC = '-TRAN') -
+                               SELECTIF (MNEMONIC = '-GENL') -
+                               STOPIF   (PREF-PART-IND > '97') MAX (1)
+       PART = CHOOSE (PARTD IF (PARTD <> SPACES), PARTG)
+       BIN  = RET-BIN-CODE OF MSS1HB -
+              WHERE (OPTION-1HB             = 'R', -
+                     RETRIEVAL-FLAG         = 'A', -
+                     DSTRCT-CODE            = %DISTRICT-CODE%, -
+                     STOCK-CODE             = STK, -
+                     NO-BIN-RETURN          = 2)
+       UI   = UNIT-OF-ISSUE VIA (INAME1)

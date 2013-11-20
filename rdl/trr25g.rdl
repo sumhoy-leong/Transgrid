@@ -1,0 +1,113 @@
+%*** TRR25G.RDL
+%***
+%***
+%*** Revision History ***  
+%*** 26-Nov-98 DDiolaso   Recompile (Fix for MIMS 4.3)
+%*** 21-Jul-92 DAVID G    ALLOW RANGE OF FPA GROUPS
+%*** 09-APR-92 DAVID G    SORT BY STATUS,EXPIRY DATE
+%***                      ALLOW NOMINATED STATUS(S) TO BE SELECTED.
+%***                      LIST NO.OF ORDER ITEMS FOR FPA
+%*** 28-Dec-90 PAUL       Initial coding.
+%PROGRAM-ID
+       TRR25G
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  Schedule of all agreements for nominated status(s) showing no of order items
+%VERSION
+       001
+%MODULE
+       3250
+%FILES
+        MFILE = MSF253
+        LFILE = MSF200
+        LFILE = MSF221B
+        LFILE = MSF250
+        AFILE = MSF251
+        LFILE = MSF220
+        RFILE = TRR25GA
+
+%SELECTION
+
+%*** Enter selection criteria for MSF253
+<IF %STATUS1% <> SPACES>
+      WHERE    (FPA-REC-TYPE    = 'F', -
+                FPA-GROUP      >= %FPA1%)
+      SELECTIF (FPA-AGREEMENT <>  SPACES, STATUS-253 = %STATUS1%) 
+      SELECTIF (FPA-AGREEMENT <>  SPACES, STATUS-253 = %STATUS2%) 
+      SELECTIF (FPA-AGREEMENT <>  SPACES, STATUS-253 = %STATUS3%) 
+      STOPIF (FPA-GROUP > %FPA2%)
+<ELSE>
+      WHERE    (FPA-REC-TYPE    = 'F', -
+                FPA-GROUP      >= %FPA1%)
+      SELECTIF (FPA-AGREEMENT <>  SPACES)
+      STOPIF (FPA-GROUP > %FPA2%)
+<ENDIF>
+%BREAK-FIELDS
+      STATUS-253
+%ORDER
+      STATUS-253
+      EXPIRY-DATE
+%REPORT-TITLE
+       'Schedule of FPA Agreements for nominated status(s)'
+%PAGE HEADING
+'FPA       Description/                             Effective Expiry    Review    Status              No of PO'
+'Agreement Supplier/Offer                             Date     Date      Date                           Items'
+%DETAIL
+ XXXXXYZZZ BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB CCCCCCCCC DDDDDDDDD EEEEEEEEE F GGGGGGGGGGGGGGGGG {POSIZE}
+           HHHHHHPII JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ
+%BREAK STATUS-253 FOOTING
+{UNDERLINE                                                                                                    }
+'Number of FPA Agreements for status :'{COUNT}     'Number of PO Items :'{POSIZET}
+
+%SUMMARY
+
+
+'Report totals:'
+'Number of FPA Agreements            :'{COUNT}     'Number of PO Items :'{POSIZET}
+%REQUEST-PARAMETERS
+       FPA1 LIKE FPA-GROUP TEXT 'FROM FPA GROUP'
+       FPA2 LIKE FPA-GROUP TEXT 'TO   FPA GROUP'
+       STATUS1 PIC (X) TEXT 'STATUS'
+       STATUS2 PIC (X) TEXT 
+       STATUS3 PIC (X) TEXT 
+%VARIABLES
+       X = FPA-GROUP
+       Y = '/'
+       Z = FPA-AGREEMENT
+
+%* MSF250
+       K = FPA-DESC OF MSF250 -
+                       WHERE (FPA-REC-TYPE = 'F', -
+                              FPA-GROUP    = X)
+
+       B = CHOOSE (K IF(AGR-DESC = SPACES), AGR-DESC)
+       C = GET (DISPLAY-DATE FROM (EFFECTIVE-DATE))
+       D = GET (DISPLAY-DATE FROM (EXPIRY-DATE))
+       E = GET (DISPLAY-DATE FROM (REVIEW-DATE))
+       F = STATUS-253
+       G = CHOOSE ('Finalised        ' IF(F = 'F'), -
+                   'Effective        ' IF(F = 'E'), -
+                   'Listed for Expiry' IF(F = 'L'), -
+                   'Expired          ' IF(F = 'X'), -
+                   '                 ')
+       H = SUPPLIER-NO
+       I = SUPPLIER-OFFER
+       P = CHOOSE (' ' IF(I =  '  '), -
+                   '/')
+%* MSF200
+       J = SUPPLIER-NAME OF MSF200 WHERE (SUPPLIER-NO = H)
+%* MSF251
+       SC = STOCK-CODE FROM MSF251 WHERE (FPA-REC-TYPE = 'F', -
+                                        FPA-GROUP = X, -
+                                        FPA-ITEM-NO >= SPACES) MAX (1000)
+%* MSF221
+       POITM = PO-ITEM-NO OF MSF221B WHERE (PREQ-STK-CODE = SC, - 
+                                  REVSD-CRT-DATE >= SPACES) -
+                                 SELECTIF (FPA-GROUP = X, FPA-AGREEMENT = Z) -
+                                           MAX (1000)
+%* MSF220
+%* TOTALS
+       POSIZE = SIZE (POITM)
+       POSIZET = TOTAL (POSIZE)
+       COUNT = COUNT (*)

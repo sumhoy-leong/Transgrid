@@ -1,0 +1,234 @@
+%*** TRR22G.RDL
+%***
+%*** Revision History ***
+%*** 21-Jan-13 a9nh4814 MO164 ---
+%*** .................  Remove output file TST22G.
+%*** 04-Dec-12 a9jw6280 MO164 ---
+%*** .................  Remove request parameter CO for company.
+%*** 25-Jul-12 a9jw6280 MO164 MO164 (Version 001)
+%*** .................  Convert from ESR26K into TRR22G.
+%*** .................  Reset version number to 0001 for E8 upgrade.
+%*** 01-Jul-03 RYeung      WCHG024948
+%***                       Create CSV file.
+%*** 22-Apr-02 DDiolaso WCHG002033 - Inclusion of a district parameter
+%*** ................. 
+%*** 03-Nov-98 Brandon  Fix for MIMS 4.3 & replace MSF221D with MSF221C 
+%*** 09-Sep-98 Workman      W809010014
+%*** ................. Changed to shorten run time,
+%*** .................  MFILE msf000  to process by district
+%*** .................  AFILE MSF221D to process for status 30 only
+%*** ................. Indent fields for easier searching
+%*** ................. Shift file queries to remove unnecessary reads
+%*** 12-Aug-94 Mary W  Ver 002. Sort and break on company to report
+%*** ................. separate totals for Pacific Power and PacificGrid.
+%*** 26-jun-91 david g if run for dstrct = spaces was only looking
+%*** ................. at orders where recpt status > 1 should be >=1
+%*** ................. Ignore xfer & wkshop orders.
+%***
+%PROGRAM-ID
+        TRR22G
+%AUTHOR
+        DAVID GATWARD
+%NARRATIVE
+        **  Liability listing (Invoice Pending - GOODS)
+%VERSION
+        0001
+%MODULE
+        3260
+%FILES
+        MFILE = MSF000
+        AFILE = MSF221C
+        AFILE = MSFX27
+        LFILE = MSF010
+        LFILE = MSF100
+        LFILE = MSF200
+        LFILE = MSF220
+        LFILE = MSF231
+        LFILE = MSF260
+        LFILE = MSF26A
+        LFILE = MSF261
+        RFILE = TRR22GA
+%SELECTION
+        WHERE (DSTRCT-CODE       = SPACES, -
+               CONTROL-REC-TYPE  = 'AD', -
+               CONTROL-REC-NO   >= SPACES)
+        SELECTIF (DSTRCT-STATUS  = 'A')
+        REJECTIF (CONTROL-REC-NO <> %DCODE%, %DCODE% <> SPACES)
+%ORDER
+        ASSOC-CHAR-1    VIA (ORGIND)
+        SUPPLIER-NO     VIA (SUPP)
+        PO-NO           via (PO)
+        PO-ITEM-NO      via (PO)
+%CONTROL-BREAKS
+        DUM
+        ASSOC-CHAR-1    VIA (ORGIND)
+        SUPPLIER-NO     VIA (SUPP)
+        PO-NO           via (PO)
+        PO-ITEM-NO      via (PO)
+%REPORT
+        A
+%REPORT-TITLE
+       'LIABILITY LISTING (INVOICE PENDING - GOODS)'
+%PAGE HEADING
+<IF %SUMMARY% = 'N'>
+'Supplier  Order/ Item Order Receipt   Receipt    Invoice/             Item    Description                Value      Inv. Pending'
+'Code                  Type  Date      Ref                                                                                  Value'
+<ENDIF>
+%BREAK ASSOC-CHAR-1 VIA (ORGIND) HEADING ON NEW-PAGE
+'Company :' {CONAME         }
+
+%BREAK SUPPLIER-NO VIA (SUPP) HEADING
+<IF %SUMMARY% = 'N'>
+
+'Supplier'{SUPP} {SNAME                         }
+<ENDIF>
+%BREAK PO-ITEM-NO via (PO) HEADER
+<IF %SUMMARY% = 'N'>
+        <IF WSIPVAL > 0 AND POTYPE = 'N'>
+ {SUPP}    BBBBBB CCC  XXXXX DDDDDDDDD EEEEEEEEEE                           {POD                 }                   IIIIIIIIIIII
+        <ENDIF>
+<ENDIF>
+%DETAIL
+<IF %SUMMARY% = 'N'>
+        <IF G <> '000' AND G <> '   ' AND WSAPS < '10' AND POTYPE = 'N'>
+                <IF WSAN < '01' AND POTYPE = 'N'>
+                                                  FFFFFFFFFFFFFFFFFFFF GGG  {ITEM-DESC           } PPPPPPPPPPPP
+                <ELSE>
+                <IF WSAN > '01' AND POTYPE = 'N'>
+                                                  FFFFFFFFFFFFFFFFFFFF GGG  {ITEM-DESC           } QQQQQQQQQQQQ
+                <ENDIF>
+                <ENDIF>
+        <ENDIF>
+<ENDIF>
+%*** Control Break footings for up to 1 control level(s)
+%BREAK SUPPLIER-NO VIA (SUPP) FOOTING
+<IF %SUMMARY% = 'N'>
+                                                                                                                   '-------------'
+<ENDIF>
+                                            'Total for supplier'  {SUPP}    {SNAME                         }        RRRRRRRRRRRRR
+%BREAK  ASSOC-CHAR-1 VIA (ORGIND) FOOTING
+<IF %SUMMARY% = 'N'>
+                                                                                                                   '-------------'
+<ENDIF>
+                                                                                   {CONAME            }'Total'      RRRRRRRRRRRRR
+%REPORT-SUMMARY
+                                                                                                                   '-------------'
+                                                                               'Total for all suppliers'            RRRRRRRRRRRRR
+%REQUEST-PARAMETERS
+        DCODE           PIC (X(4))      TEXT 'District Code'
+        SUMMARY         PIC (X)         TEXT 'Summary Report Y/N?'
+ 
+%VARIABLES
+  Z     = ','         CONSTANT
+  Y     = '"'         CONSTANT
+  DUMMY = 'Y'         CONSTANT
+  DUM   = choose ('Y' IF  (Z = Z), DUMMY)
+%*        
+        ORGIND  = ASSOC-CHAR-1 OF MSF010 -
+                  WHERE (TABLE-TYPE = '3D',-
+                         TABLE-CODE =  CONTROL-REC-NO)
+        CONAME  = CHOOSE ('TransGrid'   IF (ORGIND = '2'), -
+                          'Pacific Power' IF (ORGIND = '1'), -
+                          'Unknown')
+%*
+        PO      = PO-NO FROM MSF221C -
+                  WHERE    (DSTRCT-CODE-2     = CONTROL-REC-NO, -
+                            RECEIPT-STATUS-2 >= '1') -
+                  SELECTIF (STATUS-221       >= SPACES, -
+                            STATUS-221       <= '2') -
+                  REJECTIF (PO-ITEM-TYPE      = 'C') -
+                  REJECTIF (PO-ITEM-TYPE      = 'S') -
+                  REJECTIF (PO-ITEM-TYPE      = 'F') -
+                  REJECTIF (INV-PEND-VAL-L   <= 0)
+%*
+        B       = PO-NO                         via (PO)
+        C       = PO-ITEM-NO                    via (PO)
+        PO-IT   = PO-ITEM-NO                    via (PO)
+        WSOFRD  = OFST-RCPT-DATE                via (PO)
+        WSQOF   = QTY-RCV-OFST-I                via (PO)
+        WSONRD  = ONST-RCPT-DATE                via (PO)
+        WSOFRR  = OFST-RCPT-REF                 via (PO)
+        WSONRR  = ONST-RCPT-REF                 via (PO)
+        WSIT    = PO-ITEM-TYPE                  via (PO)
+        WSIPVAL = INV-PEND-VAL-L                via (PO)
+        STOCK   = STOCK-CODE                    via (PO)
+        DSTRCT  = DSTRCT-CODE                   via (PO)
+        PREQ-NO = PURCH-REQ                     via (PO)
+        PREQ-IT = PREQ-ITEM                     via (PO)
+%*
+        D1      = choose (WSOFRD IF (WSQOF > ZERO), WSONRD)
+        D       = GET (DISPLAY-DATE FROM (D1))
+        E       = choose (WSOFRR  IF (WSQOF > ZERO), WSONRR)
+%*
+        SUPP    = SUPPLIER-NO OF MSF220 -
+                  WHERE (PO-NO = PO)
+        POTYPE  = PO-TYPE                       VIA (SUPP)
+%*
+        SPNAME  = PAYMENT-NAME OF MSF200 -
+                  WHERE (SUPPLIER-NO = SUPP)
+%*
+        SONAME  = SUPPLIER-NAME                 VIA (SPNAME)
+%*
+        SNAME   = choose (SPNAME IF (SPNAME <> SPACES), SONAME)
+%*
+        WS1     = ITEM-NAME OF MSF100 -
+                  WHERE (STOCK-CODE = STOCK)
+%*
+        WS2     = ITEM-DESC OF MSF231 -
+                  WHERE (DSTRCT-CODE  = DSTRCT,-
+                         PREQ-NO      = PREQ-NO,-
+                         PREQ-ITEM-NO = PREQ-IT)
+%*
+        X       = choose ('STOCK' IF (WSIT = 'O'), 'NSTCK')
+        POD     = choose (WS1     IF (WSIT = 'O'), WS2)
+        I       = choose (WSIPVAL IF (WSIPVAL > 0, POTYPE = 'N'),0)
+%*
+        WSDC    = DSTRCT-CODE FROM MSFX27 -
+                  WHERE  (PO-NO        = PO, -
+                          PO-ITEM-NO   = PO-IT, -
+                          DSTRCT-CODE >= SPACES) -
+                  STOPIF (PO-NO        > PO)
+%*
+        WSSN    = SUPPLIER-NO                VIA (WSDC)
+        WSIN    = INV-NO                     VIA (WSDC)
+        WSIIN   = INV-ITEM-NO                VIA (WSDC)
+%*
+        G       = INV-ITEM-NO OF MSF26A -
+                  WHERE (DSTRCT-CODE = WSDC,-
+                         SUPPLIER-NO = WSSN,-
+                         INV-NO      = WSIN,-
+                         INV-ITEM-NO = WSIIN)
+%*
+        ININV   = INV-NO                        VIA (G)
+        EXTINV  = EXT-INV-NO OF MSF260 -
+                  WHERE (DSTRCT-CODE = WSDC, -
+                         SUPPLIER-NO = WSSN, -
+                         INV-NO      = WSIN)
+        WSAPS   = APPR-STATUS                   VIA (G)
+        ITEM-DESC = INV-ITEM-DESC               VIA (G)
+        WSLV    = LOC-VAL-INVD                  VIA (G)
+        WSST    = LOC-STAX-INVD                 VIA (G)
+        WSDCT   = LOC-DISC-INVD                 VIA (G)
+        WSAN    = LAST-AMEND-NO                 VIA (G)
+%*
+        F       = CHOOSE (EXTINV IF (EXTINV <> SPACES), ININV)
+        P       = calc(WSLV + WSDCT + WSST)
+%*
+        WSAV    = LOC-AMD-VAL OF MSF261 -
+                  WHERE (DSTRCT-CODE  = WSDC,-
+                         SUPPLIER-NO  = WSSN,-
+                         INV-NO       = WSIN,-
+                         INV-ITEM-NO  = G,-
+                         AMENDMENT-NO = WSAN)
+        WSAS    = LOC-AMD-STAX                  VIA (WSAV)
+        WSAD    = LOC-AMD-DISC                  VIA (WSAV)
+%*
+        Q       = calc(WSAV + WSAD + WSAS)
+%*        R1      = choose (I IF (%CO% = ORGIND), -
+%*                          I IF (%CO% = 'A'), -
+%*                          0)
+        R1       = I
+        M1       = choose (P IF (WSAN < '01' AND POTYPE = 'N'), Q)
+%*
+        R       = total (R1)
+%* End Program

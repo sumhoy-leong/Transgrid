@@ -1,0 +1,173 @@
+%*** TRR51M.RDL
+%***
+%***
+%*** Revision History ***
+%*** 06-Feb-13 a9is6175        MO164
+%*** .......................   Reset version number to 0001 for E8 upgrade
+%*** 15-Sep-00 D Diolaso       As additional requirement, added a total 
+%*** .......................   payment column to the report.
+%*** 15-Sep-00 E Fredeluces    W00090340
+%***                           To include the followig Injury Type:
+%***                           1.  Nature of Injury
+%***                           2.  Bodily Location of Injury
+%***                           3.  Mechanism of Injury
+%***                           4.  Agency of Injury
+%***                           5.  Result of Injury
+%***                           6.  Duty Status
+%*** 28-Mar-00 D Diolaso       W00030614
+%*** ......................    New report on Specific Nature of Injury
+%***
+%PROGRAM-ID
+       TRR51M
+%NARRATIVE
+      **  This program generates the Type of Injury based on specified
+      **  parameter.  It will provide details of the Injury for a selected
+      **  code or all.
+%VERSION
+       0001
+%MODULE
+       3820
+%FILES
+       IFILE = TRO51L
+       LFILE = MSF536B
+       LFILE = MSF828
+       LFILE = MSF820
+       LFILE = MSF810
+       LFILE = MSF010
+       LFILE = MSF801
+       RFILE = TRR51MA
+%SELECTION
+%**  Selection criteria for the main file
+%INPUT-FILE
+     IEMP        PIC (X(10))
+     ISTAT       PIC (X(1))
+     II          PIC (X(5))
+     IDTEO       PIC (X(8))
+     IINCNO      PIC (X(10))
+%BREAK-FIELDS
+       II
+%ORDER
+       DTE TEXT Date of Injury
+%TITLE
+'Employee Injury Report'
+%REPORT
+       A
+%PAGE HEADING
+<IF %TYPE% = 'N'>
+'                                                    Injury Type :  Nature of Injury' 
+<ENDIF>
+<IF %TYPE% = 'B'>
+'                                                Injury Type :  Bodily Location ofInjury'
+<ENDIF>                        
+<IF %TYPE% = 'M'>
+'                                                  Injury Type :  Mechanism of Injury'
+<ENDIF>
+<IF %TYPE% = 'A'>
+'                                                   Injury Type :  Agency of Injury'
+<ENDIF>                        
+<IF %TYPE% = 'R'>
+'                                                   Injury Type :  Result of Injury' 
+<ENDIF>
+<IF %TYPE% = 'D'>
+'                                                      Injury Type :  Duty Status'
+<ENDIF>                        
+
+'+------- Employee Name ------+ Employee-Id  Status     +----- Description of Injury -----+   Date    Claim Status  Total Payment'
+%DETAIL
+ {ENAME                       } {EMP     } {ESTAT     } {IN} {INJDESC                     } {DTE   } {CLSTAT        } { TOTPAY }
+
+%BREAK II FOOTING
+ 
+%SUMMARY
+                                                                                                                  
+                                                                  'Payment Grand Total   ===>'                     {   SUMPAY }
+{underline                                                                                                                         }
+
+'                                                       **** End of Report ***'
+%REQUEST-PARAMETERS
+        TYPE    PIC (X(1))  TEXT  'Injury Type  (A/B/D/M/N/R)        :'
+        FILLER1 PIC (X(1))  TEXT  '.. A-gency of Injury               '  
+        FILLER2 PIC (X(1))  TEXT  '.. B-odily Location of Injury      '  
+        FILLER3 PIC (X(1))  TEXT  '.. D-uty Status                    '  
+        FILLER4 PIC (X(1))  TEXT  '.. M-echanism of Injury            '  
+        FILLER5 PIC (X(1))  TEXT  '.. N-ature of Injury               '  
+        FILLER6 PIC (X(1))  TEXT  '.. R-esult of Injury               '  
+        ICD1    PIC (X(5))  TEXT  'Injury Code 1                     :'
+        ICD2    PIC (X(5))  TEXT  'Injury Code 2                     :'
+        ICD3    PIC (X(5))  TEXT  'Injury Code 3                     :'
+        ICD4    PIC (X(5))  TEXT  'Injury Code 4                     :'
+        ICD5    PIC (X(5))  TEXT  'Injury Code 5                     :'
+        ICD6    PIC (X(5))  TEXT  'Injury Code 6                     :'
+        ICD7    PIC (X(5))  TEXT  'Injury Code 7                     :'
+        ICD8    PIC (X(5))  TEXT  'Injury Code 8                     :'
+        ICD9    PIC (X(5))  TEXT  'Injury Code 9                     :'
+        ICD10   PIC (X(5))  TEXT  'Injury Code 10                    :'
+        DTEFR   PIC (9(8))  TEXT  'Date - From                       :'
+        DTETO   PIC (9(8))  TEXT  'Date - To                         :'
+        CE      PIC (X(1))  TEXT  'Employee Type  (C/E/B)            :'
+%VARIABLES
+        EMP     = IEMP
+        IN      = II
+        DTEO    = IDTEO
+		DTE     = DTEO FORMAT (DATE)
+        INCNO   = IINCNO
+        ESTC    = ISTAT
+%*                  
+        FNAME   = FIRST-NAME OF MSF810 -
+                  WHERE (EMPLOYEE-ID = EMP)
+        SNAME   = SURNAME VIA (FNAME)       
+        F       = FIRST-INITIAL VIA (FNAME)
+%*DD0900 Dropped the whole first name in place of the first initial to 
+%*DD0900 accomodate total payment column
+        SNAM1   = SUBSTR (SNAME,1,27)
+        ENAME   = CATENATE (SNAM1, ', ', F) 
+%*
+        ESTAT   = CHOOSE('Active       ' IF (ESTC = 'A'), -
+                         'Inactive     ' IF (ESTC = 'I'), -
+                         'Term This Pay' IF (ESTC = 'X'), -
+                         'Terminated   ' IF (ESTC = 'Z'), -
+                         '** Unknown **')
+%*  Obtain Injury Description                         
+        NATDESC = TABLE-DESC OF MSF010             -
+                  WHERE (TABLE-TYPE   = 'OHIC',    -
+                  TABLE-CODE          = IN)
+        BODDESC = TABLE-DESC OF MSF010             -
+                  WHERE (TABLE-TYPE   = 'OHBP',    -
+                  TABLE-CODE          = IN)
+        MECDESC = TABLE-DESC OF MSF010             -
+                  WHERE (TABLE-TYPE   = 'OHAC',    -
+                  TABLE-CODE          = IN)
+        AGCDESC = TABLE-DESC OF MSF010             -
+                  WHERE (TABLE-TYPE   = 'OHAA',    -
+                  TABLE-CODE          = IN)
+        RESDESC = TABLE-DESC OF MSF010             -
+                  WHERE (TABLE-TYPE   = 'OHRI',    -
+                  TABLE-CODE          = IN)
+        DUTDESC = TABLE-DESC OF MSF010             -
+                  WHERE (TABLE-TYPE   = 'OHDS',    -
+                  TABLE-CODE          = IN)
+        INJDESC = CHOOSE (NATDESC IF (%TYPE% = 'N'), -
+                          BODDESC IF (%TYPE% = 'B'), -
+                          MECDESC IF (%TYPE% = 'M'), -
+                          AGCDESC IF (%TYPE% = 'A'), -
+                          RESDESC IF (%TYPE% = 'R'), -
+                          DUTDESC IF (%TYPE% = 'D'), -
+                          SPACES)
+%*
+        CS      = CLAIM-STATUS OF MSF536B -
+                  WHERE (INCIDENT-NO   = INCNO,    -
+                         CLAIM-NO-3    >= SPACES)  -
+                  MAX   (1)
+
+        CLSTAT  = TABLE-DESC OF MSF010             -
+                  WHERE (TABLE-TYPE   = 'WCCS',    -
+                         TABLE-CODE   = CS)
+
+%*DD0900    Additional requirement of Alan Merce - Add total Payments 
+%*                                            1234567890
+        TOTPAY  = PAYMENT-AMT VIA (CS) D-PIC (ZZZZZZZ.99)
+%*                                            123456789012
+        SUMPAY  = TOTAL (TOTPAY)       D-PIC (ZZZZZZZZZ.99)
+%*
+%*     End of Program
+%*

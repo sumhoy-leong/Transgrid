@@ -1,0 +1,363 @@
+%***  $Id: trr26k.rdl,v4.0 2010/10/01 15:28:00 Exp $
+%*** TRR26K.RDL
+%*** Revision History ***
+%***
+%*** 26-Aug-13 Shally Lee  SC4384666 (Version 006)
+%***                       Fix the header date not printer while the job run
+%***                       cycling.
+%*** 22-Aug-13 Yeemun      SC4261361 (Version 0005) 
+%***                       Fix the Auth By Column.Remove the space before {AUTH}
+%***                       To Show Complete Employee Id
+%***                       the value column was also moved to the left one space
+%***                       To Max the minus sign (-) stand out when a credit 
+%***                       is being reported.
+%*** 19-Aug-13 ss2125      TR4328 (Version 0004)
+%***                       Add BREAK for the SN Name.
+%*** 02-Jul-13 Yeemun      SC0000004261361 (Version 0003)
+%***                       Change from %BREAK WHOUSE-ID VIA (SC) HEADING ON NEW-PAGE
+%***                       to %BREAK WHOUSE-ID VIA (SC) HEADING
+%***                       Change from {AUTH} to {AUTH }
+%*** 13-May-13 a9is6175    MO164 (Version 0002)
+%*** ..................    Added SN (Supplier No.) on %ORDER.
+%*** 11-Sep-12 a9jw6280    MO164 (Version 0001)
+%*** ..................    Reset version number to 0001 for E8 upgrade.
+%*** ..................    Convert from ESR28V.
+%*** 01-Oct-10 EFredeluces SC3007373
+%*** ....................  It will only suppress if the Supplier No. and 
+%*** ....................  Supplier Name are the same. 
+%*** 06-Jun-05 AIesho      P05060270
+%*** ..................    Modified program to cope with district consolidation
+%*** ..................    into GRID. Append Warehouse id to request parameter
+%*** ..................    Append Warehouse id to purchase order no
+%*** 10-Sep-01 DDiolaso    W01090317
+%*** ....................  Inclusion of dstrcts with zero total invoice values
+%*** ....................  in the report
+%*** 30-Aug-01 DDiolaso    W01040658
+%*** ..................... Program modified to change files accesses in
+%*** ..................... order to speed up the execution time.
+%*** ..................... Details of modification:
+%*** .....................   a)  Divided the process into 2.
+%*** .....................       1) TRR26I - Extract program
+%*** .....................       2) TRR26K - Report Generation program
+%*** .....................
+%*** 23-Jun-00 EFredeluces  W00060563
+%***                        The amount must be GST inclusive.
+%*** 22-Feb-00 EFredeluces  W00020577 
+%***                        To include the Tax Code in the report.
+%***  3-Jun-99 G Presser    W99060087              (Version 003)
+%*** .....................  Stop totals displaying if nothing printed
+%*** 27-May-99 G Presser    W99051070              (Version 002)
+%*** .....................  Calculate Period Start & End Dates correctly
+%*** 19-mAY-99 EFredeluces  W99050653
+%*** .....................  Order Number not being printed.
+%*** 03-NOV-98 Brandon      Fix for MIMS 4.3
+%*** 24-Aug-98 EFredeluces  W808210059
+%*** .....................  Cosmetic changes to details/titles.
+%*** 30-Oct-97 NCHANDRA     W710170011
+%*** .....................  Fixed Grand Total as it was not displaying correct
+%*** .....................  Values.
+%*** 24-Sep-97 NCHANDRA     Facilitate/FIXED to Report CORRECT Values from MSF261
+%*** .....................  file and Facilitated to report on the total value
+%*** .....................  of the report.(W709190044)
+%***
+%*** 07-AUG-97 L CAPPLE     Removed default to recurring expenditure orders, included parmeter 
+%***                        to report only on non-order invoices, default to all orders.
+%*** 16-NOV-95 Peter Lacey
+%*** ...................... Converted from 3.010 to 3.013. Changed field
+%*** ...................... MSF260-AUTH-BY to MSF260-AUTHSD-BY.
+%*** 08-MAY-92 David G      In 3.008 the mincom software is putting some values in LOC-VAL-INVD (eg pmt status=50 & non goods) &
+%*** ......................                                        some values in FOR-VAL-APPR (eg pmt status=30 & service  )
+%*** ...................... Until MINCOM become consistent with updating these fields use LOC-VAL-INVD if <> 0 else FOR-VAL-APPR
+%*** 24-APR-92 David G      Initial coding.
+%PROGRAM-ID
+        TRR26K
+%AUTHOR
+        David Gatward
+%NARRATIVE
+        **  For the selected Orders invoice headers and
+        **  items are reported filtered by loaded OR approved date.
+%VERSION
+        0006
+%MODULE
+        3260
+%FILES
+        IFILE = TRO26I
+        LFILE = MSF26A
+        LFILE = MSF100
+        LFILE = MSF260
+        LFILE = MSF200
+        LFILE = MSF221
+        LFILE = MSF231
+        LFILE = MSF261
+        LFILE = MSF263
+        RFILE = TRR26KA
+%INPUT-FILE
+        IDST    PIC (X(5))
+        ION     PIC (X(6))
+        IPI     PIC (X(4))
+        IININV  PIC (X(10))
+        III     PIC (X(4))
+        ISN     PIC (X(6))
+        IVAL1   PIC (S9(11)V99)
+        IP      PIC (X) 
+        IDATE1  PIC (X(8))
+        IDATE2  PIC (X(8))
+        IORDER1 PIC (X(8))
+        IORDER2 PIC (X(8))
+        IDC     PIC (X(4))
+%ROUTINES
+        MSSDAT
+        MSS232
+%REPORT-TITLE
+       'Invoices for Selected Orders and dates'
+%ORDER
+        WHOUSE-ID    VIA (SC)
+        SN
+        ION             
+        ININV
+        II
+%CONTROL-BREAKS
+        WHOUSE-ID    VIA (SC)
+        SN-NAME
+%BREAK-FIELDS
+        WHOUSE-ID    VIA (SC)
+        SN-NAME
+%PAGE HEADING
+%*
+%BREAK WHOUSE-ID VIA (SC) HEADING
+%*V0006 Start
+<IF NONORDER = 'Y'>
+<IF %LOAD-IND% = 'L'>
+'The following recurring expenditure claims were loaded approved on'{DATE1 }'to'{DATE2 }'for orders'{ORDER1}'to'{ORDER2}
+                                                                                                             'Invoice Item' 
+'Order   Itm Supp   Invoice             Itm Loaded   Inv Type      Comment                       P-Stat TaxCde    Values     Auth-By'
+<ELSE>
+    <IF %ACCOUNT-IND% = 'Y'>
+'The following claims were approved on'{DATE1 }'to'{DATE2 }'for orders'{ORDER1}'to'{ORDER2}
+                                                                                                             'Invoice Item' 
+'Order   Itm Supp   Invoice             Itm Approved Inv Type      Comment                       P-Stat TaxCde    Values     Auth-By'
+    <ELSE>
+'   Following claims were paid as non-order expenditure during the period '{DATE1 }'to'{DATE2 }     'ORDERS:  '{ORDER1}'to'{ORDER2}
+                                                                                                             'Invoice Item'
+'Order   Itm Supp   Invoice             Itm Approved Inv Type      Comment                       P-Stat TaxCde    Values     Auth-By'
+    <ENDIF>
+<ENDIF>
+<ELSE>
+<IF %LOAD-IND% = 'L'>                                                                                                               
+'The following expenditure claims were loaded approved on'{DATE1 }'to'{DATE2 }'for orders'{ORDER1}'to'{ORDER2}
+                                                                           
+'Warehouse ID: 'WW'                                                                                           Invoice Item'
+'Order   Itm Supp   Invoice             Itm Loaded   Inv Type      Comment                       P-Stat TaxCde    Values    Auth-By' 
+<ELSE>                                                                                                                              
+    <IF %ACCOUNT-IND% = 'Y'>                                                                                                        
+'The following claims were approved on'{DATE1 }'to'{DATE2 }'for orders'{ORDER1}'to'{ORDER2}
+
+'Warehouse ID: 'WW'                                                                                           Invoice Item'
+'Order   Itm Supp   Invoice             Itm Approved Inv Type      Comment                       P-Stat TaxCde    Values    Auth-By' 
+    <ELSE>                                                                                                                          
+         <IF ORDTYPE = 'R'>
+'   Following claims were paid as recurring expenditure for the period '{DATE1 }'to'{DATE2 }      'ORDERS:  ' {ORDER1}'to'{ORDER2}
+         <ELSE>                                                                                                
+'   Following claims were paid as expenditure for the period '{DATE1 }'to'{DATE2 }      'ORDERS:  ' {ORDER1}'to'{ORDER2}
+         <ENDIF>
+
+'Warehouse ID: 'WW'                                                                                           Invoice Item'
+'Order   Itm Supp   Invoice             Itm Approved Inv Type      Comment                       P-Stat TaxCde    Values    Auth-By' 
+    <ENDIF>                                                                                                                         
+<ENDIF>                                                                                          
+<ENDIF>                                  
+%*V0006 End
+%*
+%BREAK SN-NAME 
+             {SN-NAME                              }
+%DETAIL
+%*
+<IF DST <> 'ZZZZ'>
+  <IF %LOAD-IND% = 'L'>
+{PON    } PPP      {I-NO              } III {LD    } {L-INV-TYPE } {INVDESC                      } {PS} {TX}{VAL1           } {AUTH }
+%*
+<ELSE>
+%*
+{PON    } PPP      {I-NO              } III {LD    } {L-INV-TYPE } {INVDESC                      } {PS} {TX}{VAL1           } {AUTH }
+    <IF %ACCOUNT-IND% = 'Y'>
+%*                                                                                                {ACCOUNT      } {PERC} {RET-VALUE}
+<REPEAT NO>
+                                     {DESC                                  } '________________________   $______.___'
+<ENDREPEAT>
+    <ENDIF>
+  <ENDIF>
+<ENDIF>
+%BREAK WHOUSE-ID    VIA (SC) FOOTER
+<IF %NONORDER% = 'Y', W <> SPACES >
+
+
+                                                                                'Warehouse'WW'Total  :'      {TVAL2         }
+
+<ELSE>
+ <IF W <> SPACES>
+
+                                                                                'Warehouse'WW'Total  :'      {TVAL1         }
+
+ <ENDIF>
+<ENDIF>
+%SUMMARY
+<IF %NONORDER% = 'Y' >
+
+
+                                                                                        'Total Value :'      {TVAL2         }
+
+<ELSE>
+
+                                                                                        'Total Value :'      {TVAL1         }
+
+<ENDIF>
+
+'I certify that the above claims were paid in accordance with the Expenditure and Accounts Payable Procedures.'
+
+
+'_________________________'         '____________________________________'     '_________________'  
+'Authorised Officer'                         'Designation'                       'Date'
+%*
+%REQUEST-PARAMETERS
+       ORDER1        PIC (X(6))   TEXT 'From Order No                           :'
+       ORDER2        PIC (X(6))   TEXT 'To   Order No                           :'
+       DATE1         PIC (9(8))   TEXT 'From Date                               :'
+       DATE2         PIC (9(8))   TEXT 'To   Date                               :'
+       CYCLE-IND     PIC (X)      TEXT 'Report Cycle - (D)aily or (M)onthly     :'
+       LOAD-IND      PIC (X)      TEXT 'Report (L)oaded or (A)pproved Claims    :'
+       ACCOUNT-IND   PIC (X)      TEXT 'Report account code lines Y/N ?         :'
+       EXPREORDER    PIC (X)      TEXT 'Exclude predefined orders               :'      
+       NONORDER      PIC (X)      TEXT 'Report on Non-Order invoices only Y/N   :'  
+       WHOUSE        PIC (X(2))   TEXT 'Warehouse ID                            :'
+
+%VARIABLES
+       DST      = IDST
+       ON       = ION
+       PI       = IPI
+       PINCLUDE = IP
+       ININV    = IININV
+       II       = III
+       SN       = ISN    SUPPRESS
+       VAL1     = CALC (IVAL1 * 1) PIC ($(11)9.99-)
+       DATE1    = IDATE1
+       DATE2    = IDATE2
+       ORDER1   = IORDER1
+       ORDER2   = IORDER2
+
+       ORD1            = %ORDER1%       CONSTANT
+       ORD2            = %ORDER2%       CONSTANT
+       NONORDER        = %NONORDER%     CONSTANT
+       EXPREORDER      = %EXPREORDER%   CONSTANT
+
+%*V0005 Start
+       SY       = SUBSTR(%DATE1%,1,4)
+       SM       = SUBSTR(%DATE1%,5,2)
+       SD       = SUBSTR(%DATE1%,7,2)
+       S1       = CATENATE(SD,'/',SM,'/',SY)
+
+       SY2      = SUBSTR(%DATE2%,1,4)
+       SM2      = SUBSTR(%DATE2%,5,2)
+       SD2      = SUBSTR(%DATE2%,7,2)
+       S2       = CATENATE(SD2,'/',SM2,'/',SY2)
+%*V0005 End
+       NO              = NUMERIC (10)   CONSTANT I-PIC (9)
+       CP1             = WX-STORES-CP   CONSTANT
+       LP              = PERIOD-YRMN OF MSSDAT -
+                         WHERE (OPTION      = 'J', -
+                                PERIOD-YRMN = CP1, -
+                                DAYS        = -1) CONSTANT
+       ST-DATE         = STARTING-DATE-1-9  VIA (LP) CONSTANT FORMAT (DATE)
+       END-DATE        = ENDING-DATE-1-9    VIA (LP) CONSTANT FORMAT (DATE)
+       ORDTYPE         = SUBSTR (ORD1,2,1)
+%*GET MSF260 DETAILS
+       SN2             = SUPPLIER-NO OF MSF260 -
+                         WHERE (DSTRCT-CODE = DST,         -
+                                SUPPLIER-NO = SN,          -
+                                INV-NO      = ININV)                 
+
+       LD              = LOADED-DATE   VIA (SN2)
+       EXTINV          = EXT-INV-NO    VIA (SN2)                                
+       INVTYPE         = INV-TYPE      VIA (SN2)
+       I-NO            = CHOOSE (EXTINV IF (EXTINV <> SPACES), ININV)
+       PS              = PMT-STATUS    VIA (SN2)
+       CN              = CONTRACT-NO   VIA (SN2) IF (INVTYPE = 6)  ELSE (SPACES)
+       PN              = PORTION-NO    VIA (SN2) IF (INVTYPE = 6)  ELSE (SPACES)
+
+       I2              = INV-ITEM-NO OF MSF26A -
+                         WHERE (DSTRCT-CODE = DST,         -
+                                SUPPLIER-NO = SN,          -
+                                INV-NO      = ININV,       -
+                                INV-ITEM-NO = II)           
+       I               = INV-ITEM-NO   VIA (I2)
+       AUTH10          = AUTHSD-BY     VIA (I2)
+       AUTH            = SUBSTR (AUTH10,5,6)
+       ATAX            = ATAX-AMT-LOC  VIA (I2)                                 
+       IV              = LOC-VAL-INVD  VIA (I2)  PIC ($(11)9.99-)            
+       AV              = LOC-VAL-APPR  VIA (I2)  PIC ($(11)9.99-)            
+       FV              = FOR-VAL-APPR  VIA (I2)  PIC ($(11)9.99-)            
+       LAN             = LAST-AMEND-NO VIA (I2)
+       INVDESC         = INV-ITEM-DESC VIA (I2)
+       EN              = ELEMENT-NO    VIA (I2)  IF (INVTYPE = 6)  ELSE (SPACES)
+       VAL             = choose (IV IF (IV <> 0), FV)     PIC ($(11)9.99-)
+%*
+%*  Read the Tax Details (MSF263) File
+%*
+       TX              = ATAX-CODE OF MSF263              -
+                         WHERE (INV-DSTRCT-CODE = DST,    -
+                                INV-SUPPLIER-NO = SN,     -
+                                INV-NO          = ININV,  -
+                                INV-ITEM-NO     = II,     -
+                                DEFAULTED-IND  >= SPACES) -
+                                MAX (1)
+%*
+       L-INV-TYPE      = CHOOSE       ('GOODS'         IF (INVTYPE = '1'), -   
+                                       'SERVICE ORDER' IF (INVTYPE = '2'), -   
+                                       'FIELD RELEASE' IF (INVTYPE = '3'), -   
+                                       'NON ORDER'     IF (INVTYPE = '4'), -   
+                                       'PART PAYMENT'  IF (INVTYPE = '5'), -    
+                                       'CONTRACT'      IF (INVTYPE = '6'), -    
+                                       'UNKNOWN')                                       
+%*
+       ANUM            = AMENDMENT-NO OF MSF261 -
+                         WHERE (DSTRCT-CODE  = DST,  -
+                                SUPPLIER-NO  = SN,   -
+                                INV-NO       = ININV,-
+                                INV-ITEM-NO  = II,   -
+                                AMENDMENT-NO = LAN) -
+                         MAX (1)
+
+       ORDVAL          = LOC-AMD-VAL    VIA (ANUM)
+       AMD-AMT         = calc   (ORDVAL + ATAX)
+       TVAL            = CHOOSE (VAL1 IF (PINCLUDE = 'Y'), 0)
+       TVALNO          = CHOOSE (VAL1 IF (INVTYPE = '4', PINCLUDE = 'Y'), 0)
+       TVAL1           = total  (TVAL)     PIC ($(13)9.99-)   
+       TVAL2           = total  (TVALNO)   PIC ($(13)9.99-)   
+%*
+%*GER MSF200 DETAILS            
+       SNAME           = SUPPLIER-NAME OF MSF200 -
+                         WHERE (SUPPLIER-NO = SN)     
+
+       SN-NAME         = CATENATE (SN,' ',SNAME)
+%*GET MSF221 DETAILS
+       SC              = STOCK-CODE OF MSF221 -
+                         WHERE (PO-NO      = ON,   -
+                                PO-ITEM-NO = PI)         
+       P               = PO-ITEM-NO   VIA (SC)
+       PO              = PO-NO        VIA (SC)
+       PR              = PURCH-REQ    VIA (SC)
+       PRI             = PREQ-ITEM    VIA (SC)
+       PO-TYPE         = PO-ITEM-TYPE VIA (SC)
+       WHI             = WHOUSE-ID    VIA (SC)
+       W               = WHOUSE-ID    VIA (SC)
+       PON1            = catenate(PO,'-',WHI) I-PIC (X(9))
+       PON2            = catenate(ON,'   ') I-PIC (X(9))
+       PON             = choose(PON1 IF(DST = 'GRID'), PON2) I-PIC (X(9))
+       SCDESC          = DESC-LINE OF MSF100 -
+                         WHERE (STOCK-CODE = SC)
+       PRDESC          = ITEM-DESC OF MSF231 -
+                         WHERE (DSTRCT-CODE  = %DISTRICT-CODE%, -
+                                PREQ-NO      = PR, -
+                                PREQ-ITEM-NO = PRI)
+       DESC            = CHOOSE (SCDESC IF (PO-TYPE = 'O'), PRDESC)
+%*END TRR26K
+

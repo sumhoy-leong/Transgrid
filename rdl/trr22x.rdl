@@ -1,0 +1,222 @@
+%*** TRR22X.rdl
+%***
+%***
+%PROGRAM-ID
+       TRR22X
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report lists expedite information for a given
+      **  expedite code (from 'AX' table). 
+      **  The report is to be emailed.
+      **  V002 - Added expediting code to report and get default
+      **         email address to be obtained from +EXP/XX
+%VERSION
+       002
+%MODULE
+       3210
+%FILES
+        MFILE = MSF221C
+        LFILE = MSF000
+        LFILE = MSF010
+        LFILE = MSF080
+        LFILE = MSF100
+        LFILE = MSF110A
+        LFILE = MSF170
+        LFILE = MSF220
+        LFILE = MSF200
+        LFILE = MSF231
+        RFILE = TRR22XA
+%ROUTINES
+       MSS110   
+       MSSCNV 
+       MSSDAT  
+       MSSTIM    
+%SELECTION
+%*** Enter selection criteria for MSF221
+        WHERE (DSTRCT-CODE-2 = %DISTRICT-CODE%, -
+               RECEIPT-STATUS-2 >= '0')
+        STOPIF   (RECEIPT-STATUS-2 > '1')
+        REJECTIF (STATUS-221 >= '3')
+        REJECTIF (EXPEDITE-CODE = SPACES)
+        REJECTIF (EXPED-RUN-NO <> %EXPED-RUN%)
+%ORDER
+%*** List sort sequence here
+       EMAILX
+       PURCH-OFFICER VIA (PO)
+       CURR-DUE-DATE
+%BREAK-FIELDS
+       EMAILX
+%REPORT-FILE
+    A
+%CONTROL
+    TRIM-REPORT
+%TITLE
+'EXPEDITING REPORT' 
+%BREAK EMAILX HEADING ON NEW-PAGE RESET-PAGE-COUNT
+<IF (EMAILX <> SPACES)>
+
+%* add tags here
+{T1               }
+  {TY               }
+  '<to>'{EMAILX                                            }'</to>'
+  {FROM                                                    }
+  {SUBJ                                                    }
+  {T2  }'The following Purchase Orders are overdue or are a reminder for upcoming due dates for Plant Procurement orders.' 
+ '                                                                                                                                   '
+ ' Please follow-up the overdue orders and update any information required in ellipse.'
+ '                                                                                                                                   '
+ ' For Plant Procurement Orders, use this advice to ensure requirements for delivery are in order.'{T3   }
+{T4                }
+'StkCde/   StockLine   PO No Item                               Current                                                     Exp Whse'
+'or PReq   Part No           Description                        Due Date Supplier Name                 Purchase Officer     Cde Code'
+{UNDERLINE                                                                                                                          }
+<ENDIF>
+%DETAIL  TEST-PAGE (3)
+<IF (PREQSW = 'S')>
+{STKPREQ}  QQQQQQQQQQ {PONO}LIII {POIDESC                     } {CDDATE }{SNAME                      } {POFF               } XX {WH}
+<ELSE>
+{E1  }LWWW {Q1      } {PONO}LIII {POIDESC                     } {CDDATE }{SNAME                      } {POFF               } XX {WH}
+<ENDIF>
+%BREAK EMAILX FOOTER
+<IF (EMAILX <> SPACES)>
+ 
+                                       ' *** End of Report *** '
+<ENDIF>
+%REQUEST-PARAMETERS
+       EXPED-RUN LIKE EXPED-RUN-NO TEXT 'Expedite Run Number: '
+%*       EXPCDE PIC (X(4))  TEXT 'Expedite Code                 :' 
+%VARIABLES  
+%* Emailing variables
+    T1 = '<burst>' CONSTANT
+    TY = '<type>EMAIL</type>' CONSTANT
+    T2 = '<body>' CONSTANT
+    T3 = '</body>' CONSTANT
+    T4 = '</burst>' CONSTANT
+    T5 = '<to>' CONSTANT
+    T6 = '</to>' CONSTANT
+
+%* get default email from +EXP/XX not user
+%**    USER    = REQUEST-BY OF MSF080 
+%**              WHERE (PROG-NAME = 'TRR22X',
+%**                     DEFER-DATE >= SPACES) 
+%**              SELECTIF (REQUEST-DSTRCT = %DISTRICT-CODE%) 
+%**              MAX (1) CONSTANT
+%**    REQ-EMPID = EMPLOYEE-ID VIA (USER) CONSTANT
+    
+    DST = DSTRCT-CODE 
+    DST-DESC = DSTRCT-NAME OF MSF000  -
+               WHERE (DSTRCT-CODE = DST, -
+                      CONTROL-REC-TYPE = 'DC', -
+                      CONTROL-REC-NO   = '0001')
+%** Report Data  variables
+    Z = '|'
+    TDY = DATE () CONSTANT
+    DT = TDY FORMAT (DATE)
+    TDYYD = SUBSTR(TDY,7,2)
+    TDYYM = SUBSTR(TDY,5,2)
+    TDYYY = SUBSTR(TDY,3,2)
+    TDYFMT = CATENATE(TDYYD,'-',TDYYM,'-',TDYYY)
+ 
+    DC = DSTRCT-CODE
+    PO = PURCH-OFFICER OF MSF220  -
+         WHERE (PO-NO = PO-NO)
+    POFF1 = HRGET (EMPLOYEE-ID -
+                   FROM ('MSSEMP,MSF810') -
+                   KEY  (EMPLOYEE-ID = PO)
+    POFFNM  = FORMATTED-NAME VIA (POFF1)
+	POFFSN = SURNAME VIA (POFF1)
+	POFFFN = FIRST-NAME VIA (POFF1)
+	POFFX  = CATENATE (POFFSN, ',' POFFFN)
+	POFF   = OUT-STRING OF MSSCNV -
+          WHERE (OPTION = 'S', -
+                 INP-STRING = POFFX)
+    SUPP = SUPPLIER-NO VIA (PO)
+    SNAME = SUPPLIER-NAME OF MSF200 WHERE (SUPPLIER-NO = SUPP)
+    PONO = PO-NO 
+    STKPREQ = PREQ-STK-CODE
+    I = PO-ITEM-NO
+    L = '/'
+    STKCDE = STOCK-CODE
+    POIDESC = ITEM-NAME OF MSF100 -
+              WHERE (STOCK-CODE = STKCDE)
+    PC = PRICE-CODE OF MSF170 -
+         WHERE (DSTRCT-CODE = DC, -
+                STOCK-CODE  = STKCDE)
+				
+    MNEM = MNEMONIC OF MSF110A  -
+           WHERE (DSTRCT-CODE = '    ', -
+                  STOCK-CODE = STKCDE, -
+                  PREF-PART-IND >= SPACES) -
+                  SELECTIF (PREF-PART-IND = '97') MAX (3)
+                  
+%*    MNEM = MNEMONIC OF MSS110 -
+%*           WHERE (DSTRCT-CODE = DC, -
+%*                  STOCK-CODE = STKCDE, -
+%*                  SUPPLIER-NO = SUPP, -
+%*                  PRICE-CODE = PC)
+    PARTNO = PART-NO VIA (MNEM)
+
+    PREQSW = CHOOSE ('R' IF (PO-ITEM-TYPE = 'P'), -
+                     'R' IF (PO-ITEM-TYPE = 'S'), -
+                     'R' IF (PO-ITEM-TYPE = 'F'), -
+                     'S')
+                     
+    P = CHOOSE (SPACE IF (PREQSW = 'R'), MNEM)
+    Q = CHOOSE (SPACE IF (PREQSW = 'R'), PARTNO)
+    E1 = PURCH-REQ
+    W = PREQ-ITEM
+     
+    P1 = MNEMONIC OF MSF231 -
+         WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                PREQ-NO = E1, -
+                PREQ-ITEM-NO = W)
+    Q1 = PART-NO VIA (P1)
+    F1 = ITEM-DESC (1) VIA (P1)
+    WH = WHOUSE-ID
+%*  WH = WHOUSE-ID VIA (P1)
+    
+    WI = substr (WH,1,2)
+    X = EXPEDITE-CODE
+    H = EXPEDITE-ACTN
+    CDDATE = GET (DISPLAY-DATE FROM (CURR-DUE-DATE))
+    
+    NARR-H = GET (READ-TEXT FROM ('MSF090') -
+                  CODE ('NT') -
+                  KEY ('7', PONO))
+    NARR-HS = SIZE (NARR-H)
+    NARR-I = GET (READ-TEXT FROM ('MSF090') -
+                  CODE ('NT') -
+                  KEY ('8', PONO, I))
+    NARR-IS = SIZE (NARR-I)
+    PRWH    = catenate (E1,'-',WI)    D-PIC (X(9))
+    PR      = choose (PRWH IF (DSTRCT-CODE = 'GRID', -
+                               PREQSW = 'R'), E1) D-PIC (X(9))
+
+    OWNEREMAIL = TABLE-DESC OF MSF010  -
+                 WHERE (TABLE-TYPE = '+EXP', -
+                        TABLE-CODE = X)  
+
+%**    DEFEMPEMAIL = HRGET (EMPLOYEE-ID FROM ('MSSEMP,MSF810') -
+%**                  KEY (EMPLOYEE-ID = REQ-EMPID))  
+%**    DEFEMAIL   = EMAIL-ADDRESS VIA (DEFEMPEMAIL) 
+    DEFEMAIL = TABLE-DESC OF MSF010 -
+               WHERE (TABLE-TYPE = '+EXP', -
+                      TABLE-CODE = 'XX')
+                      
+    EMAILX = choose (OWNEREMAIL IF (OWNEREMAIL <> SPACES), -
+                     DEFEMAIL)
+                     
+%*  TOX = '<to>irene.gianakis@transgrid.com.au</to>' CONSTANT
+    TOY = CATENATE (T5, EMAILX, T6)
+    TOX  = OUT-STRING OF MSSCNV -
+          WHERE (OPTION = 'P', -
+                 INP-STRING = TOY)
+                 
+    FROM = '<from>ELLIPSE8@transgrid.com.au</from>' CONSTANT
+    
+    SUBJX = CATENATE ('<subject>Expediting Report as at ', TDYFMT,'</subject>')
+    SUBJ  = OUT-STRING OF MSSCNV -
+            WHERE (OPTION = 'P', -
+                 INP-STRING = SUBJX)
+%* END OF TRR22X.rdl 

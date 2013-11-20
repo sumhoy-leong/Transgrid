@@ -1,0 +1,231 @@
+%*** TRR24G.RDL
+%*** Revision History
+%*** 01-Feb-13 a9is6175      MO164 (Version 0004)
+%*** ....................    Updated dues out filtering
+%*** 22-Mar-13 a9nh4814      MO164 (Version 0003)
+%*** ....................    Corrected ROQ literal and spacing
+%*** 25-Feb-13 a9nh4814      MO164 (Version 0002)
+%*** ....................    Corrected dues out filtering
+%*** 04-Jan-13 a9is6175      
+%*** ....................    Dues out filtering,
+%*** ....................    Showing RO for same stock code.
+%*** 24-Oct-12 a9nh4814      MO164 (Version 0001)
+%*** ....................    Reworked TRR24G to use ESR24B as base.
+%*** ....................    Reset version to 0001 for Ellipse 8 migration.
+%*** 12-Sep-01 E Fredeluces  W01080178
+%***                         Removed the %CONTROL statement.
+%*** ....................
+%*** 16-Apr-96 Mincom        Replace 'RC' table access with HRGET macro.
+%*** ....................
+%***
+%*** 30-OCT-98  
+%***          Fix for MIMS 4.3
+%PROGRAM-ID
+       TRR24G
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  Recommended Order Buy Non Action Report.
+      **
+      **  The current run number, passed in as a request parameter,
+      **  should be determined as (MSF000-MSB240-NXT-RUN-9 - 1)
+%VERSION
+       0004
+%MODULE
+       3210
+%FILES
+        MFILE = MSF240
+        LFILE = MSF170
+        LFILE = MSF000
+        LFILE = MSF010
+        LFILE = MSF100
+        AFILE = MSF141B
+        LFILE = MSF140
+        RFILE = TRR24GA
+%ROUTINES
+        MSSDAT
+        MSSSOH
+%SELECTION 
+       WHERE       (DSTRCT-CODE      = %DISTRICT-CODE%, - 
+                    STOCK-CODE      >= SPACES)
+       REJECTIF    (RO-ACTION-TYPE  <> 'B')
+       REJECTIF    (%EMP-ID%        <> SPACES, PURCH-OFFICER <> %EMP-ID%)
+
+%*       NOTE: DEFER-DATE DEFAULTS TO 30 DAYS AFTER CREATION-DATE
+%*       REJECTIF (DEFER-DATE > WX-TODAYS-DATE)
+%ORDER
+       DSTRCT-CODE
+       PURCH-OFFICER
+       RUN-NUMBER
+       STOCK-CODE
+       IREQ-NO VIA (PS)
+%BREAK-FIELDS
+       PURCH-OFFICER
+       STOCK-CODE
+	   ACTIVITY-CTR
+       IREQ-NO VIA (PS)
+%REPORT-TITLE
+       'BUY RECOMMENDED ORDERS NON ACTION REPORT'
+%PAGE HEADING
+{L6                 } {P1       } {POFF                                            }  'Cut Off Date='{NONACT-DATE}
+{L2 }    'RO  Item Name/'                             'UOI/ Available/'                                     'Quantity'         'Run'
+{L3}{L4 }'No  Description'                            'CL/ST DueOut'     'R.O.P.    R.O.Q. Supplier UOP      Required Run Date  No'
+%*** Control Break headings for up to 2 control level(s)
+%BREAK PURCH-OFFICER HEADING ON NEW-PAGE
+%BREAK STOCK-CODE HEADING
+%BREAK ACTIVITY-CTR HEADING
+<IF RUN-B-DATE < NONACT-DATE>
+  <IF %DUE-OUT% <> 'Y' OR DOT <> 0>
+
+BBBBBBBBB CCC {INAME                                 } DDDD EEEEEEEEEEFFFFFFFFFFGGGGGGGGGG HHHHHH   IIII JJJJJJJJJJJJJKKKKKKKKK MMMM
+ NNNN         {IDESC                                 } O P  {DOT     }                    {L5      }RRRRRRRRR
+<SUPPRESS>
+              {IDESC                                 }
+<SUPPRESS>
+              {IDESC                                 }
+<SUPPRESS>
+              {IDESC                                 }
+<REPEAT>
+<SUPPRESS>
+              {IDESC                                 }
+<ENDREPEAT>
+
+  <ENDIF>
+<ENDIF>
+<IF RUN-B-DATE < NONACT-DATE>
+ <IF %DUE-OUT% <> 'Y' OR DOT <> 0>
+  <IF DOT <> 0>
+  {PS1    }
+  {PS2} 'Req'    'Requested' 'Requested'                          'Required' 'Qty'
+  {PS3} 'Item'   'By'        'Name'                               'Date'     'Required'
+ '____________________________________________________________________________________'
+  <ENDIF>
+ <ENDIF>
+<ENDIF>
+%BREAK IREQ-NO VIA (PS) HEADING
+%DETAIL
+<IF RUN-B-DATE < NONACT-DATE>
+  <IF %DUE-OUT% <> 'Y' OR DOT <> 0>
+    <IF DOT <> 0>
+  {PS  } {PSI}    {RBY     }  {RNAME                             } {DREQ  } {QREQ  }
+    <ENDIF>
+  <ENDIF>
+<ENDIF>
+%SUMMARY
+
+'Total Number of Recommended Order Buys Reported ='{TOTB}
+%*%CONTROL 
+%*       TRIM-REPORT
+%REQUEST-PARAMETERS
+       RUN-NO      LIKE RUN-NUMBER  TEXT 'Run Number'
+       EMP-ID      LIKE EMPLOYEE-ID TEXT 'Purchasing Officer/Inventory Controller'
+       NONACT-DATE LIKE RUN-S-DATE  TEXT 'Cut Off Date (Blank = Default)'
+       DUE-OUT     PIC (X)          TEXT 'ONLY REPORT REC ORDERS WITH DUES OUT?'
+%VARIABLES
+       NONACT-DAYS  = CALC (0 - WX-NON-ACTION-DAYS-9)      I-PIC (S9(3))  CONSTANT
+       NONACT-DATE1 = DATE2 OF MSSDAT -
+                      WHERE  (OPTION           = '1',           -
+                              DATE1            = WX-TODAYS-DATE, -
+                              DAYS             = NONACT-DAYS) 
+       NONACT-DATE  = CHOOSE (NONACT-DATE1 IF (%NONACT-DATE% = SPACES), -
+                            %NONACT-DATE%)                 I-PIC (X(8))   FORMAT DATE
+       A1     = EMPLOYEE-ID
+
+       A1X    = HRGET        (EMPLOYEE-ID                       -
+                FROM         ('MSSEMP,MSF810')                  -
+                KEY          (EMPLOYEE-ID      = EMPLOYEE-ID)
+       A      = FORMATTED-NAME         via (A1X)
+
+       P1     = PURCH-OFFICER
+
+       POFF1  = HRGET        (EMPLOYEE-ID                       -
+                FROM         ('MSSEMP,MSF810')                  -
+                KEY          (EMPLOYEE-ID      = P1)
+       POFF   = FORMATTED-NAME         via (POFF1)
+
+       B      = STOCK-CODE
+       C      = ACTIVITY-CTR
+       D      = UNIT-OF-ISSUE OF MSF100 -
+                WHERE        (STOCK-CODE       = STOCK-CODE)
+       INAME  = ITEM-NAME              VIA (D)
+       IDESC  = DESC-LINE              VIA (D)
+       O      = CLASS                  VIA (D)
+       P      = STOCK-TYPE             VIA (D)
+       F      = ROP OF MSF170 -
+                WHERE        (DSTRCT-CODE      = DSTRCT-CODE ,  -
+                              STOCK-CODE       = STOCK-CODE)    PIC (Z(8)9-)
+       G      = REORDER-QTY            VIA (F)                  PIC (Z(8)9-)
+       DO     = DUES-OUT               VIA (F)                  PIC (Z(8)9-)
+       BP     = TOTAL-PICKED           VIA (F)                  PIC (Z(8)9-)
+       RS     = RESERVED               VIA (F)                  PIC (Z(8)9-)
+       DOT    = CALC (DO + BP + RS)
+       E      = DSTRCT-OWN-SOH OF MSSSOH -
+                WHERE (OPTION-SOH        = '1', -
+                       DSTRCT-CODE       = %DISTRICT-CODE%, -
+                       STOCK-CODE        = STOCK-CODE, -
+                       BYPASS-CAT-SEC-SW = 'Y', -
+                       DSTRCT-SOH-REQ-SW = 'Y')
+%*       E      = GET (SOH-AVAIL FROM ('MSF170'))                 PIC -(8)9
+       H      = SUPPLIER-NO
+       I      = UNIT-OF-PURCH
+       CV     = CONV-FACTOR
+       JI     = ROQ
+       JP     = CALC (JI / CV)
+       J      = CHOOSE (JI IF (RO-ACTION-TYPE = 'S'), JP)       PIC (Z(8)9.99-)
+       K      = GET (DISPLAY-DATE FROM (RUN-B-DATE))
+       M      = RUN-NUMBER
+       N1     = DSTRCT-CODE
+       N      = CHOOSE (N1 IF (WX-CENTRAL-PURCH = 'Y' AND       -
+                               WX-MULTIDSTRCT   = 2),           -
+                               SPACES)
+       L6     = 'Purchasing Officer:'
+       L2     = 'Stock'
+       L3     = 'Code'
+       L4     = CHOOSE ('/Dist' IF (WX-CENTRAL-PURCH = 'Y' AND  -
+                                    WX-MULTIDSTRCT = 2),        -
+                                    SPACES)
+       R      = GET (DISPLAY-DATE FROM (PRICE-EXP-DATE))
+       L5     = CHOOSE ('QUOTE Exp:' IF (PRICE-EXP-DATE <> ZEROES AND -
+                                     PRICE-EXP-DATE <> SPACES), SPACES)
+       L1     = 'Inventory Controller'
+       RNOX   = MSB240-NXT-RUN-9 OF MSF000 -
+                WHERE (DSTRCT-CODE             = %DISTRICT-CODE%, -
+                       CONTROL-REC-TYPE        = 'DC',          -
+                       CONTROL-REC-NO          = '0002')        CONSTANT
+       RNO1   = NUMERIC (RNOX)                   I-PIC (9(4))   CONSTANT
+       RUN-NO = CALC (RNO1 - 1)                  I-PIC (9(4))   CONSTANT  
+       RUNNO  = CHOOSE (RUN-NO IF (%RUN-NO% = SPACES), %RUN-NO%) -
+                                                 I-PIC (9(4))   CONSTANT
+       COUNTB = CHOOSE (1 IF (RUN-B-DATE     < NONACT-DATE,     -
+                             (%DUE-OUT%     <> 'Y' OR           -
+                              DOT           <> 0),              -
+                             (PURCH-OFFICER  = %EMP-ID% OR      -
+                              %EMP-ID%       = SPACES)), 0) 
+       TOTB   = TOTAL (COUNTB)
+%* PICKING SLIP DETAILS
+       PS1    = 'Dues Out:'
+       PS2    = 'Req  '
+       PS3    = 'No   '
+       PS     = IREQ-NO FROM MSF141B -
+                WHERE (ISS-DSTRCT-CDE-2        = DSTRCT-CODE,   -
+                       STOCK-CODE              = STOCK-CODE,    -
+                       WHOUSE-ID-2            >= SPACES) -
+                SELECTIF (ITEM-141-STAT = 0) -
+                SELECTIF (ITEM-141-STAT = 1) -
+                SELECTIF (ITEM-141-STAT = 2) -
+                SELECTIF (ITEM-141-STAT = 3) -
+                SELECTIF (ITEM-141-STAT = 4)
+       PSI    = IREQ-ITEM              VIA (PS)
+       QREQ   = QTY-REQ                VIA (PS)
+       DREQ   = REQ-BY-DATE OF MSF140 -
+                WHERE        (DSTRCT-CODE      = DSTRCT-CODE,  -
+                              IREQ-NO          = PS)
+       RBY    = REQUESTED-BY           VIA (DREQ)
+       RNM    = HRGET        (EMPLOYEE-ID                       -
+                FROM         ('MSSEMP,MSF810')                  -
+                KEY          (EMPLOYEE-ID      = RBY)
+       RNAME  = FORMATTED-NAME         VIA (RNM) 
+       AUTH   = AUTHSD-BY              VIA (DREQ) 
+%***
+%***                         END OF PROGRAM
+%***

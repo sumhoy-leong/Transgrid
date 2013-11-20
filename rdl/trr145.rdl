@@ -1,0 +1,229 @@
+%*** $Id: trr145.rdl,v3C 2008/05/16 13:35:00 elldev Exp $
+%*** TRR145.RDL
+%*** Revision History
+%*** 08-Aug-12 N Perry  
+%*** ......................  Replaced EST143 with TRT143      
+%*** ......................  Replaced ESR145 with TRR145      
+%*** ......................  Replace PIC Statements with D-PIC.    
+%*** ......................  Convert to Ellipse 8 format.
+%*** 13-Jun-08 Geoff Presser 1854344               (Version 0004)
+%*** ..................... Include a selection paramter of 
+%*** ..................... Authorising Officer.
+%*** ..................... Because of the above change we had to
+%*** ..................... write this additional program to
+%*** ..................... output the report. The selection is
+%*** ..................... in ESR143 and it produces a file
+%PROGRAM-ID
+       TRR145
+%AUTHOR
+       Geoff Presser
+%NARRATIVE
+      **  Stock Issue Transactions by Responsibility Report.
+      **
+%VERSION
+       0004
+%MODULE
+       3140
+%FILES
+        IFILE = TRT143
+        LFILE = MSF010
+        RFILE = TRR145A
+%INPUT-FILE
+        I-DST      PIC (X(4))
+        I-AUTH     PIC (X(10))
+        I-B1       PIC (X(24))
+        I-REQBY    PIC (X(10))
+        I-J        PIC (X(8))
+        I-STK      PIC (X(9))
+        I-K900     PIC (X(28))
+        I-RDESC    PIC (X(50))
+        I-RBY      PIC (X(50))
+        I-DELIV    PIC (X(60))
+        I-CKTEXT   PIC (X(60))
+        I-CKTXT2   PIC (X(60))
+        I-CKTXT3   PIC (X(60))
+        I-CKTXT4   PIC (X(60))
+        I-CKTXT5   PIC (X(60))
+        I-C        PIC (X(24))
+        I-D        PIC (X(4))
+        I-E        PIC (X(6))
+        I-Z        PIC (X(1))
+        I-F        PIC (X(4))
+        I-STK1     PIC (X(8))
+        I-H        PIC (X(1))
+        I-I1       PIC (X(4))
+        I-J1       PIC (X(8))
+        I-M        PIC (X(2))
+        I-N        PIC (X(1))
+        I-O        PIC (X(10))
+        I-Q        PIC (X(17))
+        I-K        PIC (X(3))
+        I-P        PIC (X(10))
+        I-R        PIC (X(10))
+        I-S        PIC (S9(13)V99)
+        I-L4       PIC (X(7))
+        I-U        PIC (X(8))
+        I-INAME    PIC (X(40))
+        I-T1       PIC (X(17))
+        I-L5       PIC (X(13))
+        I-X        PIC (X(12))
+        I-IDESC1   PIC (X(30))
+        I-IDESC2   PIC (X(30))
+        I-IDESC3   PIC (X(30))
+        I-IDESC4   PIC (X(30))
+        I-L6       PIC (X(10))
+        I-V        PIC (X(1))
+        I-W        PIC (X(7))
+%ORDER
+       I-DST
+       I-AUTH
+       I-B1
+       I-REQBY
+       DESCENDING I-J
+       ASCENDING I-STK
+       I-K900
+%CONTROL-BREAKS
+       I-DST
+       I-AUTH
+       I-B1
+       I-REQBY
+       I-K900
+%REPORT-TITLE
+       'STOCK ISSUE TRANSACTIONS BY RESPONSIBILITY REPORT'
+%PAGE HEADING
+                                  'RESPONSIBILITY CODE:'{RDESC                                           }
+
+'                             Requisition  StockCode/            Tran-           In-    Quantity    Qty Issue Price/               '
+'Transaction-Id          Whse    No./Item  Name/Desc   CL  UOI   Date/Type  Type ab  Reqd/Issued    SOH After           Trans Value'
+%BREAK I-AUTH HEADING ON NEW-PAGE 
+%BREAK I-B1 HEADING
+ {L3         }  {B1                    }
+ {UNDERLINE  }
+%BREAK I-REQBY HEADING 
+%DETAIL
+'Req by:'{RBY                                            }'Deliv Instr:'{DELIV                                                     }
+                                                          'PSlip Instr:'{CKTEXT                                                    }
+<IF CKTXT2 > SPACES>
+                                                                        {CKTXT2                                                    }
+<ENDIF>
+<IF CKTXT3 > SPACES>
+                                                                        {CKTXT3                                                    }
+<ENDIF>
+<IF CKTXT4 > SPACES>
+                                                                        {CKTXT4                                                    }
+<ENDIF>
+<IF CKTXT5 > SPACES>
+                                                                        {CKTXT5                                                    }
+<ENDIF>
+ CCCCCCCCCCCCCCCCCCCCCCCC DDDD EEEEEEZFFFF  {STK    }  H   {I1}  JJJJJJJJJ   MM  N    OOOOOOOOOO  QQQQQQQQQQQQQQQQQ
+                                                                 KKK                  PPPPPPPPPP   RRRRRRRRRR      SSSSSSSSSSSSSSSSS
+ {L4   }       UUUUUUUU        {INAME                               }                 {T1             }
+ {L5         } XXXXXXXXXXXX    {IDESC1                              }              {L6      } V WWWWWWW
+<IF IDESC2 > SPACES>
+                               {IDESC2                              }
+<ENDIF>
+<IF IDESC3 > SPACES>
+                               {IDESC3                              }
+<ENDIF>
+<IF IDESC4 > SPACES>
+                               {IDESC4                              }
+<ENDIF>
+
+%BREAK I-B1 FOOTING
+                                                                                                                   {UNDERLINE      }
+ {L7               }                                                                                               {TOT            }
+%BREAK I-AUTH FOOTING
+                                                                                                                   {UNDERLINE      }
+ {L8                      }                                                                                        {TOT            }
+                                                      'AUTHORISED BY   ........................................'
+%REPORT-SUMMARY ON NEW-PAGE SUPPRESS-PAGE-HEADING
+
+                                                                                                                   {SGL            }
+ {L9         }                                                                                                     {TOT            }
+                                                                                                                   {DBL            }
+
+
+'Transaction types selected for this report'
+ {UNDERLINE                               }
+
+'ISS' {ISS                                             }
+'ISI' {ISI                                             }
+'ISC' {ISC                                             }
+'STW' {STW                                             }
+'CTW' {CTW                                             }
+
+%REQUEST-PARAMETERS
+       TRAN-FROM D-PIC (X(24))  TEXT 'Transaction-Id from:'
+       TRAN-TO D-PIC (X(24))    TEXT 'Transaction-Id to  :'
+       AUTH-OFF D-PIC (X(10))   TEXT 'Authorising Officer:'
+%VARIABLES
+       DBL = '=================' CONSTANT
+       SGL = '-----------------' CONSTANT
+       ISC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'ISC') CONSTANT 
+       ISI = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'ISI') CONSTANT 
+       ISS = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'ISS') CONSTANT 
+       STW = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'STW') CONSTANT 
+       CTW = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TR', -
+                                         TABLE-CODE = 'CTW') CONSTANT 
+       L1 = '         Transaction-'                          CONSTANT
+       L2 = 'Requested'                                      CONSTANT
+       L3 = 'Account Code:'                                  CONSTANT
+       L7 = 'Account Code Total:'                            CONSTANT
+       L8 = 'Responsible Officer Total:'                     CONSTANT
+       L9 = 'Report Total:'                                  CONSTANT
+%*
+        DST    = I-DST
+        AUTH   = I-AUTH
+        B1     = I-B1
+        REQBY  = I-REQBY
+        J      = I-J
+        STK    = I-STK
+        K900   = I-K900
+        RDESC  = I-RDESC
+        RBY    = I-RBY
+        DELIV  = I-DELIV
+        CKTEXT = I-CKTEXT
+        CKTXT2 = I-CKTXT2
+        CKTXT3 = I-CKTXT3
+        CKTXT4 = I-CKTXT4
+        CKTXT5 = I-CKTXT5
+        C      = I-C
+        D      = I-D
+        E      = I-E
+        Z      = I-Z
+        F      = I-F
+        STK1   = I-STK1
+        H      = I-H
+        I1     = I-I1     
+        J1     = I-J1
+        M      = I-M
+        N      = I-N      
+        O      = I-O      
+        Q      = I-Q
+        K      = I-K
+        P      = I-P
+        R      = I-R
+        S      = I-S       D-PIC (Z(12)9.99-)
+        L4     = I-L4
+        U      = I-U
+        INAME  = I-INAME
+        T1     = I-T1
+        L5     = I-L5
+        X      = I-X
+        IDESC1 = I-IDESC1
+        IDESC2 = I-IDESC2
+        IDESC3 = I-IDESC3
+        IDESC4 = I-IDESC4
+        L6     = I-L6
+        V      = I-V
+        W      = I-W
+%*
+        TOT    = total (S)      
+
+%*
+%*                    *** End Of Report
+%*

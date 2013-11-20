@@ -1,0 +1,115 @@
+%*** TRR26J.RDL
+%*** Revision History ***
+%***
+%*** 17-Apr-13 a9mm4951    M0164 (Version 0002)
+%*** ..................    Replace 9ZZZZZ with ZZZZZZ to be inline
+%*** ..................    with TRR26I
+%*** 11-Sep-12 a9jw6280    MO164 (Version 0001)
+%*** ..................    Reset version number to 0001 for E8 upgrade.
+%*** ..................    Convert from ESR27V.
+%*** 07-Feb-07 GPresser    1363645      (Version 004)
+%*** ....................  Allow for GRID's P/O to Range from 6^^^^^ to 
+%*** ....................  9ZZZZZ
+%*** 10-Sep-01 DDiolaso    W01090317
+%*** ....................  Inclusion of dstrcts with zero total invoice values
+%*** ....................  in the report
+%*** 30-Aug-01 DDiolaso    W01040658
+%*** ..................... Program modified to change files accesses in      
+%*** ..................... order to speed up the execution time.
+%*** ..................... Details of modification:
+%*** .....................   a)  Divided the process into 2.         
+%*** .....................       1) TRR26J - Extract program
+%*** .....................       2) TRR26K - Report Generation program
+%*** .....................
+%PROGRAM-ID
+        TRR26J
+%NARRATIVE
+        **  For the selected Orders invoice headers and
+        **  items are reported filtered by loaded OR approved date.
+%VERSION
+        0002
+%MODULE
+        3260
+%FILES
+        MFILE = MSF000
+        OFILE = TRO26JA
+%ROUTINES
+        MSSDAT
+        MSS232
+%SELECTION
+        WHERE    (DSTRCT-CODE       = %DISTRICT-CODE%, -
+                  CONTROL-REC-TYPE  = 'DC',            -
+                  CONTROL-REC-NO   >= '0012',          - 
+                  CONTROL-REC-NO   <= '0012')  
+%OUTPUT-FILE
+        A
+%CONTROL
+        COPY-REQUEST  = TRR26K
+        RECORD-LENGTH = 85
+%*
+%DETAIL
+%*
+{DUM}{BLANK                       }{VAL1       }P{DATE1 }{DATE2 }{PONO1 }{PONO2 }{DC}
+%*
+%*<ENDIF>
+%CONTROL
+%REQUEST-PARAMETERS
+       ORDER1        PIC (X(6))   TEXT 'From Order No                         :'
+       ORDER2        PIC (X(6))   TEXT 'To   Order No                         :'
+       DATE1         PIC (9(8))   TEXT 'From Date                             :'
+       DATE2         PIC (9(8))   TEXT 'To   Date                             :'
+       CYCLE-IND     PIC (X)      TEXT 'Report Cycle - (D)aily or (M)onthly   :'
+       LOAD-IND      PIC (X)      TEXT 'Report (L)oaded or (A)pproved Claims  :'
+       ACCOUNT-IND   PIC (X)      TEXT 'Report account code lines Y/N ?       :'
+       EXPREORDER    PIC (X)      TEXT 'Exclude predefined orders             :'
+       NONORDER      PIC (X)      TEXT 'Report on Non-Order invoices only Y/N :'
+%VARIABLES
+       DUM             = 'ZZZZ' CONSTANT
+       BLANK           = ' '    CONSTANT
+       DC              = %DISTRICT-CODE%  CONSTANT
+
+       ORD1            = %ORDER1%       CONSTANT
+       ORD2            = %ORDER2%       CONSTANT
+       NONORDER        = %NONORDER%     CONSTANT
+       EXPREORDER      = %EXPREORDER%   CONSTANT
+
+       PREFIX          = PURCH-ORDER-PREF
+
+%* IF ORDER NO FIELDS ARE BLANK SET TO DISTRICT SPECIFIC
+       ORDER2DEF       = 'ZZZZZZ'
+       ORDER1          = CHOOSE (ORD1 IF (ORD1 <> SPACES), SPACES) 
+       ORDER2          = CHOOSE (ORD2 IF (ORD2 <> SPACES), ORDER2DEF) 
+       
+       PONO1           = CHOOSE (ORD1 IF (ORD1 <> SPACES), SPACES)
+       PONO2           = CHOOSE (ORD2 IF (ORD2 <> SPACES), SPACES)
+
+       P               = ' ' CONSTANT        
+
+       TODAY           = DATE ()        CONSTANT FORMAT (DATE)
+
+       YESTERDAY       = DATE2 OF MSSDAT -
+                         WHERE (OPTION = '1', -
+                                DATE1  = TODAY, -
+                                DAYS   = -1) CONSTANT FORMAT (DATE)
+       CP1             = WX-STORES-CP   CONSTANT
+
+       LP              = PERIOD-YRMN OF MSSDAT -
+                         WHERE (OPTION      = 'J', -
+                                PERIOD-YRMN = CP1, -
+                                DAYS        = -1) CONSTANT
+
+       ST-DATE         = STARTING-DATE-1-9  VIA (LP) CONSTANT FORMAT (DATE)
+       END-DATE        = ENDING-DATE-1-9    VIA (LP) CONSTANT FORMAT (DATE)
+       ORDTYPE         = SUBSTR (ORD1,2,1)
+
+       DATE1           = CHOOSE (%DATE1%   IF (%DATE1% <> SPACES), -
+                                 YESTERDAY IF (%CYCLE-IND% = 'D'), ST-DATE) I-PIC (9(8)) -
+                         CONSTANT  FORMAT (DATE)
+       DATE2           = CHOOSE (%DATE2% IF (%DATE2% <> SPACES), -
+                                 DATE1   IF (%CYCLE-IND% = 'D'), END-DATE) I-PIC (9(8)) -
+                         CONSTANT FORMAT (DATE)
+%*
+       VAL1            = 0 D-PIC (S9(11)V99)
+
+%*
+%*END TRR26J

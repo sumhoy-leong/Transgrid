@@ -1,0 +1,308 @@
+%*** TRR26T.RDL
+%***
+%*** Revision History ***
+%*** 18-Apr-13  a9mm4951   MO164 (Version 0002)
+%*** ....................  Remove Suppress on I-NO
+%*** 30-Jul-12  a9jw6280   MO164 (Version 0001)
+%*** ....................  Changed PIC into either D-PIC or I-PIC.
+%*** ....................  Reset version number to 0001 for E8 upgrade.
+%*** 04-Nov-98 Brandon    Fix for MIMS 4.3
+%*** 14-Jul-98 EFredeluces   Fix the User not setup in District error
+%*** ....................    The program was changed to pick-up the
+%*** ....................    District Code from the parameter.
+%*** 16-Apr-96 Mincom        Replace 'RC' table access with HRGET macro.
+%*** ....................
+%*** 19-Apr-94 Mary_W     Vers 4. Amend errors due to upgrade to 3.010k.
+%*** .................... Not printing specific district when requested.
+%*** 07-JUN-93 David_G    Reject invoices with payment status > '30'.
+%*** .................... Version 003B.
+%*** 17-MAY-93 David_G    Add approval qty, retention flag, discount values, uop
+%*** .................... Version 003A.
+%*** 03-MAY-93 David_G    Use amendment value from msf261 for value.
+%*** .................... Version 002A.
+%*** 03-APR-93 David_G    Initial coding.
+%***
+%PROGRAM-ID
+       TRR26T
+%AUTHOR
+       David Gatward
+%NARRATIVE
+       **  Invoices with an impending discount (in the next nom.days eg.14)
+       **  for sites and head office.
+       **  Separate Reports : 'A'= Head Office (goods & services-all sites)
+       **                     'B'= finance printer (services for each site)
+       **                     'C'= stores  printer (goods    for each site)
+       **  Site reports separated into goods and services.
+       **  Site reports to include status 05 (services) & 18 (goods) only.
+       **  H/O  reports to include status 05,06,07,09,18,19,30 only.
+%VERSION
+       0002
+%MODULE
+       3260
+%FILES
+       MFILE = MSF000
+       LFILE = MSF000
+       LFILE = MSF010
+       LFILE = MSF100
+       LFILE = MSF200
+       LFILE = MSF221
+       LFILE = MSF230
+       LFILE = MSF231
+       AFILE = MSF260
+       LFILE = MSF261
+       LFILE = MSF810
+       AFILE = MSF26A
+       RFILE = TRR26TA
+%ROUTINES
+       MSSDAT
+%SELECTION
+<IF %DISTRICT-CODE% = SPACES>
+       WHERE    (DSTRCT-CODE       = SPACES, -
+                 CONTROL-REC-TYPE  = 'AD', -
+                 CONTROL-REC-NO   >= SPACES)
+       SELECTIF (DSTRCT-STATUS     = 'A')
+<ELSE>
+       WHERE    (DSTRCT-CODE       = SPACES, -
+                 CONTROL-REC-TYPE  = 'AD', -
+                 CONTROL-REC-NO   >= %DISTRICT-CODE%, -
+                 CONTROL-REC-NO   <= %DISTRICT-CODE%)
+       SELECTIF (DSTRCT-STATUS     = 'A')
+<ENDIF>
+%ORDER   
+       PRINX
+       CONTROL-REC-NO 
+       PMT-STATUS     VIA (INVDTE)
+       SUPPLIER-NO    VIA (INVDTE)
+%CONTROL-BREAKS
+       PRINX
+       CONTROL-REC-NO 
+       PMT-STATUS     VIA (INVDTE)
+       SUPPLIER-NO    VIA (INVDTE)
+%REPORT
+       A
+%REPORT-TITLE
+       'IMPENDING SETTLEMENT DISCOUNT REPORT - HEAD OFFICE'
+%PAGE HEADING
+<IF PRINT = 'Y'>
+                                  'Impending Settlement Discounts Report - Goods & Services' 
+                                        'Settlement Discount Date due within'{DAYS}'days'    
+'<--------------------INVOICE--------------------------><----------------------------ORDER---------------------------------------->'
+'Inv No              Itm  Inv Dte  Sett/Disc  $ Value/ O/No   Itm Description/                   Apr Value/ Disc1 Val/ Disc 1/  Ret'
+      'Stat     Due Dte  Due Dates      Qty         Authorised Officer/Acct       Qty Recd UOP   Apprvl Qty Disc2 Val  Disc 2   Y/N'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+%BREAK CONTROL-REC-NO HEADING ON NEW-PAGE
+%DETAIL TEST-PAGE (2)
+<IF PRINT = 'Y'>
+ <IF INVTYPE = '1'>
+{I-NO              } {I} {INVDTE} {DD1   }{VAL       } {C   } {D} {INAME                       }{VA        }{DVAL1  }{D1  }KHHH {RF}
+       PP      {DU1   } {DD2   } {QI      }         {DA      }{AUTHDESC        }{RQ      } {UP} {AQ        }{DVAL2  }{D2  } JJJ
+ <ENDIF>
+ <IF INVTYPE = '2'>
+{I-NO              } {I} {INVDTE} {DD1   }{VAL       } {C   } {D} {INAME                       }{VA        }{DVAL1  }{D1  }KHHH {RF}
+       PP      {DU1   } {DD2   } {QI      }         {DA      }{AUTHDESC        }{RQ      } {UP} {AQ        }{DVAL2  }{D2  } JJJ
+ <ENDIF>
+<ENDIF>
+%BREAK SUPPLIER-NO VIA (INVDTE) FOOTING
+<IF ALLTOT > 0>
+'Total Invoice items reported for Supplier :'{SN  } {SNAME                         }'='{ALLTOT }
+{UNDERLINE                                                                                     }
+
+<ENDIF>
+%SUMMARY
+
+'Total Number of Invoice items reported = '   {ALLTOT }
+
+                                               '<<<<<<<<<<< END OF REPORT >>>>>>>>>'
+
+%REQUEST-PARAMETERS
+       DAYS      PIC (999)  TEXT 'Nominated days for discounts due'
+       OVRPRINTF PIC (X(2)) TEXT 'Overide finance printer '
+       OVRPRINTS PIC (X(2)) TEXT 'Overide stores  printer '
+%VARIABLES
+TODAY      = DATE () CONSTANT FORMAT (DATE)
+DAYS       = %DAYS% CONSTANT
+K          = '%' CONSTANT
+L          = 'Dys' CONSTANT
+
+%* Note: only report discounts due within nominated (eg.14) days :
+DTE1       = DATE2 OF MSSDAT -
+             WHERE (OPTION = '1', -
+                    DATE1  = TODAY, -
+                    DAYS   = DAYS) -
+             CONSTANT FORMAT (DATE)
+DTE2       = CALC (99999999 - DTE1) I-PIC (9(8)) CONSTANT
+
+%* MSF260 Invoice header details
+INVDTE     = INV-DATE FROM MSF260 -
+             WHERE    (DSTRCT-CODE     = CONTROL-REC-NO, -
+                       SUPPLIER-NO    >= SPACES) -
+             REJECTIF (REVSD-DUE-DATE  < DTE2) -
+             REJECTIF (PMT-STATUS      > '30') -
+             STOPIF   (APPR-STATUS     > '35') -
+             FORMAT (DATE)
+HDR-ACCT   = ACCOUNTANT     VIA (INVDTE)
+SN         = SUPPLIER-NO    VIA (INVDTE)
+ININV      = INV-NO         VIA (INVDTE)
+DIST       = DSTRCT-CODE    VIA (INVDTE)
+EXTINV     = EXT-INV-NO     VIA (INVDTE)
+SDO        = SD-ON-ORDER    VIA (INVDTE)
+RDD1       = REVSD-DUE-DATE VIA (INVDTE)
+
+%* msf260-sd-on-order flag is not set till payment so check msf221 not msf260
+DST        = DSTRCT-CODE FROM MSF26A -
+             WHERE    (DSTRCT-CODE     = DIST, -
+                       SUPPLIER-NO     = SN, -
+                       INV-NO          = ININV, -
+                       INV-ITEM-NO    >= SPACES) -
+             REJECTIF (ITM-PMT-STATUS  > '30')
+DSTNAME    = get (DISTRICT-NAME FROM ('MSS002') -
+                  DISTRICT (DST)
+I-NO       = CHOOSE (EXTINV IF (EXTINV <> SPACES), ININV)
+I          = INV-ITEM-NO     VIA (DST)
+INVTYPE    = INV-ITEM-TYPE   VIA (DST)
+RDD        = CHOOSE (RDD1 IF (RDD1 > 0),0) I-PIC (9(9))
+L-INV-TYPE = CHOOSE ('GOODS'         IF (INVTYPE = '1'), -
+                     'SERVICE ORDER' IF (INVTYPE = '2'), -
+                     'FIELD RELEASE' IF (INVTYPE = '3'), -
+                     'NON ORDER'     IF (INVTYPE = '4'), -
+                     'PART PAYMENT'  IF (INVTYPE = '5'), -
+                     'CONTRACT'      IF (INVTYPE = '6'), -
+                     'UNKNOWN')
+LD         = LOADED-DATE     VIA (DST)  FORMAT (DATE) 
+AD         = APPROVED-DATE   VIA (DST)  FORMAT (DATE)
+DU         = CALC (99999999 - RDD) I-PIC (9(9))
+DUD        = SUBSTR (DU,8,2)
+DUM        = SUBSTR (DU,6,2)
+DUY        = SUBSTR (DU,4,2)
+DU1        = CATENATE (DUD,'/',DUM,'/',DUY)
+P          = ITM-PMT-STATUS  VIA (DST)
+MSB265     = MSB265-RUN-NO   VIA (DST)
+ON         = PO-NO           VIA (DST)        
+IN         = PO-ITEM-NO      VIA (DST)   
+IAMDNO     = LAST-AMEND-NO-9 VIA (DST)
+OQ         = QTY-INVOICED    VIA (DST)  
+IV         = LOC-VAL-INVD    VIA (DST)  
+FV         = FOR-VAL-APPR    VIA (DST)  
+INAME1     = INV-ITEM-DESC   VIA (DST)
+
+%* MSF261 Invoice amendment details
+AV         = LOC-AMD-VAL OF MSF261 -
+             WHERE (DSTRCT-CODE = DST, -
+                    SUPPLIER-NO = SN, -
+                    INV-NO      = ININV, -
+                    INV-ITEM-NO = I, -
+                   AMENDMENT-NO = IAMDNO)
+AQTY       = AMEND-QTY VIA (AV)
+VAL        = choose (AV IF (AV <> 0), IV) I-PIC (Z(7)9.99-)
+QI         = choose (AQTY IF (AQTY <> 0), OQ) FORMAT (BWZ)
+
+%* MSF221 
+C         = PO-NO OF MSF221 -
+            WHERE (PO-NO      = ON, -
+                   PO-ITEM-NO = IN) SUPPRESS
+D         = PO-ITEM-NO    VIA (C)
+CF        = CONV-FACTOR   VIA (C)
+UP        = UNIT-OF-PURCH VIA (C)
+AQ        = APPR-QTY-UOP  VIA (C) FORMAT (BWZ)
+VA        = VAL-APPR      VIA (C) FORMAT (BWZ)
+RQ1       = QTY-RCV-DIR-I VIA (C) 
+%* Qty rec in UOP
+RQ        = CALC (RQ1 / CF) FORMAT (BWZ)
+E         = STOCK-CODE    VIA (C)
+F         = PURCH-REQ     VIA (C)
+G         = PREQ-ITEM     VIA (C)
+D1        = SETTLE-PC-A   VIA (C) D-PIC (ZZ9.99)
+H         = SETTLE-DAYS-A VIA (C) D-PIC (ZZ9)
+D2        = SETTLE-PC-B   VIA (C) FORMAT (BWZ)
+J         = SETTLE-DAYS-B VIA (C) D-PIC (ZZZ)
+PC        = PRICE-CODE    VIA (C)
+%* value of discounts
+DVAL1     = CALC (D1 / 100 * VAL) FORMAT (BWZ)
+DVAL2     = CALC (D2 / 100 * VAL) FORMAT (BWZ)
+%* discount due dates
+DD1A      = DATE2 OF MSSDAT -
+            WHERE (OPTION = '1', -
+                   DATE1  = INVDTE, -
+                   DAYS   = H) -
+            FORMAT (DATE)
+DD2A      = DATE2 OF MSSDAT -
+            WHERE (OPTION = '1', -
+                   DATE1  = INVDTE, -
+                   DAYS   = J) -
+            FORMAT (DATE)
+DD1       = CHOOSE (DD1A IF (D1 <> 0), SPACES) FORMAT DATE
+DD2       = CHOOSE (DD2A IF (D2 <> 0), SPACES) FORMAT (DATE)
+
+%* MSF200
+SNAME     = SUPPLIER-NAME OF MSF200 -
+            WHERE (SUPPLIER-NO = SN)
+
+%* MSF100
+INAME100  = ITEM-NAME OF MSF100 -
+            WHERE (STOCK-CODE = E)
+DESC1     = DESC-LINE-1 VIA (INAME100)
+DESC2     = DESC-LINE-2 VIA (INAME100)
+DESC3     = DESC-LINE-3 VIA (INAME100)
+DESC4     = DESC-LINE-4 VIA (INAME100)
+
+%* MSF230
+DA1       = AUTHSD-BY OF MSF230 -
+            WHERE (DSTRCT-CODE = DST, -
+                   PREQ-NO     = F)
+DA        = CHOOSE (DA1 IF (DA1 <> SPACES), HDR-ACCT)
+%* MSF231
+DCPR1     = ITEM-DESC1 OF MSF231 -
+            WHERE (DSTRCT-CODE  = DST, -
+                   PREQ-NO      = F, -
+                   PREQ-ITEM-NO = G)
+DCPR2      = ITEM-DESC2 VIA (DCPR1)
+DCPR3      = ITEM-DESC3 VIA (DCPR1)
+DCPR4      = ITEM-DESC4 VIA (DCPR1)
+
+INAME = CHOOSE (INAME1 IF (INAME1 <> SPACES), DCPR1)
+
+%* MSF010
+AUTHDESC1  = TABLE-DESC OF MSF010 -
+             WHERE (TABLE-TYPE = 'RC', -
+                    TABLE-CODE = DA)
+LNAME      = SURNAME OF MSF810 -
+             WHERE (EMPLOYEE-ID = DA)
+FNAME      = FIRST-INITIAL VIA (LNAME)
+AUTHDESC   = catenate (FNAME,' ',LNAME)
+%* retention flag (price code assoc value 2 is retention flag)
+RF         = ASSOC-CHAR-2 OF MSF010 -
+             WHERE (TABLE-TYPE = 'PC', -
+                    TABLE-CODE = PC)
+
+%* Dynamic Printer
+FINANCE    = CATENATE (CONTROL-REC-NO,'FINANCE')
+STORE      = CATENATE (CONTROL-REC-NO,'STORE')
+PRINFIN    = PRINTER OF MSF010 -
+             WHERE (TABLE-TYPE = 'PR', -
+                    TABLE-CODE = FINANCE)
+PRINSTR    = PRINTER OF MSF010 -
+             WHERE (TABLE-TYPE = 'PR', -
+                    TABLE-CODE = STORE)
+PRIN       = CHOOSE (%OVRPRINTS% IF (%OVRPRINTS% <> SPACES, P = '05'), -
+                     %OVRPRINTF% IF (%OVRPRINTF% <> SPACES, P <> '05'), -
+                     PRINFIN     IF (P = '05'), PRINSTR)
+PRINX      = PRINTER (PRIN)
+%* Totals
+%* goods sett disc totals
+GCNT       = CHOOSE (1 IF (P = '18', D1 > 0, DD1 <= DTE1), -
+                     1 IF (P = '18', D2 > 0, DD2 <= DTE1), 0)
+GTOT       = TOTAL (GCNT)
+%* services sd totals
+SCNT       = CHOOSE (1 IF (P = '05', D1 > 0, DD1 <= DTE1), -
+                     1 IF (P = '05', D2 > 0, DD2 <= DTE1), 0)
+STOT       = TOTAL (SCNT)
+%* all sd invoices totals
+ALLCNT     = CHOOSE (1 IF (D1 > 0, DD1 <= DTE1), -
+                     1 IF (D2 > 0, DD2 <= DTE1), 0)
+ALLTOT     = TOTAL (ALLCNT)
+
+%* MW Add print statement
+PRINT     = CHOOSE ('Y' IF (D1 > 0, DD1 <= DTE1), -
+                    'Y' IF (D2 > 0, DD2 <= DTE1), 'N')
+

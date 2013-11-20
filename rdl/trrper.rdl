@@ -1,0 +1,192 @@
+%*  Revision History:
+%*** 05-Sep-12 N Perry
+%*** Reset version number to 0001 for E8 upgrade
+%*** 27-Jul-12 N Perry       
+%*** ......................  Convert to Ellipse 8 format.
+%* 11-Nov-2005  E Fredeluces  P05110870
+%*              Fix compilation errors in Ellipse 5.2.3.7.
+%* 02-Dec-2004  A.Iesho  - WCHG078471
+%*              Use Payroll location from MSF820 and its description
+%*              Rather than Workers Comp Location and its description
+%* 17-Sep-2003  Elizabeth Fredeluces 
+%*              The extracted file contains employee information 
+%*              which will be used to update Perception system on
+%*              the server.
+%PROGRAM-ID
+    TRRPER
+%AUTHOR
+    Elizabeth Fredeluces
+%NARRATIVE
+    ****************************************************************
+    *                                                              *  
+    *   This RDL will create a data file containing the Employee   *
+    *   Details for Perception system.                             *
+    *                                                              *
+    ****************************************************************
+%VERSION
+    0001
+%FILES
+    MFILE = MSF820
+    LFILE = MSF010
+    LFILE = MSF760
+    LFILE = MSF810
+    LFILE = MSF829
+    LFILE = MSF870
+    LFILE = MSF871
+    LFILE = MSF875
+    LFILE = MSF878A
+    OFILE = TRTPERA
+%SELECTION
+    WHERE    (EMPLOYEE-ID >= SPACES)
+%BREAK-FIELDS
+        DUM
+%OUTPUT-FILE
+    A
+%ROUTINES
+    MSSCNV
+%CONTROL
+    RECORD-LENGTH = 513 
+%BREAK DUM HEADER
+{HDG                                                                       -
+                                                                           -
+                                                                           -
+                                                                           -
+                                                                           -
+                                                                           -
+        }
+%DETAIL
+<IF S = 'A', POSFLG = 'Y'>
+{EID }C{PID }C{LASNAME           }C{FNAME     }C{SNAME     }C{POS     }C-
+{POSTITLE                          }C{SUP     }C-
+{SUPTITLE                          }C{PRIM              }C-
+{PRC1NAME               }C{PRC2NAME               }C{PRC3NAME               }C-
+{PRC4NAME               }C-
+{LOCDESC                               }C-
+{PAYD                                  }C-
+GGGC{SCATDESC                              }C-
+{FAXNO         }C{WPHONE        }C{EMAIL                                 }C-
+{PRC                      }
+<ENDIF>
+%VARIABLES  
+ C        = ',' CONSTANT
+ EMP      = EMPLOYEE-ID
+ EID      = SUBSTR (EMP,6,5)
+ PID      = CATENATE ('P',EID)
+ P        = RPT-PHY-LOC 
+ DUMMY    = 'Y' CONSTANT
+ DUM      = CHOOSE ('Y' IF (EMP = EMP), DUMMY)  
+ HDG1     = 'Svc-No,Emp-Id,Surname,FName,SName,Emp-Pos,'           CONSTANT
+ HDG2     = 'Emp-Pos-Title,Sup-Pos,Sup-Pos-Title,Prim-Rptg-Code,'  CONSTANT
+ HDG3     = 'PRC01-Name,PRC02-Name,PRC03-Name,PRC04-Name,'         CONSTANT
+ HDG4     = 'Physical-Loc,Payroll-Loc,Staff-Categ,Categ-Desc,'     CONSTANT
+ HDG5     = 'Fax-No,Work-Phone,Email,Work-Group'                   CONSTANT
+ HDG      = CATENATE (HDG1,HDG2,HDG3,HDG4,HDG5)                    CONSTANT
+%* 
+%*  MSF760 - Employee Personnel Details 
+%* 
+  MSF760  = EMP-STATUS OF MSF760 -
+            WHERE (EMPLOYEE-ID = EMP)
+  S       = EMP-STATUS  VIA (MSF760)
+  G       = STAFF-CATEG VIA (MSF760)
+  TDATE   = TERM-DATE   VIA (MSF760)
+  RET     = CHOOSE ('        ' IF (TDATE='00000000'), TDATE)
+%*
+%*  MSF010 - Table File
+%*
+  SCATDESC= TABLE-DESC OF MSF010 -
+            WHERE (TABLE-TYPE = 'STFC', -
+                   TABLE-CODE = G)
+%*                                     
+%*  MSF810 - Employee Core Detail    
+%*                                    
+ MSF810   = SURNAME OF MSF810-
+            WHERE (EMPLOYEE-ID = EMP)
+ LASNAME  = SURNAME       VIA (MSF810)
+ FNAME    = FIRST-NAME    VIA (MSF810) 
+ SNAME    = SECOND-NAME   VIA (MSF810)
+ T        = NAME-TITLE    VIA (MSF810)
+ WPHONE   = WORK-PHONE-NO VIA (MSF810)
+ FAXNO    = FAX-NO        VIA (MSF810)
+ EMAIL    = EMAIL-ADDRESS VIA (MSF810) 
+%*
+%*  MSF878 - Employee Position File
+%*
+ POS      = POSITION-ID OF MSF878A              -  
+            WHERE    (EMPLOYEE-ID-1   = EMP,    -
+                      PRIMARY-POS-1   = '0',    -
+                      INV-STR-DATE-1 >= SPACES) -
+            REJECTIF (EMPLOYEE-ID-1  <> EMP)    -
+            REJECTIF (PRIMARY-POS-1  <> '0')    -
+            MAX (1)
+WCPOS     = SUBSTR (POS,1,5)
+DIRPOS    = SUBSTR (POS,1,9)
+POSFLG    = CHOOSE ('N' IF (WCPOS  = 'WCOMP'),    -
+                    'N' IF (DIRPOS = 'DIRECTORS'),-
+                    'Y')
+%*
+%*  MSF870 - Positions File
+%*
+ POSTITLE = POS-TITLE OF MSF870 -
+            WHERE (POSITION-ID = POS)
+ P1       = PRIM-RPT-CODE(1) VIA (POSTITLE)
+ P2       = PRIM-RPT-CODE(2) VIA (POSTITLE)
+ P3       = PRIM-RPT-CODE(3) VIA (POSTITLE)
+ P4       = PRIM-RPT-CODE(4) VIA (POSTITLE)
+ P5       = PRIM-RPT-CODE(5) VIA (POSTITLE)
+ PRIM     = CATENATE (P1,P2,P3,P4,P5)
+%*
+%*  MSF871 - Position Details
+%*
+ WLOC     = WC-LOCATION OF MSF871 -
+            WHERE (POSITION-ID = POS)
+%*
+ PAYL     = PAY-LOCATION
+ PAYD     = TABLE-DESC OF MSF010 -
+            WHERE (TABLE-TYPE  = 'PAYL',-
+                   TABLE-CODE  = PAYL)
+ PRCD     = CATENATE (P2 + '.' + P3 + '.' + P4 + '.' + PAYL)
+ PRC      = OUT-STRING OF MSSCNV         -
+            WHERE (OPTION     = 'S', -
+                   INP-STRING = PRCD)
+%*
+%* MSF875 - Hierarchy File
+%*
+ SUP      = SUPERIOR-ID OF MSF875 -
+            WHERE (HIER-DETAILS = WX-HIER-DETAILS, -
+                   POSITION-ID  = POS)
+
+ SUPTITLE = POS-TITLE OF MSF870 -
+            WHERE (POSITION-ID  = SUP)
+%*                                             
+%*  MSF829 - Employee Physical Location History File                    
+%*                                             
+ PH       = PHYSICAL-LOC OF MSF829            -           
+               WHERE (EMPLOYEE-ID   = EMP,    -
+                      INV-STR-DATE >= SPACES) -
+               MAX (1)  
+%* MSF010
+ LOCDESC   = TABLE-DESC OF MSF010        -
+             WHERE (TABLE-TYPE = 'PHYL', -
+                    TABLE-CODE = P)
+ WCLOCDESC = TABLE-DESC OF MSF010        -
+             WHERE (TABLE-TYPE = 'WCLC', -
+                    TABLE-CODE = WLOC)
+ PRC1NAME  = TABLE-DESC OF MSF010        -
+             WHERE (TABLE-TYPE = 'PC01', -
+                    TABLE-CODE = P1)
+ PRC2NAME  = TABLE-DESC OF MSF010        -
+             WHERE (TABLE-TYPE = 'PC02', -
+                    TABLE-CODE = P2)
+ PC2       = TABLE-CODE VIA (PRC2NAME)
+ PRC3NAME  = TABLE-DESC OF MSF010        -
+             WHERE (TABLE-TYPE = 'PC03', -
+                    TABLE-CODE = P3)
+ PRC4NAME  = TABLE-DESC OF MSF010        -
+             WHERE (TABLE-TYPE = 'PC04', -
+                    TABLE-CODE = P4)
+ PRCNAME   = TABLE-DESC OF MSF010        -
+             WHERE (TABLE-TYPE = 'PC05', -
+                    TABLE-CODE = P5)
+%*
+%*    End of Program
+%*      

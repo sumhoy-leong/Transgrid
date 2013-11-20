@@ -1,0 +1,440 @@
+%***  $Id: trr83b.rdl,v 23.0 2009/04/20 12:00:00 Exp $  
+%*** TRR83B.RDL
+%***
+%*** Copyright (c) 1996, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%* 30/04/13 a9dd3230   MO164 (Version 0005)
+%*                     - Modify filter using old pay group to use new TG1.
+%* 30/04/13 a9is6175   MO164 (Version 0004)
+%*                     - Changed MSF801-PRV-END-DT-PG of the pay group 'TG1'.
+%* 25/04/13 a9is6175   MO164 (Version 0003)
+%*                     - Removed unnecessary variable.
+%* 16/04/13 a9is6175   MO164 (Version 0002)
+%*                     - Removed Work Groups from request parameter. 
+%*                     - Added MSF785 to looking reference if no match found from MSF822.
+%*                     - Changed RG from MSF820 to MSF870 for looking PRIM-RPT-GRP.
+%* 08/02/13 a9nh4814   MO164 -------
+%*                     - Merged TRR83R
+%* 14/09/12 a9nh4814   MO164 (Version 0001)
+%*                     - Modified to version 0001 for Ellipse 8 migration.
+%*                     - Corrected record-length
+%*                     - Modified decimal formatting for D-PIC.
+%* 28/10/11 GPresser   3801802                         (Version 025)
+%*                     Extract SUPPLIER-NO from MSF835
+%* 13/05/11 GPresser   3573900                         (Version 024)
+%*                     Extract Reference no from MSF822
+%* 04/04/09 EFredeluces SC2269363
+%*                     Split the employee name column to Last name and First name.
+%*                     The .csv file if run in Summary mode to show only 1 record per
+%*                     employee and summarises the deductions similar to report. 
+%* 31/10/08 EFredeluces SC2089743
+%*                     Add a CSV file output.
+%*                     Add a column for Pay Group.
+%*                     Add a column for Primary Reporting Code. 
+%*                     Add a column for Physical Location. 
+%*                     Move the totals shown on the bottom of the last page 
+%*                     to a new summary page showing: 
+%*                     Total Deduction paid for the deduction code xxx: $xxx,xxx.xx 
+%*                     Total no of employee for the deduction code xxx:  x,xxx 
+%*                     Grand Total Deduction Amount Paid:               $xxx,xxx.xx 
+%* 15/06/06 LNee     - WHD0800778
+%* .................   Included transaction ind of '2'.
+%* 20/03/03 RYeung   - WCHG016185
+%*                     Add TDTE for descending sort.
+%* 16/08/02 LNee     - WCHG005156
+%* .................   Introduce new request parameters of Week Ending Date
+%* .................   From and To
+%* 02/01/01 DDiolaso - W00120598
+%* .................   a) Option to select up to 5 deduction codes
+%* .................   b) Reduce work group selection from 10 to 5
+%* .................   c) Option to select via PRC
+%* .................   d) Option to select either service NO. or alpha order
+%* .................
+%* .................   Modified this program into a extract program.
+%* .................
+%* .................   Created additional program TRR83R.RDL that is being
+%* .................   executed through 'copy-request'.
+%* .................
+%*** 11-03-97  Original program development
+%*** 26-Mar-97 E.Fredeluces  W703260031
+%*** 21-May-97 E.Fredeluces  W705210020
+%*** ......... To include the employee last name and initials
+%** 17-Sep-1997 Neel Chandra. W709150029. 
+%** ........... Added codes to include paramters for
+%** ........... upto 5 employee ids , Paygroup , upto 10 work group 
+%** ........... or Blank For All.
+%**   9-Nov-98 G Presser W8100260035
+%**  ......... Version 4.3 Modifiactions
+%***  2-Aug-99 G Presser W99070200             (Version 020)
+%*** ......... Select all Advance Pays correctly
+%*** 20-Oct-99 G Presser W99100497             (Version 021)
+%*** ......... Allow for Pay Group T15
+%*** 28-Jan-00 A Makomaski  Changes in field names of MSF723A due to GST/FBT
+
+%PROGRAM-ID
+       TRR83B
+%AUTHOR
+       Lynne Capple
+%NARRATIVE
+      **  This program produces a history report of user defined deductions
+      **  for a user defined run no.
+%VERSION
+       0005
+%MODULE
+       3820
+%FILES
+       MFILE = MSF835
+       LFILE = MSF010
+       LFILE = MSF723A
+       LFILE = MSF785
+       LFILE = MSF802A
+       LFILE = MSF801
+       LFILE = MSF810
+       LFILE = MSF820
+       LFILE = MSF822
+       LFILE = MSF829
+       LFILE = MSF870
+       LFILE = MSF878A
+       RFILE = TRR83BA
+       OFILE = TRT83BA
+%SELECTION
+       <IF  %EMP1% <> SPACES>
+            WHERE    (EMPLOYEE-ID  >= SPACES)
+            SELECTIF (EMPLOYEE-ID  <> SPACES,    -
+                      EMPLOYEE-ID   = %EMP1%)
+            SELECTIF (EMPLOYEE-ID  <> SPACES,    -
+                      EMPLOYEE-ID   = %EMP2%)
+            SELECTIF (EMPLOYEE-ID  <> SPACES,    -
+                      EMPLOYEE-ID   = %EMP3%)
+            SELECTIF (EMPLOYEE-ID  <> SPACES,    -
+                      EMPLOYEE-ID   = %EMP4%)
+            SELECTIF (EMPLOYEE-ID  <> SPACES,    -
+                      EMPLOYEE-ID   = %EMP5%)   
+       <ELSE>   
+            WHERE    (EMPLOYEE-ID >= SPACES)
+       <ENDIF>
+            REJECTIF (TRAN-IND <> '4', TRAN-IND <> '2')
+            REJECTIF (TRAN-CLASS = 'V')
+            REJECTIF (TRAN-CLASS = 'F')
+            REJECTIF (TRAN-CODE     > '990')
+            REJECTIF (PREV-RETRO    = 'Y')
+            REJECTIF (PAY-RUN-TYPE <> 'U')
+            REJECTIF (PRD-END-DATE < SDAT)
+            REJECTIF (PRD-END-DATE > EDAT)
+%ROUTINES
+       MSSDAT
+%ORDER
+      TRAN-CODE
+      SORTKEY
+      DESCENDING TRN-DATE
+%BREAK-FIELDS
+      DUM
+      TRAN-CODE
+%REPORT
+    A
+%REPORT-TITLE
+'Deduction History Listing'
+%BREAK TRAN-CODE HEADING
+<IF DEDC-SEL = 'Y' AND RG-SEL = 'Y' AND SUPP-NO = 'Y' AND PLOC-SEL = 'Y'>
+<IF P-DS = 'S' AND SUPPNO <> SPACES>
+'Deduction Code        :' {C  } {DDES                         } 'Supplier No: ' {SUPPNO  }
+<ELSE>
+'Deduction Code        :' {C  } {DDES                         }
+<ENDIF>
+'Week Ending Date From :' {SDATE    } 
+'                 To   :' {EDATE    } 
+
+{underline                                                                                                                         }
+<IF P-DS = 'D'>
+'PLoc Primary Rptg Code  Physical Location    Employee-Id & Name                     Reference     Tran-Date      Amount  Supplier'
+{underline                                                                                                                         }
+<ENDIF>
+
+<ENDIF>
+%DETAIL
+<IF TOT-SEL = 'Y'>
+<IF P-DS = 'D'>
+ PP  {RG               } {PLDESC            } {E  } {SNAME            } {FNAME     } {REFF       } {TRDATE} MMMMMMMMMMMMM {SUPP    }
+<ENDIF>
+<ENDIF>
+%BREAK TRAN-CODE FOOTING
+<IF DEDC-SEL = 'Y' AND RG-SEL = 'Y' AND SUPP-NO = 'Y' AND PLOC-SEL = 'Y'>
+
+'                                         Total Deduction  Paid  for the Deduction Code' {C  }':'           TTTTTTTTTTTTT
+'                                         Total No. of Employees for the Deduction Code' {C  }':'                {T-EMP}
+<IF P-DS = 'S'>
+{underline                                                                                                                         }
+{underline                                                                                                                         }
+
+<ENDIF>
+
+<ENDIF>
+%REPORT-SUMMARY
+
+{underline                                                                                                                         }
+
+'                                         Grand Total Deduction Amount Paid                    :'           TTTTTTTTTTTTT
+
+{underline                                                                                                                         }
+%OUTPUT-FILE
+       A
+%CONTROL
+      RECORD-LENGTH = 208
+%BREAK DUM HEADER
+<IF P-DS = 'D'>
+{HDG1                                   }{HDG2                             }{HDG3                            }-
+{HDG4A                                                 }
+<ELSE>
+{HDG4B   }{HDG4A                                                 }
+<ENDIF>
+%DETAIL
+<IF TOT-SEL = 'Y'>
+<IF P-DS = 'D'>
+QCCCQZ{DDES                        }Z{SDATE }Z{EDATE }Z{TRDATE}ZPPPZ{RG                }Z{PLDESC                       }Z-
+{EMP     }Z{SNAME                       }Z{FNAME     }Z{DED       }Z{REF       }Z{SUPP}
+<ENDIF>
+<ENDIF>
+%BREAK TRAN-CODE FOOTING
+<IF DEDC-SEL = 'Y' AND RG-SEL = 'Y' AND SUPP-NO = 'Y' AND PLOC-SEL = 'Y'>
+<IF P-DS = 'S'>
+QCCCQZ{EMP     }Z{SNAME                       }Z{FNAME     }Z{TOT        }Z{REF       }Z{SUPP}ZBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+<ENDIF>
+<ENDIF>
+%REQUEST-PARAMETERS
+     DEDTYP1  PIC(X(3))   TEXT 'Deduction Code 1 (Blank for All):'
+     DEDTYP2  PIC(X(3))   TEXT 'Deduction Code 2:'
+     DEDTYP3  PIC(X(3))   TEXT 'Deduction Code 3:'
+     DEDTYP4  PIC(X(3))   TEXT 'Deduction Code 4:'
+     DEDTYP5  PIC(X(3))   TEXT 'Deduction Code 5:'
+     DEDTYP6  PIC(X(3))   TEXT 'Deduction Code 6:'
+     DEDTYP7  PIC(X(3))   TEXT 'Deduction Code 7:'
+     DEDTYP8  PIC(X(3))   TEXT 'Deduction Code 8:'
+     DEDTYP9  PIC(X(3))   TEXT 'Deduction Code 9:'
+     DEDTYP10 PIC(X(3))   TEXT 'Deduction Code 10:'
+     WEDFROM  PIC(X(8))   TEXT 'Weekend Date From:'
+     WEDTO    PIC(X(8))   TEXT 'Weekend Date To:'
+     PAYLOC   PIC (X(2))  TEXT 'Pay Location:'
+     EMP1     PIC (X(10)) TEXT 'Employee ID 1 (Blank for All):'
+     EMP2     PIC (X(10)) TEXT 'Employee ID 2:'
+     EMP3     PIC (X(10)) TEXT 'Employee ID 3:'
+     EMP4     PIC (X(10)) TEXT 'Employee ID 4:'
+     EMP5     PIC (X(10)) TEXT 'Employee ID 5:'
+     PRC      PIC(X(20))  TEXT 'Primary Reporting Codes (PRC):'
+     SUPPNO   PIC(X(10))  TEXT 'Supplier No (Blank for All):'
+     ORDER    PIC(X(1))   TEXT 'Sort Order (A)lpha (Surname + Name) (E)mployee ID'
+     DS       PIC(X(1))   TEXT 'Print Option (D)etail or (S)ummary'
+%*
+%VARIABLES
+%*
+  P-DS      = %DS%                          CONSTANT
+  P-ORDER   = %ORDER%                       CONSTANT
+  SUPPNO    = %SUPPNO%                      CONSTANT  
+  B         = ' '                           CONSTANT
+  Z         = ','                           CONSTANT
+  Q         = '"'                           CONSTANT
+  DUMMY     = 'Y'                           CONSTANT
+  DUM       = CHOOSE (DUMMY IF (DUMMY ='Y'), DUMMY)
+  HDG1      = 'Dedn-Code,Dedn Description,Weekend-Start,' CONSTANT
+  HDG2      = 'Weekend-End,Tran-Date,Pay Location,'          CONSTANT
+  HDG3      = 'Prim Rptg code, Physical Location,'        CONSTANT
+  HDG4A     = 'Emp ID, Surname, First Name,Amount,Reference,Supplier No' CONSTANT
+  HDG4B     = 'Dedn-Code,'                                CONSTANT
+%*  HDG4      = CATENATE (HDG4B,HDG4A)                      CONSTANT
+%*  HDG5      = CATENATE (HDG1,HDG2,HDG3,HDG4A)             CONSTANT
+%*  HDG       = CHOOSE (HDG5 IF (P-DS = 'D'), HDG4)         CONSTANT
+%*
+       WEDFROM = %WEDFROM%                    CONSTANT
+       WEDTO   = %WEDTO%                      CONSTANT
+%*       WFN     = NUMERIC (WEDFROM)            CONSTANT
+%*       WTN     = NUMERIC (WEDTO)              CONSTANT
+%*       WFNR    = CALC (99999999 - WFN)        CONSTANT
+%*       WTNR    = CALC (99999999 - WTN)        CONSTANT
+       A03     = CUR-STR-DT-PG OF MSF801        -
+                 WHERE (CNTL-REC-TYPE  = 'PG'  ,-
+                        CNTL-KEY-REST  = 'TG1') -
+                 CONSTANT
+       PRSD    = PRV-STR-DT-PG   VIA (A03)    CONSTANT
+       PRED    = PRV-END-DT-PG   VIA (A03)    CONSTANT
+       SDAT    = CHOOSE (WEDFROM IF (WEDFROM <> SPACES), PRSD)  CONSTANT
+       SDATE   = SDAT FORMAT (DATE) 
+       EDAT    = CHOOSE (WEDTO   IF (WEDTO <> SPACES),   PRED)  CONSTANT
+       EDATE   = EDAT FORMAT (DATE)
+
+       EMP     = EMPLOYEE-ID
+       E       = SUBSTR (EMP,6,5)
+       C       = TRAN-CODE
+%*       TR-CODE = CHOOSE (C IF(C <> SPACES), C)
+%*
+       AMT     = AMOUNT
+       HD      = HD-AMOUNT
+       HDA     = HDA-EARN-CODE
+       TRDATE  = TRN-DATE FORMAT (DATE)
+       SUPP    = SUPPLIER-NO
+%*
+%*     Employee Name
+       SNAME   = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = EMP)
+       FNAME   = FIRST-NAME VIA (SNAME)
+       NAME    = CATENATE (SNAME,FNAME)
+       SORTKEY = CHOOSE (EMP IF (P-ORDER = 'E'), NAME)
+%*
+%* W00120602 (PRC0, up to IDEDTYP5)
+        PRC0      = %PRC%
+        PRC1 = SUBSTR (%PRC%,1,4)
+        PRC2 = SUBSTR (%PRC%,5,4)
+        PRC3 = SUBSTR (%PRC%,9,4)
+        PRC4 = SUBSTR (%PRC%,13,4)
+        PRC5 = SUBSTR (%PRC%,17,4)
+
+        PRC11 = CHOOSE (PRC1 IF(PRC1 <> '....'), SPACES)
+        PRC22 = CHOOSE (PRC2 IF(PRC2 <> '....'), SPACES)
+        PRC33 = CHOOSE (PRC3 IF(PRC3 <> '....'), SPACES)
+        PRC44 = CHOOSE (PRC4 IF(PRC4 <> '....'), SPACES)
+        PRC55 = CHOOSE (PRC5 IF(PRC5 <> '....'), SPACES)
+
+        LVLREQ    = CHOOSE ('0'  IF(PRC11  = SPACES),                  -
+                            '1'  IF(PRC22  = SPACES),                  -
+                            '2'  IF(PRC22  > SPACES, PRC33  = SPACES), -
+                            '3'  IF(PRC33  > SPACES, PRC44  = SPACES), -
+                            '4'  IF(PRC44  > SPACES, PRC55  = SPACES), -
+                            '5')
+
+  IPLOC     = CHOOSE (%PAYLOC% IF (%PAYLOC% <> SPACES),'All')  CONSTANT
+  IPLC      = %PAYLOC%                      CONSTANT
+%*
+%*     Pay Location (M820)
+%*
+
+       M820             = EMPLOYEE-ID OF MSF820              -
+                          WHERE (EMPLOYEE-ID = EMP)
+       PLOC             = PAY-LOCATION VIA (M820)
+       P                = PLOC
+
+       PLOC-SEL = CHOOSE ('Y' IF (IPLOC = 'All'),            -
+                          'Y' IF (IPLC <> SPACES AND IPLC = PLOC), 'N')
+%*
+%*     Work Group (M723A)
+%*
+%*       IWGROUP          = WORK-GROUP OF MSF723A              - 
+%*                          WHERE (REC-723-TYPE-2  = 'W',      - 
+%*                          EQUIP-NO-2             = SPACES,   -
+%*                          EMPLOYEE-ID-2          = EMP,      -
+%*                          EFF-DT-REVSD-2        >= WFNR)     -
+%*                          MAX(1)  
+%*        WG              = WORK-GROUP                  VIA (IWGROUP)
+
+       SUPP-NO = CHOOSE ('Y' IF (%SUPPNO% = SPACES),                    -
+                         'Y' IF (%SUPPNO% <> SPACES, SUPP = %SUPPNO%), -
+                         'N') 
+%*
+       M822   = EMPLOYEE-ID OF MSF822             -
+                WHERE    (EMPLOYEE-ID   = EMP,    -
+                          CONS-PAY-GRP >= SPACES) -
+                REJECTIF (DEDN-CODE    <> C)      -
+                MAX (1)
+       REF    = DEDN-REF       VIA (M822)
+	   
+       BREF  = BENEFIT-SUPP-1 OF MSF785 -
+               WHERE   (EMPLOYEE-ID = EMP)   -
+               MAX (1)
+                          
+       REFF  = CHOOSE (REF IF (REF <> SPACES), BREF)   
+%*
+       PL     = PHYSICAL-LOC OF MSF829                - 
+                WHERE    (EMPLOYEE-ID   = EMP,        -
+                          INV-STR-DATE >= SPACES)     -
+                REJECTIF (END-DATE     <> '00000000') -
+                MAX (1)
+       PLDESC = TABLE-DESC OF MSF010        - 
+                WHERE (TABLE-TYPE = 'PHYL', -
+                       TABLE-CODE = PL)
+%*
+       M801    = CNTL-REC-TYPE OF MSF801          -
+                 WHERE (CNTL-REC-TYPE = 'D ',     -
+                        CNTL-KEY-REST = '***' & C)
+       DDES    = TNAME-D     VIA (M801)
+%*       T1      = DED-TYPE-D  VIA (M801)
+
+%* W00120602 - (From dedc-blk up to sorder)
+        DEDC-BLK   = CHOOSE ('Y' IF (%DEDTYP1%  = SPACES, -
+                                     %DEDTYP2%  = SPACES, -
+                                     %DEDTYP3%  = SPACES, -
+                                     %DEDTYP4%  = SPACES, -
+                                     %DEDTYP5%  = SPACES, -
+                                     %DEDTYP6%  = SPACES, -
+                                     %DEDTYP7%  = SPACES, -
+                                     %DEDTYP8%  = SPACES, -
+                                     %DEDTYP9%  = SPACES, -
+                                     %DEDTYP10% = SPACES), 'N')
+
+        DEDC-SEL  = CHOOSE ('Y' IF (DEDC-BLK = 'Y'),          -
+                          'Y' IF (%DEDTYP1%  <> SPACES, C  = %DEDTYP1%),  -  
+                          'Y' IF (%DEDTYP2%  <> SPACES, C  = %DEDTYP2%),  -  
+                          'Y' IF (%DEDTYP3%  <> SPACES, C  = %DEDTYP3%),  -  
+                          'Y' IF (%DEDTYP4%  <> SPACES, C  = %DEDTYP4%),  -  
+                          'Y' IF (%DEDTYP5%  <> SPACES, C  = %DEDTYP5%),  -  
+                          'Y' IF (%DEDTYP6%  <> SPACES, C  = %DEDTYP6%),  -  
+                          'Y' IF (%DEDTYP7%  <> SPACES, C  = %DEDTYP7%),  -  
+                          'Y' IF (%DEDTYP8%  <> SPACES, C  = %DEDTYP8%),  -  
+                          'Y' IF (%DEDTYP9%  <> SPACES, C  = %DEDTYP9%),  -  
+                          'Y' IF (%DEDTYP10% <> SPACES, C  = %DEDTYP10%),  -  
+                                  'N')
+%* Lookup MSF878
+          POS  = POSITION-ID OF MSF878A           -
+                 WHERE    (EMPLOYEE-ID-1   = EMP, -
+                           PRIMARY-POS-1   = '0', -
+                           POS-STOP-DATE-1 = '00000000') -
+                 MAX (1)
+%* Lookup MSF870
+          PRG  = PRIM-RPT-GRP OF MSF870 -
+                 WHERE (POSITION-ID = POS)
+          RG   = PRG
+          RG1  = SUBSTR(RG,1,4)
+          RG2  = SUBSTR(RG,1,8)
+          RG3  = SUBSTR(RG,1,12)
+          RG4  = SUBSTR(RG,1,16)
+          RG5  = SUBSTR(RG,1,20)
+
+          EPRCSUB = CHOOSE(RG1 IF (LVLREQ = '1'), -
+                           RG2 IF (LVLREQ = '2'), -
+                           RG3 IF (LVLREQ = '3'), -
+                           RG4 IF (LVLREQ = '4'), -
+                           RG5 IF (LVLREQ = '5'), -
+                           RG) 
+
+         PRCL1 = SUBSTR (PRC0,1,4)
+         PRCL2 = SUBSTR (PRC0,1,8)
+         PRCL3 = SUBSTR (PRC0,1,12)
+         PRCL4 = SUBSTR (PRC0,1,16)
+         PRCL5 = SUBSTR (PRC0,1,20)
+
+         PRCSUB  = CHOOSE  (PRCL1 IF (LVLREQ = '1'), -
+                            PRCL2 IF (LVLREQ = '2'), -
+                            PRCL3 IF (LVLREQ = '3'), -
+                            PRCL4 IF (LVLREQ = '4'), -
+                            PRCL5 IF (LVLREQ = '5'), -
+                            RG)
+
+         RG-SEL = CHOOSE ('Y' IF (EPRCSUB = PRCSUB), -
+                          'Y' IF (RG      = PRC0), -
+                          'Y' IF (PRC11   = SPACES), 'N')
+
+       D       = CHOOSE (HD IF (HD <> ZEROES, HDA = SPACES), AMT) D-PIC(S99999999.99)
+       NZ      = CHOOSE ('N' IF (D = ZERO), 'Y')
+       TOT-SEL = CHOOSE ('Y' IF (NZ = 'Y',       -
+                                 DEDC-SEL = 'Y', -
+                                 RG-SEL = 'Y',   -
+                                 SUPP-NO = 'Y',  -
+%*                                 WG-SEL = 'Y',   -
+                                 PLOC-SEL = 'Y'), 'N')
+       M       = CHOOSE(D IF (TOT-SEL = 'Y'), 0) D-PIC (Z,ZZZ,ZZ9.99-)
+       DED     = D            D-PIC (--------9.99)
+       T       = TOTAL(M)     D-PIC ($,$$$,$$9.99-)
+       TOT     = TOTAL(M)     D-PIC (---------9.99)
+       ECNT    = CHOOSE (1 IF (EMP <> SPACES AND TOT-SEL = 'Y'), 0)
+       T-EMP   = TOTAL (ECNT) D-PIC (ZZZ,ZZ9)
+
+%*END PROGRAM       

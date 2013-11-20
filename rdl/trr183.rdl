@@ -1,0 +1,868 @@
+%*** TRR183.RDL
+%***
+%*** Revision History ***
+%*** 27-Apr-2013 a9is6175      MO164 (Version 0003)
+%*** ......................... Changed (9(9)) to (X(9)) on I-STK and
+%*** ......................... (,) to AND on PER.
+%*** 20-Mar-2012 a9nh4814      MO164 (Version 0002)
+%*** ......................... Fixed field displaying/formatting issue
+%*** ......................... Fixed period defaulting
+%*** 20-Dec-2012 a9jw6280      MO164 ---
+%*** ......................... Fix total closing and open balance values.
+%*** ......................... Changed display format all values into 2 decimals. 
+%*** ......................... Moved some process into TRR182.
+%*** 10-Dec-2012 a9jw6280      MO164 ---
+%*** ......................... Changed display format for opening balance 
+%*** ......................... column to have 2 decimals to inline with
+%*** ......................... others.
+%*** 02-Nov-2012 a9jw6280      MO164 ---
+%*** ......................... Read all input file records as characters then
+%*** ......................... converted the numeric data when needed to avoid
+%*** ......................... shifting when read the input file for numeric data.
+%*** ......................... Adjust length of numeric fields to current
+%*** ......................... data structure.
+%*** ......................... Reset version number into 0001 for e8 upgrade.
+%*** 05-Mar-07 E Fredeluces    SC1392689
+%*** ......................... Fix the display of the Price field.
+%*** 13-April6 D Diolaso       Ellipse Upgrade
+%*** ......................... Transaction number changed to 24 chars.
+%*** 10-Feb-06 D Diolaso       Ellipse Upgrade
+%*** ......................... Created a 3-step   process out of the
+%*** ......................... MIMS version of ESR181. Consisting this
+%*** ......................... 3-step process are the following programs:
+%*** .........................  a) esr180.rdl - The first data xtract process
+%*** .........................  b) esr181.rdl - The second data extract process
+%*** .........................  c) esr179.rdl - The 3rd and final process that
+%*** .........................     generates the report
+%*** .........................
+%*** 14-Nov-05 E Fredeluces    P05110870
+%***                           Fix compilation errors in Ellipse 5.2.3.7.
+%***  7-Sep-99 G Presser       W99070585            (Version 046)
+%*** ......................... Make program Y2K compliant
+%***  7-Jun-99 G Presser       W99051070            (Version 045)
+%*** ......................... Fix dates properly
+%*** 27-May-99 G Presser       W99051070            (Version 044)
+%*** ......................... Calculate Period Start & End Dates correctly
+%*** 17-May-94 Mary Wachman... Version 044.
+%*** ......................... Include tran-type ISI for Issues total VOT.
+%*** ......................... VOT includes calc of ISS + FAO + ISI.
+%*** 20-Apr-94 David Gatward.. Version 043.
+%*** ......................... Fix ABCD XYZ figures. Now from DC0018.
+%*** 09-Sep-92 David Gatward.. Use TAXTOTO not TAXTOT for actual balance,
+%*** .........................                 total trans, discrepancies.
+%*** ......................... Version 042.
+%*** 10-Aug-92 David Gatward.. Calculate Sales Tax & report total - (Sales tax
+%*** .........................       was reported as Closing/actual variance).
+%*** ......................... Version 041.
+%*** 16-Jul-92 David Gatward.. Change %DISTRICT-CODE% to dstrct-code in PP var.
+%*** ......................... Version 39.
+%*** 15-Jul-92 David Gatward.. Move ytd section before msf063a browse 
+%*** ......................... efficiency reasons.
+%*** 12-Jun-92 David Gatward.. remove sort - increases run time too much!
+%*** 10-Mar-92 David Gatward.. sort/break on invt-controllr then s/c.
+%*** ......................... sorting by p/no increases run time too much.
+%*** 07-Jan-92 David Gatward.. Enhance discrepancy reporting in "B" report.
+%*** ......................... ie. check msf170/msf175 soh,value for curr mnth
+%*** ......................... Also check msf170 soh * price = value
+%***
+%PROGRAM-ID
+       TRR183
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  These reports produce details and summaries of inventory
+      **  movements and performance for an accounting period.
+      **
+      **         Outstanding:
+      **         Turnover to appear on Report E
+      **         Planned and Actual turnover on Report C
+      **         Need to take into account Inter-District - In-transit
+      **            for owned stock ie Receipts need 'STR' - 'SRI'.
+      **
+%VERSION
+       0003
+%MODULE
+       3140
+%FILES
+        IFILE = TRO182
+        LFILE = MSF000
+        LFILE = MSF010
+        LFILE = MSF100
+        LFILE = MSF110A
+        AFILE = MSF175
+        LFILE = MSF185
+        LFILE = MSF900
+        LFILE = MSF220
+        RFILE = TRR183A
+        RFILE = TRR183B
+        RFILE = TRR183E
+%INPUT-FILE
+       I-DS                      PIC (X(4))
+       I-STK                     PIC (X(9))
+       I-IC                      PIC (X(6))
+       I-SOH170                  PIC (X(9))
+       I-PR170                   PIC (X(15))      
+       I-VAL170                  PIC (X(17)) 
+       I-PD                      PIC (X(8))
+       I-TNO                     PIC (X(11))
+       I-USRNO                   PIC (X(4))
+       I-MINSTK                  PIC (X(10))
+       I-REORDQ                  PIC (X(10))
+       I-ROPX                    PIC (X(10))
+       I-INVTPR                  PIC (X(15))
+       I-FRT                     PIC (X(13))
+       I-CUST                    PIC (X(13))
+       I-DI                      PIC (X(10))
+       I-RES                     PIC (X(10))
+       I-DO                      PIC (X(15))
+       I-PICK                    PIC (X(10))
+       I-LID                     PIC (X(8))
+       I-CRD                     PIC (X(8))
+       I-ABC                     PIC (X(1))
+       I-XYZ                     PIC (X(1))
+       I-TTY                     PIC (X(1))
+       I-OSOHO                   PIC (X(10))
+       I-OSOHC                   PIC (X(10))
+       I-OINVT                   PIC (X(17))
+       I-CSOHO                   PIC (X(10))
+       I-CSOHC                   PIC (X(10))
+       I-CINVT                   PIC (X(17))
+       I-I-T                     PIC (X(6))
+       I-I-P                     PIC (X(6))              
+       I-I-N                     PIC (X(6))
+       I-I-L                     PIC (X(6))
+       I-SIT                     PIC (X(6))
+       I-SIP                     PIC (X(6))
+       I-SIN                     PIC (X(6))
+       I-SIL                     PIC (X(6))
+       I-DESC                    PIC (X(40))
+       I-PART                    PIC (X(7))
+       I-BIN1                    PIC (X(12))
+       I-BIN2                    PIC (X(12))
+       I-UI                      PIC (X(4))
+%ORDER
+       ASCENDING ID
+       ASCENDING ISTK
+%ROUTINES
+       MSSDAT
+       MSS1HB
+%BREAK-FIELDS
+       ISTK
+       ID       
+%REPORT
+       A
+%REPORT-TITLE
+       'Monthly Stock Valuation - Detail'
+%PAGE HEADING
+%*<IF %ALL-ITEMS% <> 'S'>
+%*  <IF (A = 'ISS') OR (A = 'SRO') OR (A = 'SRD') OR (A = 'STO') OR (A = 'ADJ') OR (A = 'ORD')>
+                                         'Stock Movement Report for Period'{PX }
+'Stkline  Stkcode Item Name/'                        'Account Code/'          'W Order/'                                  'Movement'
+            'Type IT Req No.'   'Tr. Date  Respons.   Equip'                  'Project    Quantity  UOI    Tran Price'       'Value'
+%*  <ENDIF>
+%*<ENDIF>  
+%BREAK ISTK HEADING
+<IF %ALL-ITEMS% <> 'S'>
+ <IF %ALL-ITEMS% = 'Y'>
+{PART } {ISTK   } {INAME1                                }'soh:'{ISH170}'rops:'{IROPX }{IREORD}'bins:'{BIN1      }{BIN2      }
+ <ELSE>
+  <IF A <> SPACES AND A <> 'STR'>
+{PART } {ISTK   } {INAME1                                }'soh:'{ISH170}'rops:'{IROPX }{IREORD}'bins:'{BIN1      }{BIN2      }
+  <ENDIF>
+ <ENDIF>
+<ENDIF>
+%DETAIL TEST-PAGE (1)
+<IF %ALL-ITEMS% <> 'S'>
+<IF A = 'ISS'>
+             AAA  BB {RNS }L{IS} {TDATE  } {RESPS   } {ACCT                  } {WOS   } {QS      } {UI} {PRS        }   {TRAMT     }
+<SUPPRESS>
+                                                      {EQS       }             {PS    }
+<ENDIF>
+<IF A = 'SRD' OR A = 'SRO'>
+             AAA     {POR }L{IR} {TDATE  } {RESPR   } {ACCT                  }          {QR      } {UI} {PRR        }   {TRAMT     }
+<ENDIF>
+<IF A = 'STO' OR A = 'ADJ'>
+             AAA                 {TDATE  } {RESPA   } {ACCT                  }          {QA      } {UI} {PRA        }   {TRAMT     }
+<ENDIF>
+<IF A = 'ORD'>
+             AAA     {POB }L{IB} {TDATE  } {RESPB   } {ACCT                  }          {QB      } {UI} {PRB        }   {TRAMT     }
+<ENDIF>
+<IF A = 'FAO'>
+             AAA                 {TDATE  } {RESPF   } {ACCT                  }          {QF      } {UI} {PRF        }   {TRAMT     }
+<SUPPRESS>
+                                                      {EQF       }
+<ENDIF>
+<ENDIF>
+%SUMMARY
+{UNDERLINE                                                                                                                         }
+                                                           'Receipts'       'Issues'  'Adjustments'
+         'TOTALS for District'                'Number'       {CEOR }        {COI  }        {COA  }
+                                              'Value'   {VALOR2    }   {VALOI     }   {VALOA     }
+%REPORT
+       B
+%REPORT-TITLE
+       'Monthly Stock Valuation By Stock Code (discrepancies)'
+%PAGE HEADING
+            'Stock Valuation and Movement by Stock Code (DISCREPANCIES) for Period'{PX }
+
+                     '$'       '$'      '$'        '$'               '$'        '$'       '----------CURRENT--------'
+'Stk Code Open SOH Open Bal  Adjust. Receipts    Issues Close SOH Close Bal   Discrep.     SOH     $ Price    $ Value Dis.Reason'
+%BREAK ISTK FOOTING
+%*'SCODE :' {ISTK      } 'OBAL ' {IOINVT     } 'cbal ' {ICINVT     } 'TOBAL ' {TTLOP       } 'COUNT :' {HTG}
+<IF DIS <> 0> 
+{ISTK   }{IOSOHO }{OBALO  }{VOA    }{VOR    } {VOT    } {ICSOHO } {CBALO  }{DIS      }{ISH170 }{IPR170   }{VAL170T  } {LTRNSNECLOSE}
+<ENDIF>
+<IF %CHECKSOH-PR% = 'Y'>
+  <IF I-SOH170 <> I-VAL170>
+{ISTK   }{IOSOHO }{OBALO  }{VOA    }{VOR    } {VOT    } {ICSOHO } {CBALO  }{DIS      }{ISH170 }{IPR170   }{VAL170T  } {LSOHXPRNEVAL}
+  <ENDIF>
+<ENDIF>
+<IF %CHECK170% = 'Y'>
+  <IF CBALO <> I-VAL170 OR ICSOHO <> I-SOH170>
+{ISTK   }{IOSOHO }{OBALO  }{VOA    }{VOR    } {VOT    } {ICSOHO } {CBALO  }{DIS      }{ISH170 }{IPR170   }{VAL170T  } {LCLOSECURR}
+  <ENDIF>
+<ENDIF>
+%REPORT-SUMMARY
+{UNDERLINE                                                                                                                       }
+                           'Stock Valuation and Movement by Stock Code for Period'{PX }
+
+               '$'       '$'      '$'    '------------------------ ISSUES -------------------------  Closing'    '$'       'Current'
+'Stk Code    Open Bal  Adjust. Receipts'      CCCC     DDDD     EEEE     FFFF     GGGG 'Total        Balance   Discrep.     Value $' 
+{L3  }{OBALO        }{VOA    }{VOR    }{VOC    }{VOD    }{VOE    }{VOF    }{VOG    }{VOT    }{CBALO        }{DIS      }{VAL170T    }
+
+%REPORT
+       E
+%REPORT-TITLE
+       'Supply Management Summary'
+%*%BREAK ID  FOOTING ON NEW-PAGE 
+%REPORT-SUMMARY ON NEW-PAGE
+
+'Summary of Movements for Period' {PZ }
+
+                              '--------INVENTORY------   ----CONSIGNMENT--------'
+                               'Number'         'Value'  'Number'         'Value'
+
+ 'Opening Balance'                      {TOVALO       }           {TOVALC       }
+
+ 'Receipts (Total)'            {CEOR }  {TVALOR       }  {CECR }  {TVALCR       }
+   'Suppliers'                 {CORN }  {TVALORN      }  {CCRN }  {TVALCRN      }
+   'Inter-District Transfers'  {CORT }  {TVALORT      }
+   'Workshop'                  {CORW }  {TVALORW      }
+   'Offsite'                   {CORO }  {TVALORO      }  {CCRO }  {TVALCRO      }
+
+ 'Issues (Total)'              {COI  }  {VOI          }  {CCI  }  {VCI          }
+<IF CDESC <> SPACES>
+    {CDESC                 }   {COIC }  {VOIC         }  {CCIC }  {VCIC         }
+<ENDIF>
+<IF DDESC <> SPACES>
+    {DDESC                 }   {COID }  {VOID         }  {CCID }  {VCID         }
+<ENDIF>
+<IF EDESC <> SPACES>
+    {EDESC                 }   {COIE }  {VOIE         }  {CCIE }  {VCIE         }
+<ENDIF>
+<IF FDESC <> SPACES>
+    {FDESC                 }   {COIF }  {VOIF         }  
+<ENDIF>
+<IF GDESC <> SPACES>
+    {GDESC                 }   {COIG }  {VOIG         }  
+<ENDIF>
+   'Other'                     {COIX }  {VOIX         }  {CCIX }  {VCIX         }
+
+ 'Sales Tax on Issues (Total)'{TAXITO}  {TAXTOTO      } {TAXITC}  {TAXTOTC      }
+
+ 'Adjustments'                 {COA  }  {TVALOA       }  {CCA  }  {TVALCA       }
+   'Stock Counts'              {COAS }  {VOAS         }  {CCA  }  {TVALCA       }
+   'Order Price Changes'       {COAO }  {VOAO         }
+   'Invent. Price Changes'     {COAI }  {VOAI         }
+
+ 'Total Transactions'        {COTOT  }  {TOVAL        }{CCTOT  }  {TCVAL        }
+
+ 'Actual  Balance (Opening Bal+Trans)'  {ACTVAL       }
+ 'Closing Balance'                      {TCVALO       }           {TCVALC       }
+ 'Planned Balance'                      {TOTPBAL      }
+
+ 'Current Balance (at run time)'        {VAL170T      }
+
+ 'Closing/Actual  Variance'             {DIS          }
+ 'Closing/Planned Variance'             {VAR          }
+
+%*%REPORT-SUMMARY ON NEW-PAGE
+
+
+
+
+
+
+
+
+
+
+
+
+
+'Summary of Inventory (At Period end -'{PZ }{L4}
+
+                                          'Number'         'Value'
+ 'Items below Minimum Stock     (Total)'  {CMIN } {MINTOT       }
+                               '(Below)'          {MINBTOT      }
+ 'Items between Min and Max'              {COK  } {OKTOT        }
+ 'Items above Maximum (rop+eoq) (Total)'  {CMAX } {MAXTOT       }
+                               '(Above)'          {MAXATOT      }
+ 'Total Items'                            {ICNT } {ITOT         }
+
+     'Freight in Inventory'                       {FRTOT        }
+     'Customs in Inventory'                       {CUSTOT       }
+
+ 'Items with Reservations'                {CRES } {TOTRES       }
+ 'Items with Dues Out'                    {CDO  } {TOTDO        }
+ 'Items with Dues In'                     {CDI  } {TOTDI        }
+
+ 'Items unmoved for 1 year'               {CUNM } {TOTUNM       }
+ 'Items added to Inventory (this period)' {CPADD} {TOTCPADD     }
+                          '(1 year)'      {CYADD} {TOTCYADD     }
+
+
+
+'ABCD/XYZ Analysis: (At Period end -'{PZ }{L4}
+                                          'Number'         'Value'
+ 'A Level (>'{AVAL   }K                   {CA   } {TOTA         }
+ 'B Level (>'{BVAL   }K                   {CB   } {TOTB         }
+ 'C Level (> zero)'                       {CC   } {TOTC         }
+ 'D Level (= zero)'                       {CD   } {TOTD         }
+
+ 'X Level (>'{XVAL   }K                   {CX   } {TOTX         }
+ 'Y Level (>'{YVAL   }K                   {CY   } {TOTY         }
+ 'Z Level (>= zero)'                      {CZ   } {TOTZ         }
+
+
+
+'Summary of Inventory Performance (Period'{PZ }{L4}
+                                      'Period No.'       'YTD No.'
+ 'Partial  Inabilities'                  {P-PART}        {Y-PART}
+ 'Complete Inabilities'                  {P-NOT }        {Y-NOT }
+ 'Total    Inabilities'                  {P-T   }        {Y-T   }
+ 'Requisitions Filled Late'              {P-LATE}        {Y-LATE}
+ 'Gross Service Level (issues in full)'    {PGS }X         {YGS }X
+ 'Nett  Service Level (full + part)'       {PNS }X         {YNS }X
+ 'Late  Service Level (late issues)'       {PLS }X         {YLS }X
+%REQUEST-PARAMETERS
+       PERIN PIC (X(4)) TEXT 'Period:'
+       ISS1 PIC (X(4)) TEXT 'Issue Types:'
+       ISS2 PIC (X(4)) TEXT
+       ISS3 PIC (X(4)) TEXT
+       ISS4 PIC (X(4)) TEXT
+       ISS5 PIC (X(4)) TEXT
+       CHECK170 PIC (X(1)) TEXT 'Check Closing balance against Current balance (Y/N)?:'
+       CHECKSOH-PR PIC (X(1)) TEXT 'Check SOH x Price = Value (Y/N)?:'
+       ALL-ITEMS PIC (X(1)) TEXT 'Report ALL items including unmoved (Y/N) or summary (S)?:'
+       END-TNO-REV1 PIC (X(11)) TEXT 'End tran-time (Reversed) default = 99999999 = 00:00:00:00'
+       
+%VARIABLES
+       PER-CONSTANT = WX-STORES-CP CONSTANT
+
+       PER-DFT = PERIOD-YRMN OF MSSDAT WHERE (OPTION = 'J', -
+                     PERIOD-YRMN = PER-CONSTANT, DAYS = -1) CONSTANT
+    LTRNSNECLOSE  = 'TRANS< >CLOSE*' CONSTANT
+    LSOHXPRNEVAL  = 'SOH*PR< >VAL' CONSTANT
+    LCLOSECURR    = 'CLOSE/CURR' CONSTANT
+
+%* From input file
+       ID      = I-DS                   D-PIC (X(4))  
+       ISTK1   = NUMERIC (I-STK)        D-PIC (9(9))
+	   ISTK    = CALC (ISTK1 * 1)       D-PIC (9(9))
+       IIC     = I-IC                   D-PIC (X(6))
+       ISH170  = NUMERIC (I-SOH170)     D-PIC (Z(8)9)
+       IPR170  = NUMERIC (I-PR170)      D-PIC (SZ(10)9.99)
+       IVAL170 = NUMERIC (I-VAL170)     D-PIC (SZ(12)9.99)
+       IPD     = NUMERIC (I-PD)         D-PIC (9(8))
+       ITNO    = NUMERIC (I-TNO)        D-PIC (9(11))
+       IUSRNO  = I-USRNO                D-PIC (X(4))
+       IMINSTK = NUMERIC (I-MINSTK)     D-PIC (-Z(8)9)     
+       IREORD  = NUMERIC (I-REORDQ)     D-PIC (-Z(8)9)      
+       IROPX   = NUMERIC (I-ROPX)       D-PIC (-Z(8)9)                          
+       IINVTPR = NUMERIC (I-INVTPR)     D-PIC (-Z(10)9.9(2))    
+       IFRT    = NUMERIC (I-FRT)        D-PIC (-Z(8)9.9(2))              
+       ICUST   = NUMERIC (I-CUST)       D-PIC (-Z(8)9.9(2))             
+       IDI     = NUMERIC (I-DI)         D-PIC (-Z(8)9)               
+       IRES    = NUMERIC (I-RES)        D-PIC (-Z(8)9)              
+       IDO     = NUMERIC (I-DO)         D-PIC (-Z(10)9.9(2))                
+       IPICK   = NUMERIC (I-PICK)       D-PIC (-Z(8)9)              
+       ILID    = NUMERIC (I-LID)        D-PIC (9(8))                       
+       ICRD    = NUMERIC (I-CRD)        D-PIC (9(8))                       
+       IABC    = I-ABC                  
+       IXYZ    = I-XYZ                 
+       ITTY    = I-TTY                 
+       IOSOHO  = NUMERIC (I-OSOHO)      D-PIC (-Z(8)9)      
+       IOSOHC  = NUMERIC (I-OSOHC)      D-PIC (-Z(8)9)    
+       IOINVTT = NUMERIC (I-OINVT)      D-PIC (-Z(12)9.9(2))  
+       ICSOHO  = NUMERIC (I-CSOHO)      D-PIC (-Z(8)9)
+       ICSOHC  = NUMERIC (I-CSOHC)      D-PIC (-Z(8)9)
+       ICINVT  = NUMERIC (I-CINVT)      D-PIC (-Z(12)9.9(2))
+       ISS-TOT  = NUMERIC (I-I-T)       D-PIC (-Z(4)9)
+       ISS-PART = NUMERIC (I-I-P)       D-PIC (-Z(4)9)
+       ISS-NOT  = NUMERIC (I-I-N)       D-PIC (-Z(4)9)
+       ISS-LATE = NUMERIC (I-I-L)       D-PIC (-Z(4)9)
+       ISY-TOT  = NUMERIC (I-SIT)       D-PIC (-Z(4)9)
+       ISY-PART = NUMERIC (I-SIP)       D-PIC (-Z(4)9)
+       ISY-NOT  = NUMERIC (I-SIN)       D-PIC (-Z(4)9)
+       ISY-LATE = NUMERIC (I-SIL)       D-PIC (-Z(4)9)       
+                                       
+       IOINVT   = CALC (IOINVTT * 1)    I-PIC (-Z(12)9.9(2)) 
+       TTLOP    = TOTAL (IOINVT)
+       TEST     = CALC (IOINVT * 2)
+       HTG      = COUNT (ISTK)
+       OBALO = TOTAL (IOINVT) D-PIC (SZ(12)9)
+       OBALC = CALC(IOSOHC * 0) D-PIC (SZ(12)9)
+       TOBALO = TOTAL (IOSOHO) D-PIC (SZ(12)9)
+       TOBALC = TOTAL (IOSOHC) D-PIC (SZ(12)9)
+       TOVALO = TOTAL (IOINVT) D-PIC (SZ(12)9)
+       TOVALC = calc (IOSOHC * 0) D-PIC (SZ(12)9)
+       C = %ISS1% CONSTANT
+       D = %ISS2% CONSTANT
+       E = %ISS3% CONSTANT
+       F = %ISS4% CONSTANT
+       G = %ISS5% CONSTANT
+       CDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'IT', -
+                   TABLE-CODE = C) CONSTANT
+       DDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'IT', -
+                   TABLE-CODE = D) CONSTANT
+       EDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'IT', -
+                   TABLE-CODE = E) CONSTANT
+       FDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'IT', -
+                   TABLE-CODE = F) CONSTANT
+       GDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'IT', -
+                   TABLE-CODE = G) CONSTANT
+       L = '/' CONSTANT
+       SOHPR170 = CALC (ISH170 * IPR170)
+       VAL170T = TOTAL (IVAL170)  D-PIC (SZ(12)9.99)
+       VAL170S = TOTAL (1)
+       INAME1  = I-DESC
+       PART    = I-PART
+       BIN1    = I-BIN1
+       BIN2    = I-BIN2
+       UI      = I-UI
+
+%*  PER is the period for which report is required
+       PER = CHOOSE (%PERIN% IF (%PERIN% <> '0000' AND %PERIN% <> SPACES), -
+                     PER-DFT) I-PIC (9(4)) CONSTANT
+       YYPER   = SUBSTR (PER,1,2)          CONSTANT
+       PERC    = CHOOSE ('20' IF (YYPER < '19'), '19') CONSTANT
+       CCPER   = CATENATE (PERC,PER)       CONSTANT
+       PER-DT = PERIOD-YRMN OF MSSDAT -
+                WHERE (OPTION = 'H',  -
+                       PERIOD-YRMN = PER)  CONSTANT
+       PER-ST = STARTING-DATE-1-9 VIA (PER-DT) CONSTANT
+       PER-END = ENDING-DATE-1-9 VIA (PER-DT) CONSTANT
+       PX = GET (DISPLAY-PERIOD FROM (PER)) CONSTANT
+	   P1 = SUBSTR (PER,1,2)
+	   P2 = SUBSTR (PER,3,2)
+	   PZ = CATENATE (P2,'/',P1) CONSTANT
+       REVPER = REVSD-PERIOD OF MSSDAT WHERE (OPTION = 'H', -
+                         REV-FORMAT = '2', PERIOD-YRMN = PER) CONSTANT
+       ST-TRAN = FIRST-TRAN-KEY OF MSF000 -
+                    WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                           CONTROL-REC-TYPE = 'PC', -
+                           CONTROL-REC-NO = PER) CONSTANT
+       END-TRAN = LAST-TRAN-KEY VIA (ST-TRAN) CONSTANT
+       ME-DATE = THIS-ME-DATE VIA (ST-TRAN) CONSTANT
+       ST-DST = SUBSTR(ST-TRAN,1,4) CONSTANT
+       ST-PDX = SUBSTR (ST-TRAN,5,8) CONSTANT
+       ST-PD = NUMERIC (ST-PDX) I-PIC (9(8)) CONSTANT
+       ST-TNOX = SUBSTR (ST-TRAN,13,11) CONSTANT
+       ST-TNO = NUMERIC (ST-TNOX) I-PIC (9(11)) CONSTANT
+       ST-PD-REV = CALC (99999999 - ST-PD) I-PIC (9(8)) CONSTANT
+       ST-TNO-REV = CALC (99999999999 - ST-TNO) I-PIC (9(11)) CONSTANT
+       ST-TRAN-ID = CATENATE(ST-PD-REV,ST-TNO-REV) CONSTANT
+       END-DST = SUBSTR(END-TRAN,1,4) CONSTANT
+       END-PDX = SUBSTR (END-TRAN,5,8) CONSTANT
+       END-PD = NUMERIC (END-PDX) I-PIC (9(8)) CONSTANT
+       END-TNOX = SUBSTR (END-TRAN,13,11) CONSTANT
+       END-TNO = NUMERIC (END-TNOX) I-PIC (9(11)) CONSTANT
+       END-TY = SUBSTR (END-TRAN,24,1) CONSTANT
+       END-PD-REV = CALC (99999999 - END-PD) I-PIC (9(8)) CONSTANT
+       END-TNO-REV = CALC (99999999999 - END-TNO) I-PIC (9(11)) CONSTANT
+       END-TRAN-ID = CATENATE(END-PD-REV,END-TNO-REV) CONSTANT
+       END-TNO-REV1 = CHOOSE (%END-TNO-REV1% IF (%END-TNO-REV1% <> SPACES), '99999999999')
+       LREVPER = REVSD-PERIOD OF MSSDAT WHERE (OPTION = 'J', -
+                         REV-FORMAT = '2', PERIOD-YRMN = PER, DAYS = -1) CONSTANT
+%* Closing Balances
+       CBALO  = TOTAL (ICINVT)    D-PIC (SZ(12)9)
+       CBALC  = CALC (ICSOHC * 0) D-PIC (SZ(12)9)
+       TCBALO = TOTAL (ICSOHO)    D-PIC (SZ(12)9)
+       TCBALC = TOTAL (ICSOHC)    D-PIC (SZ(12)9)
+       TCVALO = TOTAL (ICINVT)    D-PIC (SZ(12)9)
+       TCVALC = CALC (ICSOHC * 0) D-PIC (SZ(12)9)
+%* Planned Balances
+       PBAL = PLAN-SOH-VALUE OF MSF185 WHERE (DSTRCT-CODE = ID, -          
+              REC-185-TYPE = 'I', STAT-185-CODE = IIC, -
+              PREQ-ITEM = SPACES, FULL-ACCT-PER >= SPACES)  -
+       REJECTIF (FULL-ACCT-PER <> CCPER) -
+       MAX (1)  PIC (SZ(7)9.99)
+       TOTPBAL = TOTAL (PBAL) D-PIC (SZ(12)9)
+%* Variance
+       VAR = CALC (TCVALO - TOTPBAL) D-PIC (SZ(12)9.99)
+%*  Inventory performance
+       P-TOT = TOTAL (ISS-TOT)
+       P-PART = TOTAL (ISS-PART) D-PIC (Z(7)9)
+       P-NOT = TOTAL (ISS-NOT) D-PIC (Z(7)9)
+       P-T = CALC (P-PART + P-NOT) D-PIC (Z(7)9)
+       P-LATE = TOTAL (ISS-LATE) D-PIC (Z(7)9)
+       P-CURR = CALC (P-TOT + P-PART + P-NOT + P-LATE)
+       PGS = CALC ((P-TOT / P-CURR) * 100) D-PIC (ZZ9.99)
+       P-CURN = CALC (P-TOT + P-PART)
+       PNS = CALC ((P-CURN / P-CURR) * 100) D-PIC (ZZ9.99)
+       PLS = CALC ((P-LATE / P-CURR) * 100) D-PIC (ZZ9.99)
+%* Get first period in year in reversed format
+       PERMM = SUBSTR (PER,3,2) CONSTANT
+       PERYY = SUBSTR (PER,1,2) CONSTANT
+       PERCC = SUBSTR (ME-DATE,1,2) CONSTANT
+       PER9 = NUMERIC (PERMM) D-PIC (9(2)) CONSTANT
+       MN9 = CALC (1 - PER9) I-PIC (S9(4)) CONSTANT
+       STPER = CATENATE (PERCC,PERYY,'00') CONSTANT
+       STARTPER = NUMERIC (STPER) PIC (9(6)) CONSTANT
+       PERFREV = CALC (999999 - STARTPER) I-PIC (9(6)) CONSTANT
+
+%* Transactions
+       A = TRAN-TYPE OF MSF900 WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -           
+                                      PROCESS-DATE = IPD, -
+                                      TRANSACTION-NO = ITNO, -
+                                      USERNO = IUSRNO, -
+                                      REC900-TYPE = ITTY) 
+       TDATE = CREATION-DATE VIA (A) FORMAT (DATE)
+       TDATE1 = CHOOSE (TDATE IF (TDATE <> SPACES),TDATE)
+       ACCT = ACCOUNT-CODE VIA (A)
+       TRAMT = TRAN-AMOUNT VIA (A) D-PIC (SZ(7)9.99)
+       B = ITRAN-TYPE-S VIA (A)
+       RNS = ISSUE-REQ-NO-S VIA (A)
+       IS = IREQ-ITEM-NO-S VIA (A)
+       RESPS = REQUESTED-BY-S VIA (A)
+       WOS = WORK-ORDER-S VIA (A)
+       QS = QUANTITY-ISS-S VIA (A)
+       PRS = AVERAGE-PR-S VIA (A)
+       EQS = EQUIP-NO-S VIA (A)
+       PS = PROJECT-NO-S VIA (A)
+       RESPA = AUTH-BY-A VIA (A)
+       QA = QTY-ADJ-UOI-A VIA (A)
+       PRA = PRICE-CHANGE-A VIA (A)
+       RESPR = STOREMAN-ID-R VIA (A)
+       QR = QTY-RCV-UOI-R VIA (A)
+       PRR = NET-PR-UOI-R VIA (A)
+       POR = PO-NO-R VIA (A)
+       IR = PO-ITEM-R VIA (A)
+       RESPB = RESPONS-CODE-B VIA (A)
+       QB = QTY-ADJ-UOI-B VIA (A)
+       PRB = NET-PR-ADJ-I-B VIA (A)
+       POB = PO-NO-B VIA (A)
+       IB = PO-ITEM-B VIA (A)
+       RESPF = AUTH-BY-F VIA (A)
+       QF = LITRES-ISS-F VIA (A)
+       PRF = RATE-AMOUNT-F VIA (A)
+       EQF = EQUIP-NO-F VIA (A)
+%* RECEIPTS
+%*  Owned Stock
+       PT = PO-TYPE OF MSF220 WHERE (PO-NO = POR)
+%*    Suppliers
+       C1ORN = CHOOSE (1 IF (A = 'SRD', PT = 'N'),0)
+       CORN = TOTAL (C1ORN) D-PIC (Z(6)9)
+       VALORN = CHOOSE (TRAMT IF (A = 'SRD', PT = 'N'),0)
+       TVALORN = TOTAL (VALORN) D-PIC (SZ(12)9)
+%*    Transfers
+       C1ORT = CHOOSE (1 IF (A = 'SRD', PT = 'T'),0)
+       CORT = TOTAL (C1ORT) D-PIC (Z(6)9)
+       VALORT = CHOOSE (TRAMT IF (A = 'SRD', PT = 'T'),0)
+       TVALORT = TOTAL (VALORT) D-PIC (SZ(12)9)
+%*    Workshop
+       C1ORW = CHOOSE (1 IF (A = 'SRD', PT = 'W'),0)
+       CORW = TOTAL (C1ORW) PIC (Z(6)9)
+       VALORW = CHOOSE (TRAMT IF (A = 'SRD', PT = 'W'),0)
+       TVALORW = TOTAL (VALORW) D-PIC (SZ(12)9)
+%*    Offsite
+       C1ORO = CHOOSE (1 IF (A = 'SRO'),0)
+       CORO = TOTAL (C1ORO) D-PIC (Z(6)9)
+       VALORO = CHOOSE (TRAMT IF (A = 'SRO'),0)
+       TVALORO = TOTAL (VALORO) D-PIC (SZ(12)9)
+%*    Totals
+       C1OR = CHOOSE (1 IF (A = 'SRD' OR A = 'SRO'),0)
+       COR = C1OR
+       CEOR = TOTAL (COR) D-PIC (Z(6)9)
+       T1OR = CHOOSE (TRAMT IF (A = 'SRD' OR A = 'SRO'),0)
+       VALOR = T1OR
+       TVALOR = TOTAL (VALOR) D-PIC (SZ(12)9.99)
+       VALOR2 = TOTAL (VALOR) D-PIC (SZ(12)9.99)
+       VOR = TOTAL (VALOR) D-PIC (SZ(12)9)
+%*  Consignment Stock
+%*    Suppliers
+       C1CRN = CHOOSE (1 IF (A = 'CRD'),0)
+       CCRN = TOTAL (C1CRN) D-PIC (Z(6)9)
+       VALCRN = CHOOSE (TRAMT IF (A = 'CRD'),0)
+       TVALCRN = TOTAL (VALCRN) D-PIC (SZ(12)9)
+%*    Offsite
+       C1CRO = CHOOSE (1 IF (A = 'CRO'),0)
+       CCRO = TOTAL (C1CRO) D-PIC (Z(6)9)
+       VALCRO = CHOOSE (TRAMT IF (A = 'CRO'),0)
+       TVALCRO = TOTAL (VALCRO) D-PIC (SZ(12)9)
+%*    Totals
+       C1CR = CHOOSE (1 IF (A = 'CRD' OR A = 'CRO'),0)
+       CCR = C1CR
+       CECR = TOTAL (CCR) PIC (Z(6)9)
+       T1CR = CHOOSE (TRAMT IF (A = 'CRD' OR A = 'CRO'),0)
+       VALCR = TOTAL (T1CR) D-PIC (SZ(7)9.99)
+       TVALCR = TOTAL (T1CR) D-PIC (SZ(12)9)
+%* ISSUES
+%*  Owned Stock
+       C1OS = CHOOSE (1 IF (A = 'ISS'),0)
+       C1OF = CHOOSE (1 IF (A = 'FAO'),0)
+       C1OG = CHOOSE (1 IF (A = 'ISI'),0)
+       C1OI = CALC (C1OS + C1OF + C1OG)
+       COI = TOTAL (C1OI) D-PIC (Z(6)9)
+       COS = TOTAL (C1OS)
+       COF = TOTAL (C1OF) D-PIC (Z(6)9)
+       C1OIC = CHOOSE (1 IF (A = 'ISS', B = C), 0)
+       C1OID = CHOOSE (1 IF (A = 'ISS', B = D), 0)
+       C1OIE = CHOOSE (1 IF (A = 'ISS', B = E), 0)
+       C1OIF = CHOOSE (1 IF (A = 'ISS', B = F), 0)
+       C1OIG = CHOOSE (1 IF (A = 'ISI', B = G), 0)
+       C1OIX = CHOOSE (1 IF (A = 'ISS',B <> C, B <> D,B <> E,B <> F, B <> G), 0)
+       COIC = TOTAL (C1OIC) D-PIC (Z(6)9)
+       COID = TOTAL (C1OID) D-PIC (Z(6)9)
+       COIE = TOTAL (C1OIE) D-PIC (Z(6)9)
+       COIF = TOTAL (C1OIF) D-PIC (Z(6)9)
+       COIG = TOTAL (C1OIG) D-PIC (Z(6)9)
+       COIX = TOTAL (C1OIX) D-PIC (Z(6)9)
+       V1OS = CHOOSE (TRAMT IF (A = 'ISS'),0)
+       V1OF = CHOOSE (TRAMT IF (A = 'FAO'),0)
+       V1OG = CHOOSE (TRAMT IF (A = 'ISI'),0)
+       V1OI = CALC (V1OS + V1OF + V1OG)
+       VALOI = TOTAL (V1OI) D-PIC (SZ(7)9.99)
+%* DG FUEL ISSUES NOT USED BY ECNSW NOTE: VOF ALREADY EXISTS
+       V1OIC = CHOOSE (TRAMT IF (A = 'ISS', B = C), 0)
+       V1OID = CHOOSE (TRAMT IF (A = 'ISS', B = D), 0)
+       V1OIE = CHOOSE (TRAMT IF (A = 'ISS', B = E), 0)
+       V1OIF = CHOOSE (TRAMT IF (A = 'ISS', B = F), 0)
+       V1OIG = CHOOSE (TRAMT IF (A = 'ISI', B = G), 0)
+       V1OIX = CHOOSE (TRAMT IF (A = 'ISS',B <> C,B <> D,B <> E,B <> F,B <> G), 0)
+       VOC = TOTAL (V1OIC) D-PIC (SZ(7)9)
+       VOD = TOTAL (V1OID) D-PIC (SZ(7)9)
+       VOE = TOTAL (V1OIE) D-PIC (SZ(7)9)
+       VOF = TOTAL (V1OIF) D-PIC (SZ(7)9)
+       VOG = TOTAL (V1OIG) D-PIC (SZ(7)9)
+       VOX = TOTAL (V1OIX) D-PIC (SZ(7)9)
+       VOT = TOTAL (V1OI)  D-PIC (SZ(7)9)
+%* DG FUEL ISSUES NOT USED BY ECNSW NOTE: VOIF ALREADY EXISTS
+       VOIC = TOTAL (V1OIC) D-PIC (SZ(12)9)
+       VOID = TOTAL (V1OID) D-PIC (SZ(12)9)
+       VOIE = TOTAL (V1OIE) D-PIC (SZ(12)9)
+       VOIF = TOTAL (V1OIF) D-PIC (SZ(12)9)
+       VOIG = TOTAL (V1OIG) D-PIC (SZ(12)9)
+       VOIX = TOTAL (V1OIX) D-PIC (SZ(12)9)
+       VOI  = TOTAL (V1OI)  D-PIC (SZ(12)9)
+%*  Consignment Stock
+       C1CS = CHOOSE (1 IF (A = 'ISC'),0)
+       C1CF = CHOOSE (1 IF (A = 'FAC'),0)
+       C1CI = CALC (C1CS + C1CF)
+       CCI = TOTAL (C1CI) D-PIC (Z(6)9)
+       CCS = TOTAL (C1CS)
+       CCF = TOTAL (C1CF) D-PIC (Z(6)9)
+       C1CIC = CHOOSE (1 IF (A = 'ISC', B = C), 0)
+       C1CID = CHOOSE (1 IF (A = 'ISC', B = D), 0)
+       C1CIE = CHOOSE (1 IF (A = 'ISC', B = E), 0)
+       C1CIX = CHOOSE (1 IF (A = 'ISC',B <> C, B <> D, B <> E), 0)
+       CCIC = TOTAL (C1CIC) D-PIC (Z(6)9)
+       CCID = TOTAL (C1CID) D-PIC (Z(6)9)
+       CCIE = TOTAL (C1CIE) D-PIC (Z(6)9)
+       CCIX = TOTAL (C1CIX) D-PIC (Z(6)9)
+       V1CS = CHOOSE (TRAMT IF (A = 'ISC'),0)
+       V1CF = CHOOSE (TRAMT IF (A = 'FAC'),0)
+       V1CI = CALC (V1CS + V1CF)
+       VALCI = TOTAL (V1CI) D-PIC (SZ(7)9.99)
+       VCF = TOTAL (V1CF) PIC (Z(7)9)
+       V1CIC = CHOOSE (TRAMT IF (A = 'ISC', B = C), 0)
+       V1CID = CHOOSE (TRAMT IF (A = 'ISC', B = D), 0)
+       V1CIE = CHOOSE (TRAMT IF (A = 'ISC', B = E), 0)
+       V1CIX = CHOOSE (TRAMT IF (A = 'ISC',B <> C, B <> D, B <> E), 0)
+       VCC  = TOTAL (V1CIC) D-PIC (Z(7)9)
+       VCD  = TOTAL (V1CID) D-PIC (Z(7)9)
+       VCE  = TOTAL (V1CIE) D-PIC (Z(7)9)
+       VCX  = TOTAL (V1CIX) D-PIC (Z(7)9)
+       VCT  = TOTAL (V1CI)  D-PIC (Z(7)9)
+       VCIF = TOTAL (V1CF)  D-PIC (SZ(12)9)
+       VCIC = TOTAL (V1CIC) D-PIC (SZ(12)9)
+       VCID = TOTAL (V1CID) D-PIC (SZ(12)9)
+       VCIE = TOTAL (V1CIE) D-PIC (SZ(12)9)
+       VCIX = TOTAL (V1CIX) D-PIC (SZ(12)9)
+       VCI  = TOTAL (V1CI)  D-PIC (SZ(12)9)
+
+%* dg add sales tax section
+%* SALES TAX ON ISSUES
+       TAXC = TAX-CODE-S VIA (A)
+       TAXPC = TAX-PERCENT-S VIA (A)
+       TFACTOR = CALC (1 + TAXPC / 100)        
+       ISSVAL = CALC (TRAMT / TFACTOR)
+       TAXVAL1 = CALC (ISSVAL * TAXPC / 100)
+       TAXVAL = CHOOSE (TAXVAL1 IF (TAXPC <> 0),0)
+       TAXCNT = CHOOSE (1 IF (TAXVAL <> 0), 0)
+       TAXTOT = TOTAL (TAXVAL)
+%* Owned Stock
+       TAXVALO = CHOOSE (TAXVAL IF (A = 'ISS'), 0)
+       TAXTOTO = TOTAL (TAXVALO) D-PIC (SZ(12)9)
+       TAXCNTO = CHOOSE (TAXCNT IF (A = 'ISS'), 0)
+       TAXITO = TOTAL (TAXCNTO)
+%* Consignment
+       TAXVALC = CHOOSE (TAXVAL IF (A = 'ISC'), 0)
+       TAXTOTC = TOTAL (TAXVALC) D-PIC (SZ(12)9)
+       TAXCNTC = CHOOSE (TAXCNT IF (A = 'ISC'), 0)
+       TAXITC = TOTAL (TAXCNTC)
+
+%* ADJUSTMENTS
+%*   Owned Stock
+       C1OAS = CHOOSE (1 IF (A = 'STO'),0)
+       C1OAO = CHOOSE (1 IF (A = 'ORD'),0)
+       C1OAI = CHOOSE (1 IF (A = 'ADJ'),0)
+       COAS  = TOTAL (C1OAS) D-PIC (Z(6)9)
+       COAO  = TOTAL (C1OAO) D-PIC (Z(6)9)
+       COAI  = TOTAL (C1OAI) D-PIC (Z(6)9)
+       C1OA  = CALC (C1OAS + C1OAO + C1OAI)
+       COA   = TOTAL (C1OA) D-PIC (Z(6)9)
+       V1OAS = CHOOSE (TRAMT IF (A = 'STO'),0)
+       V1OAO = CHOOSE (TRAMT IF (A = 'ORD'),0)
+       V1OAI = CHOOSE (TRAMT IF (A = 'ADJ'),0)
+       VOAS  = TOTAL (V1OAS) D-PIC (SZ(12)9)
+       VOAO  = TOTAL (V1OAO) D-PIC (SZ(12)9)
+       VOAI  = TOTAL (V1OAI) D-PIC (SZ(12)9)
+       V1OA  = CALC (V1OAS + V1OAO + V1OAI)
+       VALOA = TOTAL (V1OA) D-PIC (SZ(7)9.99)
+       TVALOA = TOTAL (V1OA) D-PIC (SZ(12)9)
+       VOA   = TOTAL (V1OA) D-PIC (SZ(7)9)
+%*   Consignment Stock
+       C1CA = CHOOSE (1 IF (A = 'STA' OR A = 'STC'),0)
+       CCA = TOTAL (C1CA) D-PIC (Z(6)9)
+       V1CA = CHOOSE (TRAMT IF (A = 'STA' OR A = 'STC'),0)
+       VALCA = TOTAL (V1CA) D-PIC (SZ(7)9.99)
+       TVALCA = TOTAL (V1CA) D-PIC (SZ(12)9)
+       VCA = TOTAL (V1CA) D-PIC (Z(8)9)
+%* TOTAL OF TRANSACTIONS & ACTUAL BALANCE
+       COTOT = CALC (CEOR + COI + COA) D-PIC (Z(8)9)
+%* DG subtract issue values do not add them 
+%* DG Add Sales tax to total value of trans
+       TOVAL = CALC (TVALOR - VOI + TAXTOTO + TVALOA) PIC (SZ(12)9)
+       CCTOT = CALC (CECR + CCI + CCA) D-PIC (Z(8)9)
+       TCVAL = CALC (TVALCR + VCI + TVALCA) D-PIC (SZ(12)9)
+%* dg  ACTUAL BALANCE  = opening balance + recpts - iss + adjs
+%* DG Add Sales tax to Actual balance
+       ACTVAL = CALC (TOVALO + TVALOR - VOI + TAXTOTO + TVALOA) D-PIC (SZ(12)9)
+       L1 = 'Stat'
+       L2 = 'Type'
+%* Discrepancy
+       DIS = CALC (OBALO - CBALO + VOA + VOR - VOT + TAXTOTO) D-PIC (SZ(12)9.99)
+       L4 = '):'
+       L3 = 'TOTALS'
+       L5 = '*'
+%*  Below Minimum
+%* DG Include items with soh = 0 as items below min
+       C1MIN = CHOOSE (1 IF ((ICSOHO < IMINSTK) AND (IREORD <> 0)), 0)
+       CMIN = TOTAL (C1MIN) D-PIC (Z(6)9)
+       MINVAL = CHOOSE  (ICINVT IF (C1MIN = 1),0)
+       MINTOT = TOTAL (MINVAL) D-PIC (Z(12)9)
+       MIN1BLW = CALC ((IMINSTK - ICSOHO) * IINVTPR)
+       MINBLW = CHOOSE (MIN1BLW IF (C1MIN = 1),0)
+       MINBTOT = TOTAL (MINBLW) D-PIC (Z(12)9)
+%*  Above Maximum
+       MAXTEST  = CALC (IROPX + IREORD)
+       C1MAX = CHOOSE (1 IF (ICSOHO > MAXTEST), 0)
+       CMAX = TOTAL (C1MAX) D-PIC (Z(6)9)
+%* DG use closing 175 val (ICINVT) NOT closing soh * price (IVAL).
+       MAXVAL = CHOOSE (ICINVT IF (C1MAX = 1),0)
+       MAXTOT = TOTAL (MAXVAL) D-PIC (Z(12)9)
+       MAX1ABV = CALC ((ICSOHO - MAXTEST) * IINVTPR)
+       MAXABV = CHOOSE (MAX1ABV IF (C1MAX = 1), 0)
+       MAXATOT = TOTAL (MAXABV) D-PIC (Z(12)9)
+%* Between Minimum and Maximum
+       C1OK = CHOOSE (1 IF (C1MIN = 0 AND C1MAX = 0), 0)
+       COK = TOTAL (C1OK) D-PIC (Z(6)9)
+%* DG use closing 175 val (ICINVT) NOT closing soh * price (IVAL).
+       OKVAL = CHOOSE (ICINVT IF (C1OK = 1),0)
+       OKTOT = TOTAL (OKVAL) D-PIC (Z(12)9)
+%* All items
+       ICNT = CALC (CMIN + COK + CMAX) D-PIC (Z(6)9)
+       ITOT = CALC (MINTOT + OKTOT + MAXTOT) D-PIC (Z(12)9)
+       FRTOT = TOTAL (IFRT) D-PIC (Z(12)9)
+       CUSTOT = TOTAL (ICUST) D-PIC (Z(12)9)
+%* Reservations, Dues-in , (Dues-out + Total Picked)
+       XDI = CHOOSE (1 IF (IDI > 0), 0)
+       CDI = TOTAL (XDI) D-PIC (Z(6)9)
+       TOTDI = TOTAL (IDI) D-PIC (Z(12)9)
+       XRES = CHOOSE (1 IF (IRES > 0), 0)
+       CRES = TOTAL (XRES) D-PIC (Z(6)9)
+       TOTRES = TOTAL (IRES) D-PIC (Z(12)9)
+       XDO = CHOOSE (1 IF (IDO > 0 OR IPICK > 0), 0)
+       CDO = TOTAL (XDO) D-PIC (Z(6)9)
+       VALDO = CALC (IDO + IPICK)
+       TOTDO = TOTAL (VALDO) D-PIC (Z(12)9)
+%*  Items unmoved for one year
+       COMPDATE = DATE2 OF MSSDAT WHERE (OPTION = '1', DATE1 = PER-END, -
+                                         DAYS = -365) CONSTANT
+       C1UNM = CHOOSE (1 IF (ILID < COMPDATE, ICRD < COMPDATE), 0)
+       CUNM = TOTAL (C1UNM) D-PIC (Z(6)9)
+       VALUNM = CHOOSE (ICINVT IF (C1UNM = 1), 0)
+       TOTUNM = TOTAL (VALUNM) D-PIC (Z(12)9)
+%*  Items added to inventory
+       CP1ADD = CHOOSE (1 IF (ICRD > PER-ST, ICRD <= PER-END),0)
+       CPADD = TOTAL (CP1ADD) D-PIC (Z(6)9)
+       VALCPADD = CHOOSE (ICINVT IF (CP1ADD = 1), 0)
+       TOTCPADD = TOTAL (VALCPADD) D-PIC (Z(12)9)
+       CY1ADD = CHOOSE (1 IF (ICRD > COMPDATE, ICRD <= PER-END),0)
+       CYADD = TOTAL (CY1ADD) D-PIC (Z(6)9)
+       VALCYADD = CHOOSE (ICINVT IF (CY1ADD = 1), 0)
+       TOTCYADD = TOTAL (VALCYADD) D-PIC (Z(12)9)
+%*  ABCD/XYZ level statistics
+       AVAL = ABCD-A-VALUE OF MSF000 -
+                    WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                           CONTROL-REC-TYPE = 'DC', -
+                           CONTROL-REC-NO = '0018') CONSTANT
+       BVAL = ABCD-B-VALUE VIA (AVAL) CONSTANT
+       XVAL = XYZ-X-VALUE VIA (AVAL) CONSTANT
+       YVAL = XYZ-Y-VALUE VIA (AVAL) CONSTANT
+       K = ')' CONSTANT
+       C1A = CHOOSE (1 IF (IABC = 'A'), 0)
+       CA = TOTAL (C1A) D-PIC (Z(6)9)
+       VALA = CHOOSE (ICINVT IF (C1A = 1), 0)
+       TOTA = TOTAL (VALA) D-PIC (Z(12)9)
+       C1B = CHOOSE (1 IF (IABC = 'B'), 0)
+       CB = TOTAL (C1B) D-PIC (Z(6)9)
+       VALB = CHOOSE (ICINVT IF (C1B = 1), 0)
+       TOTB = TOTAL (VALB) D-PIC (Z(12)9)
+       C1C = CHOOSE (1 IF (IABC = 'C'), 0)
+       CC = TOTAL (C1C) D-PIC (Z(6)9)
+       VALC = CHOOSE (ICINVT IF (C1C = 1), 0)
+       TOTC = TOTAL (VALC) D-PIC (Z(12)9)
+       C1D = CHOOSE (1 IF (IABC = 'D'), 0)
+       CD = TOTAL (C1D) D-PIC (Z(6)9)
+       VALD = CHOOSE (ICINVT IF (C1D = 1), 0)
+       TOTD = TOTAL (VALD) D-PIC (Z(12)9)
+       C1X = CHOOSE (1 IF (IXYZ = 'X'), 0)
+       CX = TOTAL (C1X) D-PIC (Z(6)9)
+       VALX = CHOOSE (ICINVT IF (C1X = 1), 0)
+       TOTX = TOTAL (VALX) D-PIC (Z(12)9)
+       C1Y = CHOOSE (1 IF (IXYZ = 'Y'), 0)
+       CY = TOTAL (C1Y) D-PIC (Z(6)9)
+       VALY = CHOOSE (ICINVT IF (C1Y = 1), 0)
+       TOTY = TOTAL (VALY) D-PIC (Z(12)9)
+       C1Z = CHOOSE (1 IF (IXYZ = 'Z'), 0)
+       CZ = TOTAL (C1Z) D-PIC (Z(6)9)
+       VALZ = CHOOSE (ICINVT IF (C1Z = 1), 0)
+       TOTZ = TOTAL (VALZ) D-PIC (Z(12)9)
+
+%* Get YTD figures
+       
+       Y-TOT  = TOTAL (ISY-TOT)  D-PIC (Z(7)9)
+       Y-PART = TOTAL (ISY-PART) D-PIC (Z(7)9)
+       Y-NOT  = TOTAL (ISY-NOT)  D-PIC (Z(7)9)
+       Y-LATE = TOTAL (ISY-LATE) D-PIC (Z(7)9)
+%*DD
+       Y-T    = CALC (Y-PART + Y-NOT) D-PIC (Z(7)9)
+       Y-CURR = CALC (Y-TOT + Y-PART + Y-NOT + Y-LATE)
+       YGS    = CALC ((Y-TOT / Y-CURR) * 100) D-PIC (ZZ9.99)
+       Y-CURN = CALC (Y-TOT + Y-PART)
+       YNS    = CALC ((Y-CURN / Y-CURR) * 100) D-PIC (ZZ9.99)
+       YLS    = CALC ((Y-LATE / Y-CURR) * 100) D-PIC (ZZ9.99)
+       X      = '%' CONSTANT

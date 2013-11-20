@@ -1,0 +1,405 @@
+%*** TRR22C.RDL
+%********************
+%*** Revision History ***
+%********************
+%*** 09-Apr-13 a9nh4814      MO164 (Version 0005)
+%*** ......................  Added filtering for bursting to send to valid
+%*** ......................  emails only.
+%*** 27-Mar-13 a9nh4814      MO164 (Version 0004)
+%*** ......................  Changed wording in email attachment
+%*** 26-Mar-13 a9nh4814      MO164 (Version 0003)
+%*** ......................  Corrected break for bursting
+%*** 16-Feb-13 a9nh4814         MO164 (Version 0002)
+%*** ......................  - Add bursting
+%*** 26-Jul-12 a9jw6280         MO164 (Version 0001)
+%*** ......................  - Changed program to get SOH using MSSSOH 
+%*** ......................  as SOH field is no longer exist in MSF170 now.
+%*** ......................  - Change the way to get Order Date directly rather 
+%*** ......................  than via Supplier. 
+%*** ......................  - Changed %SUBROUTINES into %ROUTINES.
+%*** ......................  - Changed PIC into D-PIC or I-PIC (can't just PIC).
+%*** ......................  - Reset version number to 0001 for E8 upgrade.
+%*** 09-Nov-05 E Fredeluces  P05110870
+%***                         Fix compilation errors in Ellipse 5.2.3.7.
+%*** 01-Jul-05 Amanda N.     P05060270
+%*** ......................  - Modified to include warehouse code e.g '-N1'
+%*** ......................    as a suffix to PO for district 'GRID  for 
+%*** ......................    report A.
+%*** 
+%*** 21-FEB-2002 D Diolaso WCHG001341 
+%******************** Inclusion of option to send (or not to send)
+%******************** email notification.
+%*** 30-NOV-2001 D Diolaso WCHG000352
+%******************** Send e-mail notification to the Purchase
+%******************** Requisition requestor
+%******************** Extract file ESO22C and 'copy-request' of 
+%******************** TRB23C included
+%PROGRAM-ID
+    TRR22C
+%AUTHOR
+    D. DIOLASO  
+%NARRATIVE
+    *** 
+    ***     a) Only records pertinent to district are being selected
+    ***     b) Instead of selection by purchasing officers, the parameter
+    ***        has been modified to select by requesting officer
+    ***     c) The 'Show Auth/Req. Officers' parameter has been removed
+    ***     d) Added e-mail notification to the PR requestor of reported 
+    ***        outstanding PO. In order to accomplish this, the following
+    ***        has been added:
+    ***        d.1) An extract file to the trr22c
+    ***        d.2) A copy-request of TRB23C in trr22c
+    ***        d.3) A new program, TRB23C which actually sends the e-mail
+    ***
+%VERSION
+    0005
+%FILES
+    MFILE = MSF221C
+    LFILE = MSF231
+    LFILE = MSF230
+    LFILE = MSF220
+    LFILE = MSF170
+    LFILE = MSF110A
+    LFILE = MSF100
+    LFILE = MSF810
+    LFILE = MSF200   
+    RFILE = TRR22CA
+    RFILE = TRR22CB
+%*    OFILE = TRO22CC
+%SELECTION
+    WHERE (DSTRCT-CODE-2 = %DISTRICT-CODE%, RECEIPT-STATUS-2 >= '0')
+        STOPIF (RECEIPT-STATUS-2 > '1')
+        REJECTIF (STATUS-221    >= 3)
+        REJECTIF (CURR-QTY-I     = 0)
+        REJECTIF (PO-ITEM-TYPE   = 'S')
+        REJECTIF (CURR-DUE-DATE  > DA1)    
+        REJECTIF (DSTRCT-CODE   <> WX-DISTRICT)
+
+%ROUTINES
+        MSSCNV
+        MSSSOH
+%ORDER  
+    SP
+    PO-NO
+    PO-ITEM-NO
+    CURR-DUE-DATE
+%BREAK-FIELDS
+    SP
+    PO-NO
+%REPORT
+    A
+%REPORT-TITLE
+    'OUTSTANDING PURCH ORDERS FOR A SUPPLIER (with E-MAIL Notification)'
+%PAGE HEADING
+%BREAK SP HEADING ON NEW-PAGE TEST-PAGE (1)
+<IF INCL = 'Y'>
+<IF S= %SUPP-NO1% OR S= %SUPP-NO2% OR S= %SUPP-NO3% OR %SUPP-NO1% = SPACES>  
+    'Supplier-' SSSSSS {SNAME                       }  'Address-' {ADDR1                        } 'Contact:'{CONT                  }
+                                                                  {ADDR2                        }   'Phone:'{PH            }
+                                                                  {ADDR3                        }'Postcode:'CCCC
+    'Purchasing Officer-' {PUR-OFF } {PONAME                      }
+{UNDERLINE                                                                                                                         }
+'Order    Itm  Order    Due   Exp Ord Qty     Net        Item Name                            ROP/    Due In/   SOH/   Stkcode/DCPR'
+' No       No  Date     Date  code  /Recd     Price                                             EOQ     Due Out  Rec Ord  Stkline'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+<ENDIF>
+%* MW ADDED HERE
+%BREAK PO-NO HEADING TEST-PAGE (1)
+<IF INCL = 'Y'>
+<IF S= %SUPP-NO1% OR S= %SUPP-NO2% OR S= %SUPP-NO3% OR %SUPP-NO1% = SPACES>  
+  <IF NARR-HS > 0>
+
+ PPPPPP    'Non Printing Order Narrative'                               
+  <REPEAT>
+  <SUPPRESS>
+            {NARR-H                                                    }
+  <ENDREPEAT>
+
+  <ENDIF>
+<ENDIF>
+<ENDIF>
+%DETAIL TEST-PAGE (1)
+<IF INCL = 'Y'>
+<IF S= %SUPP-NO1% OR S= %SUPP-NO2% OR S= %SUPP-NO3% OR %SUPP-NO1% = SPACES>  
+ {POWH   } III 'Requested by' {REQ       } {RNAME                       } 'Authorised by' {AUT       } {ANAME                      }
+ {POWH   } III {OD    } {CD    } HHQQQQQQQ {NP      } {D1                                    }  {ROPT }  {DUEI  } {SOH1 }  {SC     } 
+                                 EE{QR   }            {D2                                    }  {EOQ  }  {DUEO  } {REC  }  {PT   }
+                                                   <SUPPRESS>  
+                                                     {D3                                    }  
+                                                   <SUPPRESS>  
+                                                     {D4                                    }
+                                                   <SUPPRESS>
+                                                     {D5                                    }
+
+                                                   <REPEAT>
+                                                      <SUPPRESS>
+                                                     {EXT-DESC                              }
+                                                   <ENDREPEAT>
+   <IF NARR-IS > 0>
+           'Non Printing Order Item Narrative'
+  <ENDIF>
+  <REPEAT>
+  <SUPPRESS>
+            {NARR-I                                                    } 
+  <ENDREPEAT>
+<ENDIF>
+<ENDIF>
+%REPORT-SUMMARY
+                   'TOTAL NUMBER OF ORDER ITEMS REPORTED            : ' {CNTTOT     }
+                   'TOTAL OUTSTANDING VALUE OF ORDER ITEMS REPORTED : ' {TV         }  
+%REPORT
+    B
+%REPORT-TITLE
+    'OUTSTANDING PURCH ORDERS FOR A SUPPLIER (with E-MAIL Notification)'
+%BREAK PO-NO HEADING ON NEW-PAGE
+<IF INCL = 'Y' AND %EMAIL% = 'Y'>
+    <IF S= %SUPP-NO1% OR S= %SUPP-NO2% OR S= %SUPP-NO3% OR %SUPP-NO1% = SPACES>
+<IF POEMAIL <> SPACES>
+'<burst>'
+    '<type>EMAIL</type>'
+    '<to>'{POEMAIL                                                   }'</to>'
+    '<from>trr22c@transgrid.com.au</from>'
+    '<subject>Outstanding Purchase Orders</subject>'
+    '<body>It is noted that some items on PO'{POWH   } 'have not been received.' -
+'Please see the attachment for details.'
+    '</body>'
+'</burst>'
+<ENDIF>
+'MESSAGE'
+'-'
+'It is noted that the following items on PO'{POWH   } 'have not been received:'
+'-'
+'Itm     Qty Due Date Description'
+    <ENDIF>
+<ENDIF>
+%DETAIL
+<IF INCL = 'Y' AND %EMAIL% = 'Y'>
+    <IF S= %SUPP-NO1% OR S= %SUPP-NO2% OR S= %SUPP-NO3% OR %SUPP-NO1% = SPACES>
+ III QQQQQQQ {CD    } {D1                                    }
+                      {D2                                    }
+    <ENDIF>
+<ENDIF>
+%BREAK SP FOOTING
+<IF INCL = 'Y' AND %EMAIL% = 'Y'>
+    <IF S= %SUPP-NO1% OR S= %SUPP-NO2% OR S= %SUPP-NO3% OR %SUPP-NO1% = SPACES>
+'-'
+'Please follow up with the company. Details are as follows:'
+      'Supplier    :'SSSSSS {SNAME                       }
+      'Address     :'{ADDR1                        }
+                     {ADDR2                        }
+                     {ADDR3                        }
+      'Phone       :'{PH            }    'Fax    :'{FN            }
+'-'
+'If you have received the goods, please advise Stuart Mangold ext 93.3268 to enable the appropriate paper work to be processed.'
+    <ENDIF>
+<ENDIF>
+%*%OUTPUT-FILE
+%*    C
+%*%CONTROL
+%*    RECORD-LENGTH = 112
+%*    COPY-REQUEST  = TRB23C
+%*%DETAIL                  
+%*<IF INCL = 'Y' AND %EMAIL% = 'Y'>
+%*    <IF S= %SUPP-NO1% OR S= %SUPP-NO2% OR S= %SUPP-NO3% OR %SUPP-NO1% = SPACES>
+%*FPPPPPPIII{REQ     }{D1                                    }SSSSSS{SNAME                         }{Q   }{CD    }
+%*GPPPPPP{D2                                    }{D3                                    }{FN            }BBBBBBBBB
+%*JPPPPPP{D4                                    }BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+%*KPPPPPP{ADDR1                        }{ADDR2                        }{ADDR3                        }BBBBBBBBBBBB
+%*LPPPPPPCCCC{CONT                  }{PH            }BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+%*    <ENDIF>
+%*<ENDIF>
+%REQUEST-PARAMETERS
+    SUPP-NO1      PIC (X(6)) TEXT '1st Supplier   '
+    SUPP-NO2      PIC (X(6)) TEXT '2nd Supplier   '
+    SUPP-NO3      PIC (X(6)) TEXT '3rd Supplier   '
+    REQ-OFFICER1  PIC (X(10)) TEXT '1st Requesting Officer'
+    REQ-OFFICER2  PIC (X(10)) TEXT '2nd Requesting Officer'
+    REQ-OFFICER3  PIC (X(10)) TEXT '3rd Requesting Officer'
+    EMAIL         PIC (X(1))  TEXT 'WITH EMAIL NOTIFICATION (Y/N) :'
+%VARIABLES
+    B  = ' '    CONSTANT
+    F  = '1'    CONSTANT
+    G  = '2'    CONSTANT
+    J  = '3'    CONSTANT
+    K  = '4'    CONSTANT
+    L  = '5'    CONSTANT
+
+%*MSF221
+    S  = SUPPLIER-NO OF MSF220 - 
+         WHERE (PO-NO = PO-NO)  
+    PUR-OFF = PURCH-OFFICER VIA (S)
+    SPTEMP  = CATENATE (S, PUR-OFF)
+    SP = CHOOSE ( SPTEMP IF (SPTEMP <> SPACES), SPTEMP)
+    P  = PO-NO 
+    I  = PO-ITEM-NO
+    DS = DSTRCT-CODE
+
+%* get whouse id for grid district ...
+    WHID      = WHOUSE-ID
+    WHI       = SUBSTR (WHID, 1, 2)
+    WH        = CATENATE (P, '-', WHI)
+    POWH      = CHOOSE (WH IF (DS = 'GRID'), -
+                        P)
+
+    OD = ORDER-DATE OF MSF220 WHERE (PO-NO = PO-NO)   FORMAT DATE
+    Z  = '/'    
+    CD = CURR-DUE-DATE FORMAT DATE
+    DA1 = DATE () CONSTANT
+    Q  = CURR-QTY-I I-PIC (ZZZZZ9)
+    QR = QTY-RCV-DIR-I I-PIC (ZZZZZ9)
+    NP = CURR-NET-PR-I D-PIC ($$$$$$9.99)
+    V  = CALC ((Q - QR) * NP)
+    H = EXPEDITE-CODE
+    E = EXPEDITE-COUNT
+    SC = STOCK-CODE 
+    PR = PURCH-REQ
+    PRI = PREQ-ITEM
+%*** Temp var
+    pit = PO-ITEM-TYPE   
+%*MSF100
+    INS = ITEM-NAME OF MSF100 -
+             WHERE (STOCK-CODE = SC)
+
+%* Stock code details
+    SCINAME = INS
+    SCDESC1 = DESC-LINE-1 VIA (INS)
+    SCDESC2 = DESC-LINE-2 VIA (INS)
+    SCDESC3 = DESC-LINE-3 VIA (INS)
+    SCDESC4 = DESC-LINE-4 VIA (INS)
+    
+    SCEXT-DESC = GET (READ-TEXT FROM ('MSF096') CODE ('SC')  KEY (SC)) MAX(99)
+
+%*MSF231
+    IND = ITEM-DESC1 OF MSF231 -
+             WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                    PREQ-NO = PR, PREQ-ITEM-NO = PRI)
+    IN = CHOOSE (INS IF (INS <> SPACES), IND)
+%*MSF230
+    REQ = REQUESTED-BY OF MSF230 -
+             WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                    PREQ-NO = PR)
+    AUT = AUTHSD-BY VIA (REQ)
+
+    INCL    = CHOOSE ('Y' IF (%REQ-OFFICER1% > SPACES,   -
+                              %REQ-OFFICER1% = REQ),     -
+                      'Y' IF (%REQ-OFFICER2% > SPACES,   -
+                              %REQ-OFFICER2% = REQ),     -
+                      'Y' IF (%REQ-OFFICER3% > SPACES,   -
+                              %REQ-OFFICER3% = REQ),     -
+                      'Y' IF (%REQ-OFFICER1% = SPACES), 'N')
+
+%*MSF810
+       RSNAME  = SURNAME OF MSF810 - 
+                     WHERE (EMPLOYEE-ID = REQ)
+       RFNAME  = FIRST-NAME  VIA (RSNAME)
+       RTNAME   = catenate (RSNAME,' ',RFNAME)
+       RNAME  = OUT-STRING OF MSSCNV -
+                     WHERE (OPTION     = 'P', -
+                            INP-STRING = RTNAME)
+       POEMAIL = EMAIL-ADDRESS VIA (RSNAME)
+
+       ASNAME  = SURNAME OF MSF810 - 
+                     WHERE (EMPLOYEE-ID = AUT)
+       AFNAME  = FIRST-NAME  VIA (ASNAME)
+       ATNAME   = catenate (ASNAME,' ',AFNAME)
+       ANAME  = OUT-STRING OF MSSCNV -
+                     WHERE (OPTION     = 'P', -
+                            INP-STRING = ATNAME)
+
+       POSNAME = SURNAME OF MSF810 - 
+                 WHERE (EMPLOYEE-ID = PUR-OFF)
+       POFNAME = FIRST-NAME  VIA (POSNAME)
+       POTNAME = catenate (POSNAME,' ',POFNAME)
+       PONAME  = OUT-STRING OF MSSCNV -
+                 WHERE (OPTION     = 'P', -
+                        INP-STRING = POTNAME)
+
+%*               PRINT AUTH/REQ. ONLY IF 1 NON-BLANK & PARAM REQUESTS IT.
+%*DD   DO-AUT = CHOOSE ('N' IF (RNAME = SPACES AND ANAME = SPACES), -
+%*                        %AUTH-REQ-IND%)
+
+%* Purchase Req Item Details
+   PRDESC1 = IND
+   PRDESC2 = ITEM-DESC2 VIA (IND)
+   PRDESC3 = ITEM-DESC3 VIA (IND)
+   PRDESC4 = ITEM-DESC4 VIA (IND)
+
+   PREXT-DESC = GET (READ-TEXT FROM ('MSF096') CODE ('PR') KEY (%DISTRICT-CODE%,PR,PRI)) MAX(99)
+
+    D1 = choose (SCINAME  IF (PO-ITEM-TYPE = 'O'), -
+                 PRDESC1)
+
+    D2 = choose (SCDESC1  IF (PO-ITEM-TYPE = 'O'), -
+                 PRDESC2)
+
+    D3 = choose (SCDESC2  IF (PO-ITEM-TYPE = 'O'), -
+                 PRDESC3)
+
+    D4 = choose (SCDESC3  IF (PO-ITEM-TYPE = 'O'), -
+                 PRDESC4)
+
+    D5 = choose (SCDESC4  IF (PO-ITEM-TYPE = 'O'), -
+                 SPACES )
+
+    EXT-DESC = choose (SCEXT-DESC IF (PO-ITEM-TYPE ='O'),-
+                       PREXT-DESC)
+%*MSF110
+    PT = PART-NO OF MSF110A -
+             WHERE (DSTRCT-CODE = '    ', STOCK-CODE = SC, PREF-PART-IND >= '97') -
+                 MAX (1) 
+%* MW STARTED HERE
+%*MSF170
+%*    SOH1 = SOH OF MSF170 -
+%*                        WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+%*                               STOCK-CODE = SC)
+    SOH1 = OWN-CON-SOH OF MSSSOH -
+           WHERE (OPTION-SOH  = '1', -
+                  DSTRCT-CODE = %DISTRICT-CODE%, -
+                  STOCK-CODE  = SC)
+                  
+    ROPT = ROP OF MSF170 -
+           WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                  STOCK-CODE  = SC)
+                  
+    EOQ =  REORDER-QTY VIA (ROPT)
+    REC =  ROQ VIA (ROPT)
+    DUEI = DUES-IN VIA (ROPT)
+    DUEO = DUES-OUT VIA (ROPT)
+
+%*MSF200
+    SNAME = SUPPLIER-NAME OF MSF200 WHERE (SUPPLIER-NO = S)
+    ADDR1 = ORDER-ADDR-1 VIA (SNAME)
+    ADDR2 = ORDER-ADDR-2 VIA (SNAME)
+    ADDR3 = ORDER-ADDR-3 VIA (SNAME)
+    C     = ORDER-PCODE  VIA (SNAME)
+    PH    = ORDER-PHONE  VIA (SNAME)
+    CONT  = ORDER-CONTACT VIA (SNAME)
+    FN    = ORDER-FAX-NO VIA (SNAME)
+    NARR-H = GET (READ-TEXT FROM ('MSF096') -
+                CODE ('NT') -
+                KEY ('7', P))
+    NARR-HS = SIZE (NARR-H)
+    NARR-I = GET (READ-TEXT FROM ('MSF096') -
+                CODE ('NT') -
+                KEY ('8', P,I))
+    NARR-IS = SIZE (NARR-I)
+%* Totals
+   CNT = choose (1 IF (S    = %SUPP-NO1%,  -
+                       INCL = 'Y'),        -
+                 1 IF (S    = %SUPP-NO2%,  -
+                       INCL = 'Y'),        -
+                 1 IF (S    = %SUPP-NO3%,  -
+                       INCL = 'Y'),        -
+                 1 IF (%SUPP-NO1% = SPACES,-
+                       INCL = 'Y'), 0)
+   CNTTOT = total (CNT)
+   V1 = choose (V IF (S    = %SUPP-NO1%,  -
+                      INCL = 'Y'),        -
+                V IF (S    = %SUPP-NO2%,  -
+                      INCL = 'Y'),        -
+                V IF (S    = %SUPP-NO3%,  -
+                      INCL = 'Y'),        -
+                V IF (%SUPP-NO1% = SPACES,-
+                      INCL = 'Y'), 0) 
+   TV = TOTAL (V1) D-PIC ($$$,$$$,$$9.99)

@@ -1,0 +1,79 @@
+%*** Revision History
+%*** 26-Apr-13  P Cranna      (Version 0001)
+%*** .......................  Initial Coding.
+%*** 
+%PROGRAM-ID
+     TRR023
+%* 
+%VERSION
+     0001
+%* 
+%AUTHOR
+     Ventyx
+%* 
+%NARRATIVE
+     Lists global profiles used against positions which are not in the 
+     current position hierarchy.
+%* 
+%FILES
+     MFILE = MSF870
+     LFILE = MSF000
+     LFILE = MSF875
+     RFILE = TRR023A
+%* 
+%SELECTION
+     WHERE    (POSITION-ID >= SPACES)
+     REJECTIF (GLOBAL-PROFILE = SPACES)
+%* 
+%REPORT
+     A
+%* 
+%TITLE
+     'Global Profiles non-current Positions'
+%* 
+%PAGE HEADING
+
+'This report lists Positions (with Global Profile) which are not in the '
+'current position hierarchy. '
+
+'(Profiles may be used in another position which is in the current hierarchy.)'
+'          ---                                   --'
+
+
+'Position'   'Position Description'                    'Global Profile'    
+%* 
+%DETAIL
+<IF INHIER = 'N'>
+ {P870     }  {PDESC                                  } {GP      }
+<ENDIF>
+%* 
+%SUMMARY
+' '
+'*******************************  End of Report  *******************************'
+%* 
+%CONTROL
+     PAGE-WIDTH = 80
+     TRIM-REPORT
+%* 
+%VARIABLES
+%*
+     HTYPE   = HIER-TYPE OF MSF000 -
+               WHERE (DSTRCT-CODE      = '    ', -
+                      CONTROL-REC-TYPE = 'SC', -
+                      CONTROL-REC-NO   = '0001')      CONSTANT
+     HVER    = HIER-VERSION  VIA (HTYPE)              CONSTANT
+     HDET    = CATENATE (HTYPE, HVER) I-PIC (X(4))    CONSTANT
+%*
+     P870    = POSITION-ID
+     PDESC   = POS-TITLE
+     GP      = GLOBAL-PROFILE
+%*
+%*             This lookup determines if the position
+%*             is in the current hierarchy
+%* 
+     P875    = POSITION-ID OF MSF875 -
+               WHERE    (HIER-DETAILS   = HDET, -
+                         POSITION-ID    = P870)
+     INHIER  = CHOOSE ('Y' IF (P875 <> SPACES), 'N')
+%*
+%*  End of RDL

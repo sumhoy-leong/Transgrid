@@ -1,0 +1,104 @@
+%*** MSRRPT.RDL
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History:
+%*** 29-Sep-2012  a9nh4814   MO164
+%***                         Initial Coding.
+%***
+%PROGRAM-ID
+       MSRRPT
+%AUTHOR
+       a9nh4814
+%NARRATIVE
+  **  Sample report to test <REPEAT> clause
+
+%VERSION
+       0001
+%MODULE
+       3140
+%FILES
+        MFILE = MSF820
+        LFILE = MSF835
+        OFILE = TRTRPTA
+%SELECTION
+<IF %EMPID% = SPACES>
+       WHERE    (EMPLOYEE-ID >= SPACES)
+       SELECTIF (%PPAYGRP% = SPACES)
+       SELECTIF (%PPAYGRP% <> SPACES,-
+                 PAY-GROUP = %PPAYGRP%)
+<ELSE>
+       WHERE    (EMPLOYEE-ID >= %EMPID%,-
+                 EMPLOYEE-ID <= %EMPID%)
+<ENDIF>
+%CONTROL-BREAKS
+       DUM
+%OUTPUT-FILE
+       A
+%CONTROL
+       RECORD-LENGTH = 135
+%BREAK DUM HEADER
+{HDG20                                  }{HDG21                           }{HDG22            }
+%DETAIL
+<IF PRT = 'Y'>
+<REPEAT>
+{EMP     }C{PEND  }C{NTYPE}C{TTYPE}C{TCODE}C{TUNIT      }C-
+{NAMT         }CQ{NRATE}QC{HDAMT        }CQ{HDRATE}QC-
+{TDATE }C{BATCH}C{RETRO}
+<ENDREPEAT>
+<ENDIF>
+%REQUEST-PARAMETERS
+    EMPID  PIC (X(10)) TEXT 'Employee Id'
+    PPAYGRP PIC (X(3)) TEXT 'Pay Group '
+    PSTART PIC (X(8))  TEXT 'Period Start Date' FORMAT(DATE)
+    PEND   PIC (X(8))  TEXT 'Period End Date' FORMAT(DATE)
+%VARIABLES
+%*
+%* Constants
+%*
+      HDG20  = 'Employee,Per-End,Env-Typ,Trn-Typ,Trn-Cd,Trn-Units,' constant
+      HDG21  = 'Norm-Amt,Norm-Rate,HD-Amt,HD-Rate,'             constant
+      HDG22  = 'Tran-Dt,Batch,Retro'                            constant
+      C      = ','                                               constant
+      Q      = '"'                                               constant
+      WCURDT = WX-CUR-PERIOD-END-DATE                           constant
+      WCONS = WX-CONS-YTD-TOTS                                  constant
+      WPAYGP = WX-PAY-GROUP                                     constant
+      PAYGP1 = choose(SPACES IF (WCONS = 'Y'),WPAYGP)          constant
+%*
+%* MSF820 Variables
+%*
+      EMP    = EMPLOYEE-ID
+      DUM    = choose ('Y' IF (EMP = EMP), 'Y')
+      PAYGRP = PAY-GROUP
+
+%*
+%*  MSF835 Variables
+%*
+      PEND    = PRD-END-DATE of MSF835 -
+                          where (EMPLOYEE-ID = EMP,-
+                                 PRD-END-DATE >= %PSTART%,-
+                                 PRD-END-DATE <= %PEND%) -
+                        REJECTIF (PREV-RETRO = 'Y') -
+                            max(2000) FORMAT(DATE)
+      NTYPE   = ENVELOPE-TYPE via (PEND)
+      TTYPE   = TRAN-IND via (PEND)
+      TCODE   = TRAN-CODE via (PEND)
+      TUNIT   = TRN-UNITS via (PEND) D-PIC -ZZZZZZ9.999999
+      NAMT    = AMOUNT via (PEND) D-PIC -ZZZZZZZZZZZZ9.99
+      HDAMT   = HD-AMOUNT via (PEND) D-PIC -ZZZZZZZZZZZZ9.99
+      TDATE   = TRN-DATE via (PEND) FORMAT(DATE)
+      BATCH   = BATCH-ID via (PEND)
+      RETRO   = RTR-IGNORE via (PEND)
+      HDRATE  = HD-RATE-REF via (PEND)
+      NRATE   = RATE-REF-CODE via (PEND)
+%*
+%*  Determine if record is to be printed
+%*
+      PRT     = choose ('Y' IF(%PPAYGRP% = SPACES),-
+                        'Y' IF(%PPAYGRP% > SPACES,-
+                               PAYGRP = %PPAYGRP%),'N')
+%*
+%*     *** End of Program ***
+%*

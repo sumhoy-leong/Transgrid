@@ -1,0 +1,555 @@
+%*** $Id: trr91j.rdl,v4 2008/07/21 14:15:00 Exp $
+%PROGRAM-ID
+    TRR91J
+%AUTHOR
+    Geoff Presser - Mincom Pty Ltd
+%NARRATIVE
+    This RDL extracts records from the MSF900 file (Record Types 'H', 'I',
+    'L', 'P', 'Q' and 'S'). These are then formatted and a report is
+    produced. This report is used by the Finance people in trying to
+    reconcile the CAI transactions.
+%*
+    Revision History
+    ----------------
+%*** 15-Aug-13 Shally Lee       SC0000004308131 V005
+%***                            Add "other transactions" record (Record
+%***                            type '1') to TRR91JA report.
+%*** 31-May-13 SiewLee          SC0000004275415 (Version 0004)
+%***                            Fix total transaction amount 10m truncated 
+%***                            error.
+%***                            -Increase the length of variable TAMT to 
+%***                            store the total transaction amount 
+%***                            > 10 milion.
+%***                            - Inrease the length of varible AMT
+%*** 10-Apr-13 a9nh4814 (Version 0003)
+%***                     Added apostrophe to Account Code
+%*** 18-Mar-13 a9nh4814 (Version 0002)
+%*** Fixed sorting
+%*** 05-Sep-12 N Perry
+%*** Reset version number to 0001 for E8 upgrade
+%*** 21-Aug-12 N Perry
+%*** ......................  Objecting to the clauses 
+%*** ......................  <IF REC900-TYPE   VIA (M900) ....
+%*** ......................  Replaced with
+%*** ......................  <IF T ....
+%*** 27-Jul-12 N Perry       
+%*** ......................  Convert to Ellipse 8 format.
+    21-Jul-08 E Fredeluces      SC1926837 - Add TRT91J output CSV file.
+    18-Nov-05 E Fredeluces      P05110870
+                                Fix compilation errors in Ellipse 5.2.3.7.
+    06-Mar-02 D Diolaso         WCHG001479
+    ........................... Addition of 'END OF REPORT' to the last page
+    24-Oct-01 D Diolaso         W01090492
+    ........................... Inclusive parameter periods not to exceed
+    ........................... one quarter or 93 days
+    18-Oct-01 D Diolaso
+    ........................... Modified the process into a 2-step process
+    ........................... to improve the program efficiency.
+    ........................... Program usually averages 2 hour to complete.
+    ........................... The change to 2-step process resulted in
+    ........................... completion time of 30 mimutes average.
+    ........................... Following are the programs that comprised
+    ........................... the whole process:
+    ...........................    a)  TRR90J - Extract portion and
+    ...........................    b)  TRR91J - The 'look up' and report
+    ...........................        generation portion.
+    28-Aug-00 E Fredeluces      W00080721
+    ........................... Not displaying the Manual Journal
+    ........................... description.
+    07-Nov-00 D Diolaso         W00070125            (Vesrion 004)
+    ........................... Inclusion of 'M' transaction type
+    18-Nov-99 G Presser         W99110615            (Version 003)
+    ........................... Fixup the previous selection changes
+    ........................... & include an extra line for 'I' items
+    25-Oct-99 G Presser         W99100692            (Version 002)
+    ........................... Only process accounts within the
+    ........................... specified breakdowns
+%*
+%FILES
+    IFILE = TRO90J
+    LFILE = MSF900 
+    LFILE = MSF100
+    LFILE = MSF200
+    LFILE = MSF620
+    LFILE = MSF810
+    RFILE = TRR91JA
+    OFILE = TRT91JA
+%*
+%VERSION
+    0005
+%*
+%INPUT-FILE
+    I-DS       PIC (X(4))
+    I-PD       PIC (X(8))
+    I-TR       PIC (X(11))
+    I-USR      PIC (X(4))
+    I-RT       PIC (X(1))
+
+%*
+%ORDER
+  ASCENDING  ACCOUNT-CODE        VIA (M900)
+  ASCENDING  REC900-TYPE         VIA (M900)
+  DESCENDING TRNDTE-REV-9        VIA (M900)
+%*
+%REPORT
+    A
+%CONTROL-BREAKS
+    ACCOUNT-CODE        VIA (M900)
+%REPORT-TITLE
+    'Transactions Details Report'
+%*
+%PAGE HEADING
+%*
+'                                                     Journal/'
+'                                            Whs Inv  P.Order                              Invoice/Requistn   Qty/Qty-amt          D'
+'Src Date    MIMS Ref       W/Order  Project   Dist     /Item    Supplier/Employee/Stock/Jrnl Desc    /Item  Hours          Amount C'
+%*
+%BREAK ACCOUNT-CODE    VIA (M900) HEADER
+<IF I-TEXT <> 'INVALIDPARAM     ' AND I-DS <> 'DUMM'>
+<IF AC <> SPACES>
+
+'Account Code : ' {AC                    }
+<ENDIF>
+<ENDIF>
+%DETAIL
+<IF I-TEXT <> 'INVALIDPARAM     ' AND I-DS <> 'DUMM'>
+%*<IF REC900-TYPE   VIA (M900) = 'H'>
+<IF T = 'H'>
+%*T {TD    } {REF           } {WOH   } {PRHV  } {WHH}                                                          {QIH }     {AMT     } X
+T {TD    } {REF           } {WOH   } {PRHV  } {WHH}                                                          {QIH }   {AMT       } X
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'I'>
+<IF T = 'I'>
+%*T {TD    } {REF           } {WOI   } {PRIV  }    {IDI} {POIV   } {SNIV                   } {INIV           }            {AMT     } X
+T {TD    } {REF           } {WOI   } {PRIV  }    {IDI} {POIV   } {SNIV                   } {INIV           }          {AMT       } X
+                                                                 {IID                                   }
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'L'>             
+<IF T = 'L'>
+%*T {TD    } {REF           } {WOL   } {PRLV  }                    {SNLV                   }           {RTL  } {QIL }     {AMT     } X
+T {TD    } {REF           } {WOL   } {PRLV  }                    {SNLV                   }           {RTL  } {QIL }   {AMT       } X
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'M'>
+<IF T = 'M'>
+%*T {TD    } {REF           } {WOM   } {PRMV  }          {JDTL                                            } {QIM    }     {AMT     } X
+T {TD    } {REF           } {WOM   } {PRMV  }          {JDTL                                            } {QIM    }   {AMT       } X
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'P'>
+<IF T = 'P'>
+%*T {TD    } {REF           } {WOP   } {PRPV  } {WHP}    {POPV   } {SNPV                   } {RIPV  }          {QIP }     {AMT     } X
+T {TD    } {REF           } {WOP   } {PRPV  } {WHP}    {POPV   } {SNPV                   } {RIPV  }          {QIP }   {AMT       } X
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'Q'>
+<IF T = 'Q'>
+%*T {TD    } {REF           } {WOQ   } {PRQV  }          {POQV   } {SNQV                   } {RIQV  }          {QIQ }     {AMT     } X
+T {TD    } {REF           } {WOQ   } {PRQV  }          {POQV   } {SNQV                   } {RIQV  }          {QIQ }   {AMT       } X
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'S'>
+<IF T = 'S'>
+%*T {TD    } {REF           } {WOS   } {PRSV  } {WHS}                {SCS    } {DES                      }     {QIS }     {AMT     } X
+T {TD    } {REF           } {WOS   } {PRSV  } {WHS}                {SCS    } {DES                      }     {QIS }   {AMT       } X
+
+<ENDIF>
+%* V005 [Start]
+<IF T = '1'>
+T {TD    } {REF           } {WO1   } {PR1V  }                    {SNLV1                  }{CLAIMNO      }             {AMT       } X
+<ENDIF>
+%* V005 [End]
+<ENDIF>
+%*
+%BREAK ACCOUNT-CODE     VIA (M900) FOOTING
+<IF I-TEXT <> 'INVALIDPARAM     ' AND I-DS <> 'DUMM'>
+<IF AC <> SPACES>
+                                                                                                                        '-----------'
+      'Total'     {AC                    }                                                                            {TAMT      } Y
+<ENDIF>
+<ENDIF>
+%*
+%REPORT-SUMMARY
+<IF I-TEXT <> 'INVALIDPARAM     ' AND I-DS <> 'DUMM'>
+
+      'Grand Total'                                                                                                   {TAMT      } Y
+
+                                                         '*** End of Report ***'
+<ENDIF>
+<IF I-TEXT <> 'INVALIDPARAM    ' AND I-DS = 'DUMM'>
+
+
+
+
+
+
+      '>>>> END OF REPORT :   No record met the selection criteria for extraction'
+<ENDIF>
+<IF I-TEXT = 'INVALIDPARAM     '>
+
+
+
+
+
+
+
+
+'                         **** Invalid Parameters: Inclusive FROM and TO periods exceeded 1 quarter ****'
+<ENDIF>
+%OUTPUT-FILE
+    A
+%BREAK-FIELDS
+    DUM
+%CONTROL
+    RECORD-LENGTH = 355
+%BREAK DUM HEADER
+{HDG1                                         }{HDG2                                    }{HDG3                                   }-
+{HDG4                                          }{HDG5                                         }-
+{HDG6                                      }
+%DETAIL
+%* Account-Code,RType,Src-Date,MIMS-Ref,Wrk-Ord,Project,Whouse,Qty-Iss-Hrs,Dist,PO/Item,Suplr-No/Name,Inv/Item,Inv Desc,
+%* Emp-Id,Emp-Name,Lab-Rate,Lab-Hrs,Manual-Journal-Desc,Qty-Amount,Reqn/Item,Qty-Rcv-UOI,Qty-Adj-UOI,Stock-Code,Item-Name,
+%* Qty-Iss,Tran-Amt,C/D
+<IF I-TEXT <> 'INVALIDPARAM     ' AND I-DS <> 'DUMM'>
+%*<IF REC900-TYPE   VIA (M900) = 'H'>
+<IF T = 'H'>
+%*{ACA                    }CTC{TD    }C{REF           }C{WOH   }C{PRHV  }C{WHH}C{QIH }C C C C C C C C C C C C C C C C C C{AMT     }CXC-
+%*BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+%*BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+{ACA                    }CTC{TD    }C{REF           }C{WOH   }C{PRHV  }C{WHH}C{QIH }C C C C C C C C C C C C C C C C C C-
+{AMT       }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'I'>
+<IF T = 'I'>
+%*{ACA                    }CTC{TD    }C{REF           }C{WOI   }C{PRIV  }C C C {IDI}C{POIV   }C{SNIV                   }C-
+%*{INIV           }CQ{IID                                   }QC C C C C C C C C C C C C{AMT     }CXCBBBBBBBBBBBBBBBBBBBBBB-
+{ACA                    }CTC{TD    }C{REF           }C{WOI   }C{PRIV  }C C C {IDI}C{POIV   }C{SNIV                   }C-
+{INIV           }CQ{IID                                   }QC C C C C C C C C C C C C{AMT       }CXCBBBBBBBBBBBBBBBBBBBB-
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'L'>
+<IF T = 'L'>
+%*{ACA                    }CTC{TD    }C{REF           }C{WOL   }C{PRLV  }C C C C C C C C {ENLX}C{EMPNM                  }C{RTL  }C-
+%*{QIL }C C C C C C C C C{AMT     }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+%*BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+{ACA                    }CTC{TD    }C{REF           }C{WOL   }C{PRLV  }C C C C C C C C {ENLX}C{EMPNM                  }C{RTL  }C-
+{QIL }C C C C C C C C C{AMT       }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'M'>
+<IF T = 'M'>
+%*{ACA                    }CTC{TD    }C{REF           }C{WOM   }C{PRMV  }C C C C C C C C C C C C-
+%*Q{JDTL                                            }QC{QIM    }C C C C C C C{AMT     }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+%*BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+%*BBB
+{ACA                    }CTC{TD    }C{REF           }C{WOM   }C{PRMV  }C C C C C C C C C C C C-
+Q{JDTL                                            }QC C C C C C C C C C C C C{AMT       }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBB
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'P'>
+<IF T = 'P'>
+%*{ACA                    }CTC{TD    }C{REF           }C{WOP   }C{PRPV  }C{WHP}C C C{POPV   }C{SNPV                   }-
+%*C C C C C C C C C{RIPV  }C{QIP }C C C C C{AMT     }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+%*BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+{ACA                    }CTC{TD    }C{REF           }C{WOP   }C{PRPV  }C{WHP}C C C{POPV   }C{SNPV                   }-
+C C C C C C C C C{RIPV  }C{QIP }C C C C C{AMT       }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'Q'>
+<IF T = 'Q'>
+%*{ACA                    }CTC{TD    }C{REF           }C{WOQ   }C{PRQV  }C C C C{POQV   }C C{SNQV                   }-
+%*C C C C C C C C{RIQV  }C C{QIQ }C C C C{AMT     }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+%*BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+{ACA                    }CTC{TD    }C{REF           }C{WOQ   }C{PRQV  }C C C C{POQV   }C C{SNQV                   }-
+C C C C C C C C{RIQV  }C C{QIQ }C C C C{AMT       }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+<ENDIF>
+%*<IF REC900-TYPE   VIA (M900) = 'S'>
+<IF T = 'S'>
+%*{ACA                    }CTC{TD    }C{REF           }C{WOS   }C{PRSV  }C{WHS}C C C C C C C C C C C C C C C CQ{SCS    }QC-
+%*Q{DES                      }QC{QIS }C{AMT     }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+%*BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+{ACA                    }CTC{TD    }C{REF           }C{WOS   }C{PRSV  }C{WHS}C C C C C C C C C C C C C C C CQ{SCS    }QC-
+Q{DES                      }QC{QIS }C{AMT       }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+<ENDIF>
+%* V005 [Start]
+<IF T = '1'>
+{ACA                    }CTC{TD    }C{REF           }C{WO1   }C{PR1V  }C C C C C C C C-
+C{ENLX}C{EMPNM1                 }C C C{CLMNO1       }C C C C C C C {AMT       }CXCBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-
+BBB
+<ENDIF>
+%* V005 [End]
+<ENDIF>
+%* Sample of all Data
+%*{AC                    }CTC{TD    }C{REF           }C{WOI   }C{PRIV  }C{IDI}C{POIV   }C{SNIV                   }C
+%*{INIV           }C{IID                                   }C{SNLV                   }C{RTL  }C{QIL }C
+%*{JDTL                                            }C{QIM    }C{RIPV  }C{QIP }C{QIQ }C{SCS    }C{DES                      }
+%*C{QIS }C{AMT     }CXC
+%PARAMETERS
+    RCF     D-PIC (X(3)) TEXT 'R/C  From                 :' 
+    RCT     D-PIC (X(3)) TEXT 'R/C  To                   :'
+    BSF     D-PIC (X(3)) TEXT 'B/S  From                 :'
+    BST     D-PIC (X(3)) TEXT 'B/S  To                   :'
+    ACF     D-PIC (X(3)) TEXT 'A/C  From                 :' 
+    ACT     D-PIC (X(3)) TEXT 'A/C  To                   :' 
+    ELF     D-PIC (X(3)) TEXT 'Elem From                 :' 
+    ELT     D-PIC (X(3)) TEXT 'Elem To                   :' 
+    PF      D-PIC (X(4)) TEXT 'Account Period From (MMYY):'
+    PT      D-PIC (X(4)) TEXT 'Account Period To   (MMYY):'
+%*
+%VARIABLES
+%*
+    B      = ' '                                                CONSTANT
+    C      = ','                                                CONSTANT
+    Q      = '"'                                                CONSTANT
+    DUMMY  = 'Y'                                                CONSTANT
+    DUM    = choose ('Y' IF (DUMMY = DUMMY), DUMMY)
+    HDG1   = 'Account-Code,RType,Src-Date,MIMS-Ref,Wrk-Ord,'    CONSTANT   
+    HDG2   = 'Project,Whouse,Qty-Iss-Hrs,Dist,PO/Item,'         CONSTANT
+    HDG3   = 'Suplr-No/Name,Inv/Item,Inv Desc,Emp-Id,'          CONSTANT
+    HDG4   = 'Emp-Name,Lab-Rate,Lab-Hrs,Manual-Journal-Desc,'   CONSTANT
+    HDG5   = 'Qty-Amount,Reqn/Item,Qty-Rcv-UOI,Qty-Adj-UOI,'    CONSTANT
+    HDG6   = 'Stock-Code,Item-Name,Qty-Iss,Tran-Amt,C/D'        CONSTANT
+%*    HDG    = catenate (HDG1,HDG2,HDG3,HDG4,HDG5,HDG6)           CONSTANT
+
+    DIST  = I-DS
+    PD    = I-PD
+    TR    = I-TR
+    USR   = I-USR
+    RT    = I-RT
+    I-TEXT = CATENATE (DIST,PD,TR,RT)    D-PIC (X(17))
+
+    RCF  = %RCF%                                              CONSTANT
+    RCT  = %RCT%                                              CONSTANT
+	BSF  = %BSF%                                              CONSTANT
+	BST  = %BST%                                              CONSTANT
+    ACF  = %ACF%                                              CONSTANT
+    ACT  = %ACT%                                              CONSTANT
+    ELF  = %ELF%                                              CONSTANT
+    ELT  = %ELT%                                              CONSTANT 
+    PF   = %PF%                                               CONSTANT
+    PT   = %PT%                                               CONSTANT
+    RCFF = choose ('000' IF (RCF = SPACES), RCF)              CONSTANT
+    RCTT = choose (HIGH-VALUES IF (RCT = SPACES), RCT)        CONSTANT
+    BSFF = choose ('000' IF (BSF = SPACES), BSF)              CONSTANT
+    BSTT = choose (HIGH-VALUES IF (BST = SPACES), BST)        CONSTANT
+    ACFF = choose ('000' IF (ACF = SPACES), ACF)              CONSTANT
+    ACTT = choose (HIGH-VALUES IF (ACT = SPACES), ACT)        CONSTANT
+    ELFF = choose ('000' IF (ELF = SPACES), ELF)              CONSTANT
+    ELTT = choose (HIGH-VALUES IF (ELT = SPACES), ELT)        CONSTANT
+    ACCF = catenate (RCFF,BSFF,ACFF,ELFF)                     CONSTANT
+    ACCT = catenate (RCTT,BSTT,ACTT,ELTT)                     CONSTANT
+
+    M900 = DSTRCT-CODE OF   MSF900          -
+           WHERE (DSTRCT-CODE    = DIST,    -
+                  PROCESS-DATE   = PD,      -
+                  TRANSACTION-NO = TR,      -
+                  USERNO         = USR,     -
+                  REC900-TYPE    = RT)      -
+                  IF I-TEXT <> 'INVALIDPARAM', -
+                     I-DS   <> 'DUMM'
+
+
+    PFM  = substr (PF,1,2)                                    CONSTANT
+    PTM  = substr (PT,1,2)                                    CONSTANT
+    PFY  = substr (PF,3,2)                                    CONSTANT
+    PTY  = substr (PT,3,2)                                    CONSTANT
+    PFC  = choose ('20' IF (PFY < '19'), '19')                CONSTANT
+    PTC  = choose ('20' IF (PTY < '19'), '19')                CONSTANT
+    PFD  = catenate (PFC,PFY,PFM)                             CONSTANT
+    PTD  = catenate (PTC,PTY,PTM)                             CONSTANT
+%*
+    T    = REC900-TYPE                                        VIA (M900)
+    AC   = ACCOUNT-CODE-3                                     VIA (M900)
+    ACA  = CATENATE (''', AC)
+    AC1  = substr (AC,1,3)
+    AC2  = substr (AC,4,3)
+    AC3  = substr (AC,7,3)
+    TDR  = TRNDTE-REV-9                                       VIA (M900)
+    TDV  = calc (99999999 - TDR)                            I-PIC (9(8))
+    TDY  = substr (TDV,3,2)
+    TDM  = substr (TDV,5,2)
+    TDD  = substr (TDV,7,2)
+    TD   = catenate (TDD,'/',TDM,'/',TDY)
+    REF  = KEY-900                                            VIA (M900)
+    PRH  = PROJECT-NO-H                                       VIA (M900)
+    PRI  = PROJECT-NO-I                                       VIA (M900)
+    PRL  = PROJECT-NO-L                                       VIA (M900)
+    PRP  = PROJECT-NO-P                                       VIA (M900)
+    PRQ  = PROJECT-NO-Q                                       VIA (M900)
+    PRS  = PROJECT-NO-S                                       VIA (M900)
+    PRM  = PROJECT-NO-M                                       VIA (M900)
+%* V005 [Start]
+    PR1  = PROJECT-NO-1                                       VIA (M900)
+    WO1  = WORK-ORDER-1                                       VIA (M900)
+%* V005 [End]
+    WOH  = WORK-ORDER-H                                       VIA (M900)
+    WOM  = WORK-ORDER-M                                       VIA (M900)
+    WOI  = WORK-ORDER-I                                       VIA (M900)
+    WOL  = WORK-ORDER-L                                       VIA (M900)
+    WOP  = WORK-ORDER-P                                       VIA (M900)
+    WOQ  = WORK-ORDER-Q                                       VIA (M900)
+    WOS  = WORK-ORDER-S                                       VIA (M900)
+    WOHP = PROJECT-NO OF MSF620       -
+           WHERE (DSTRCT-CODE = DIST, -
+                  WORK-ORDER  = WOH)  -
+                  IF RT = 'H'
+
+    WOIP = PROJECT-NO OF MSF620       -
+           WHERE (DSTRCT-CODE = DIST, -
+                  WORK-ORDER  = WOI)  -
+                  IF RT = 'I'
+
+    WOLP = PROJECT-NO OF MSF620       -
+           WHERE (DSTRCT-CODE = DIST, -
+                  WORK-ORDER  = WOL)  -
+                  IF RT = 'L'
+
+    WOMP = PROJECT-NO OF MSF620       -
+           WHERE (DSTRCT-CODE = DIST, -
+                  WORK-ORDER  = WOM)  -
+                  IF RT = 'M'
+
+    WOPP = PROJECT-NO OF MSF620       -
+           WHERE (DSTRCT-CODE = DIST, -
+                  WORK-ORDER  = WOP)  -
+                  IF RT = 'P'
+
+    WOQP = PROJECT-NO OF MSF620       -
+           WHERE (DSTRCT-CODE = DIST, -
+                  WORK-ORDER  = WOQ)  -
+                  IF RT = 'Q'
+
+    WOSP = PROJECT-NO OF MSF620       -
+           WHERE (DSTRCT-CODE = DIST, -
+                  WORK-ORDER  = WOS)  -
+                  IF RT = 'S'
+
+%* V005 [Start]
+    WO1P = PROJECT-NO OF MSF620       -
+           WHERE (DSTRCT-CODE = DIST, -
+                  WORK-ORDER  = WO1)  -
+                  IF RT = '1'
+
+    PR1V = choose (PR1 IF (PR1 <> SPACES), WO1P)
+%* V005 [End]
+    PRHV = choose (PRH IF (PRH <> SPACES), WOHP)
+    PRIV = choose (PRI IF (PRI <> SPACES), WOIP)
+    PRLV = choose (PRL IF (PRL <> SPACES), WOLP)
+    PRMV = choose (PRM IF (PRM <> SPACES), WOMP)
+    PRPV = choose (PRP IF (PRP <> SPACES), WOPP)
+    PRQV = choose (PRQ IF (PRQ <> SPACES), WOQP)
+    PRSV = choose (PRS IF (PRS <> SPACES), WOSP)
+%*  Manual Journal Details
+    MJNL = MANJNL-VCHR-M                                      VIA (M900)
+    MDES = JOURNAL-DESC-M                                     VIA (M900)
+    JDTL = CATENATE (MJNL,'  ',MDES)
+%*
+    WHH  = WHOUSE-ID-H                                        VIA (M900)
+    WHP  = WHOUSE-ID-P                                        VIA (M900)
+    WHS  = WHOUSE-ID-S                                        VIA (M900)   
+    IDI  = INV-DSTRCT-I                                       VIA (M900)
+    INI  = INV-NO-I                                           VIA (M900)
+    INIX = substr (INI,1,15)
+    ITI  = INV-ITEM-NO-I                                      VIA (M900)
+    ITIX = substr (ITI,3,1)
+    INV  = catenate (INIX,'/',ITIX)
+    INIV = choose (INV IF (INI > SPACES), SPACES)
+    IID  = INV-ITEM-DESC-I                                    VIA (M900)
+    POI  = PO-NO-I                                            VIA (M900)
+    POII = PO-ITEM-I                                          VIA (M900)
+    POIS = substr (POII,3,1)
+    POIM = catenate (POI,'/',POIS)
+    POIV = choose (POIM IF (POI > SPACES), SPACES)
+    POP  = PO-NO-P                                            VIA (M900)
+    POPI = PO-ITEM-P                                          VIA (M900)
+    POPS = substr (POPI,3,1)
+    POPV = catenate (POP,'/',POPS)
+    POQ  = PO-NO-Q                                            VIA (M900)
+    POQI = PO-ITEM-Q                                          VIA (M900)
+    POQS = substr (POQI,3,1)
+    POQV = catenate (POQ,'/',POQS)
+    SNI  = SUPPLIER-NO-I                                      VIA (M900)
+    SNIS = SUPPLIER-NO OF MSF200    -
+           WHERE (SUPPLIER-NO = SNI) -
+           IF RT = 'I'
+
+    SNIN = SUPPLIER-NAME                                      VIA (SNIS)
+    SNIX = substr (SNIN,1,18)
+    SNIV = catenate (SNI,'- ',SNIX)
+    SNP  = SUPPLIER-NO-P                                      VIA (M900)
+    SNPS = SUPPLIER-NO OF MSF200    -
+           WHERE (SUPPLIER-NO = SNP) -
+           IF RT = 'P'
+
+    SNPN = SUPPLIER-NAME                                      VIA (SNPS)
+    SNPX = substr (SNPN,1,18)
+    SNPV = catenate (SNP,'- ',SNPX)
+    SNQ  = SUPPLIER-NO-Q                                      VIA (M900)
+    SNQS = SUPPLIER-NO OF MSF200    -
+           WHERE (SUPPLIER-NO = SNQ) -
+           IF RT = 'Q'
+
+    SNQN = SUPPLIER-NAME                                      VIA (SNQS)
+    SNQX = substr (SNQN,1,18)
+    SNQV = catenate (SNQ,'- ',SNQX)
+    ENL  = EMPLOYEE-ID-L                                      VIA (M900)
+    ENLX = substr (ENL,6,5)
+    RNH  = REQ-NO-H                                           VIA (M900)
+    RNP  = PREQ-NO-P                                          VIA (M900)
+    RIP  = PREQ-ITEM-NO-P                                     VIA (M900)
+    RIPX = substr (RIP,3,1)
+    RIPV = catenate (RNP,'/',RIPX)
+    RNQ  = PREQ-NO-Q                                          VIA (M900)
+    RIQ  = PREQ-ITEM-NO-Q                                     VIA (M900)
+    RIQX = substr (RIQ,3,1)
+    RIQV = catenate (RNQ,'/',RIQX)
+    SCS  = STOCK-CODE-S                                       VIA (M900)
+    RTL  = LAB-RATE-L               VIA (M900)           D-PIC (Z9.9999)
+    DEI  = INV-ITEM-DESC-I                                    VIA (M900)
+    M810 = EMPLOYEE-ID OF MSF810    -
+           WHERE (EMPLOYEE-ID = ENL) -
+           IF RT = 'L'
+
+    SNL  = SURNAME                                            VIA (M810)
+    SNLX = substr (SNL,1,15)
+    F    = FIRST-INITIAL                                      VIA (M810)
+    S    = SECOND-INITIAL                                     VIA (M810)
+    SNLV = catenate (ENLX,'- ',SNLX,' ',F,' ',S)
+    EMPNM= catenate (SNLX,' ',F,' ',S)
+    M100 = STOCK-CODE OF MSF100     -
+           WHERE (STOCK-CODE = SCS) -
+           IF RT = 'S'
+
+%* V005 [Start]
+    X810 = EMPLOYEE-ID OF MSF810    -
+           WHERE (EMPLOYEE-ID = ENL) -
+           IF RT = '1'
+    SNL1 = SURNAME                                            VIA (X810)
+    SNLX1 = substr (SNL1,1,15)
+    SNLV1 = catenate (ENLX,'- ',SNLX1,' ',F,' ',S)
+    EMPNM1 = catenate (SNLX1,' ',F,' ',S)
+
+    CLMNO  = CLAIM-NO                                         VIA (M900)
+    CLMNO1 = CHOOSE (CLMNO IF (CLMNO > SPACES), SPACES)
+    CLAIMNO = CATENATE ('/',CLMNO1)
+%* V005 [End]
+
+    DES  = ITEM-NAME                                          VIA (M100)
+    QIH  = QUANTITY-ISS-H           VIA (M900)            D-PIC (Z9.999)
+    QIL  = NO-OF-HOURS-L            VIA (M900)            D-PIC (Z9.999)
+    QIM  = QTY-AMOUNT-M             VIA (M900)          D-PIC (Z(5)9.99)              
+    QIP  = QTY-RCV-UOI-P            VIA (M900)          D-PIC (Z(2)9.99)
+    QIQ  = QTY-ADJ-UOI-Q            VIA (M900)          D-PIC (Z(2)9.99)
+    QIS  = QUANTITY-ISS-S           VIA (M900)            D-PIC (Z9.999)
+%* SCSC0000004275415 start
+%*    AMT  = TRAN-AMOUNT              VIA (M900)          D-PIC (Z(6)9.99)
+    AMT  = TRAN-AMOUNT              VIA (M900)          D-PIC (Z(8)9.99)
+    X    = choose ('C' IF (AMT < ZERO), 'D')
+%*    AMTC = AMT                                          D-PIC (Z(6)9.99)
+    AMTC = AMT                                          D-PIC (Z(8)9.99)
+
+%*  TAMT = total (AMTC)                                 D-PIC (Z(6)9.99)
+    TAMT = total (AMTC)                                 D-PIC (Z(8)9.99)
+%* SCSC0000004275415 end.
+    Y    = choose ('C' IF (TAMT < ZERO), 'D')

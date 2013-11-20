@@ -1,0 +1,223 @@
+%*** TRR181.RDL
+%***
+%*** Revision History ***
+%*** 25-Apr-2013 a9is6175      MO164 (Version 0003)
+%*** ......................... Added Output file TRT181 for CSV. 
+%*** 20-Mar-2013 a9nh4814      MO164 (Version 0002)
+%*** ......................... Fix Period defaulting
+%*** 20-Dec-2012 a9jw6280      MO164 ---
+%*** ......................... Fix total closing and open balance values.
+%*** ......................... Changed display format all values into 2 decimals. 
+%*** 02-Nov-2012 a9jw6280      MO164 ---
+%*** ......................... Fix format display for numeric data to avoid
+%*** ......................... strange character for COMP-3 datatype written into file.
+%*** ......................... Adjust length of numeric fields to current
+%*** ......................... data structure.
+%*** ......................... Reset version number into 0001 for e8 upgrade.
+%*** 03-Mar-2007 EFredeluces   SC1392689 
+%*** ......................... Reinstated the Copy-Request to run ESR181.
+%*** 14-Apr-2006 Gianakis      Ellipse Upgrade
+%*** ......................... transaction Id increased to 24 chars.
+%*** 03-Feb-06 D Diolaso       Ellipse Upgrade
+%*** ......................... Created a 3-step   process out of the
+%*** ......................... MIMS version of ESR181. Consisting this
+%*** ......................... 3-step process are the following programs:
+%*** .........................  a) esr180.rdl - The first data xtract process
+%*** .........................  b) esr181.rdl - The second data extract process
+%*** .........................  c) esr179.rdl - The 3rd and final process that
+%*** .........................     generates the report
+%PROGRAM-ID
+       TRR181
+%AUTHOR
+       D Diolaso
+%NARRATIVE
+      **  These reports produce details and summaries of inventory
+      **  movements and performance for an accounting period.
+      **
+      **         Outstanding:
+      **         Turnover to appear on Report E
+      **         Planned and Actual turnover on Report C
+      **         Need to take into account Inter-District - In-transit
+      **            for owned stock ie Receipts need 'STR' - 'SRI'.
+      **
+%VERSION
+       0003
+%MODULE
+      3140
+%FILES
+        MFILE = MSF170
+        LFILE = MSF000
+        LFILE = MSF175
+        AFILE = MSFX96
+        OFILE = TRO181A
+        OFILE = TRT181B
+%ROUTINES
+       MSSDAT
+       MSSSOH
+%SELECTION
+%*** Enter selection criteria for MSF170
+       WHERE (DSTRCT-CODE  = %DISTRICT-CODE%, -
+              STOCK-CODE  >= SPACES)
+%OUTPUT-FILE
+       A
+%CONTROL
+       COPY-REQUEST = TRR182
+       RECORD-LENGTH = 255
+%DETAIL                           
+{DS}{STK    }{IC  }{SOH170 }{PR1701       }{VAL1701        }{PD    }{TNO      }{US}{MINSTK1 }{REORDQ1 }{ROPX1   }-
+{INVTPR1      }{FRT1       }{CUST1      }{DI1     }{RES1    }{DO1          }{PICK1   }{LID   }{CRD   }AXY{OSOHO   }-
+{OSOHC   }{OINVT          }
+%OUTPUT-FILE
+       B
+%CONTROL
+       RECORD-LENGTH = 300
+%DETAIL                           
+{DS}I{STK    }I{IC  }I{SOH170 }I{PR1701       }I{VAL1701        }I{PD    }I{TNO      }I{US}I{MINSTK1 }I{REORDQ1 }I{ROPX1   }I-
+{INVTPR1      }I{FRT1       }I{CUST1      }I{DI1     }I{RES1    }I{DO1          }I{PICK1   }I{LID   }I{CRD   }IAIXIYI{OSOHO   }I-
+{OSOHC   }I{OINVT          }
+%REQUEST-PARAMETERS
+       PERIN PIC (X(4)) TEXT 'Period:'
+       ISS1 PIC (X(4)) TEXT 'Issue Types:'
+       ISS2 PIC (X(4)) TEXT
+       ISS3 PIC (X(4)) TEXT
+       ISS4 PIC (X(4)) TEXT
+       ISS5 PIC (X(4)) TEXT
+       CHECK170 PIC (X(1))     TEXT 'Check Closing balance against Current balance (Y/N)?:'
+       CHECKSOH-PR PIC (X(1))  TEXT 'Check SOH x Price = Value (Y/N)?:'
+       ALL-ITEMS PIC (X(1))    TEXT 'Report ALL items including unmoved (Y/N) or summary (S)?:'
+       END-TNO-REV1 PIC (X(11)) TEXT 'End tran-time (Reversed) default = 99999999 = 00:00:00:00'
+%VARIABLES
+       C = %ISS1% CONSTANT
+       D = %ISS2% CONSTANT
+       E = %ISS3% CONSTANT
+       F = %ISS4% CONSTANT
+       G = %ISS5% CONSTANT
+       I = ','    CONSTANT
+       DS = DSTRCT-CODE D-PIC X(4)
+       STK = STOCK-CODE D-PIC X(9)
+       IC = INVT-STAT-CODE D-PIC X(6)
+       SOH1 = DSTRCT-OWN-SOH OF MSSSOH -
+              WHERE (OPTION-SOH      = '1', -
+              DSTRCT-CODE            = %DISTRICT-CODE%, -
+              STOCK-CODE             = STOCK-CODE, -
+              BYPASS-CAT-SEC-SW      = 'Y', -
+              DSTRCT-SOH-REQ-SW      = 'Y') 
+       SOH170 = SOH1  D-PIC (9(9))
+       PR1701 = INVENT-COST-PR D-PIC (-9(11).9(2))
+       VAL1701 = INVENT-VALUE D-PIC (-9(13).9(2))
+       PSL1 = PLANNED-SLEVEL D-PIC (-999.99)
+       PSL = CALC (PSL1 * 1) D-PIC (-999.99)
+       PER-CONSTANT = WX-STORES-CP CONSTANT
+
+       PER-DFT = PERIOD-YRMN OF MSSDAT WHERE (OPTION = 'J', -
+                     PERIOD-YRMN = PER-CONSTANT, DAYS = -1)
+%*  PER is the period for which report is required
+       PER = CHOOSE (%PERIN% IF (%PERIN% <> '0000', %PERIN% <> SPACES), -
+                     PER-DFT) I-PIC (9(4)) CONSTANT
+       YYPER   = SUBSTR (PER,1,2)          CONSTANT
+       PERC    = CHOOSE ('20' IF (YYPER < '19'), '19') CONSTANT
+       CCPER   = CATENATE (PERC,PER)       CONSTANT
+       PER-DT = PERIOD-YRMN OF MSSDAT -
+                WHERE (OPTION = 'H',  -
+                       PERIOD-YRMN = PER)  CONSTANT
+       PER-ST = STARTING-DATE-1-9 VIA (PER-DT) CONSTANT
+       PER-END = ENDING-DATE-1-9 VIA (PER-DT) CONSTANT
+       PX = GET (DISPLAY-PERIOD FROM (PER)) CONSTANT
+       REVPER = REVSD-PERIOD OF MSSDAT WHERE (OPTION = 'H', -
+                         REV-FORMAT = '2', PERIOD-YRMN = PER) CONSTANT
+       ST-TRAN = FIRST-TRAN-KEY OF MSF000 -
+                    WHERE (DSTRCT-CODE = %DISTRICT-CODE%, -
+                           CONTROL-REC-TYPE = 'PC', -
+                           CONTROL-REC-NO = PER) CONSTANT
+       END-TRAN = LAST-TRAN-KEY VIA (ST-TRAN) CONSTANT
+       ME-DATE = THIS-ME-DATE VIA (ST-TRAN) CONSTANT
+       ST-DST = SUBSTR(ST-TRAN,1,4) CONSTANT
+       ST-PDX = SUBSTR (ST-TRAN,5,8) CONSTANT
+       ST-PD = NUMERIC (ST-PDX) I-PIC (9(8)) CONSTANT
+       ST-TNOX = SUBSTR (ST-TRAN,13,11) CONSTANT
+       ST-TNO = NUMERIC (ST-TNOX) I-PIC (9(11)) CONSTANT
+       ST-PD-REV = CALC (99999999 - ST-PD) I-PIC (9(8)) CONSTANT
+       ST-TNO-REV = CALC (99999999999 - ST-TNO) I-PIC (9(11)) CONSTANT
+       ST-TRAN-ID = CATENATE(ST-PD-REV,ST-TNO-REV) CONSTANT
+       END-DST = SUBSTR(END-TRAN,1,4) CONSTANT
+       END-PDX = SUBSTR (END-TRAN,5,8) CONSTANT
+       END-PD = NUMERIC (END-PDX) I-PIC (9(8)) CONSTANT
+       END-TNOX = SUBSTR (END-TRAN,13,11) CONSTANT
+       END-TNO = NUMERIC (END-TNOX) I-PIC (9(11)) CONSTANT
+       END-TY = SUBSTR (END-TRAN,28,1) CONSTANT
+       END-PD-REV = CALC (99999999 - END-PD) I-PIC (9(8)) CONSTANT
+       END-TNO-REV = CALC (99999999999 - END-TNO) I-PIC (9(11)) CONSTANT
+       END-TRAN-ID = CATENATE(END-PD-REV,END-TNO-REV) CONSTANT
+       END-TNO-REV1 = CHOOSE (%END-TNO-REV1% IF (%END-TNO-REV1% <> SPACES), '99999999999')
+       LREVPER = REVSD-PERIOD OF MSSDAT WHERE (OPTION = 'J', -
+                         REV-FORMAT = '2', PERIOD-YRMN = PER, DAYS = -1) CONSTANT
+%* Opening balances
+%* dg Browse ">=" (dont read "=") so that if a record for that month does not
+%* dg                             exist you use the previous record.
+       OSOHO1 = SOH OF MSF175 WHERE (DSTRCT-CODE = DSTRCT-CODE, -
+                       STOCK-CODE = STOCK-CODE, WHOUSE-ID = SPACES, -
+                       REVS-ACCT-PER >= LREVPER) MAX (1)
+       OSOHO = CALC(OSOHO1 * 1) D-PIC (-9(9))
+       OSOHC1 = CONSIGN-SOH VIA (OSOHO1)
+       OSOHC = CALC(OSOHC1 * 1) D-PIC (-9(9))
+       OINVT1 = INVENT-VALUE VIA (OSOHO1)
+       OINVT = CALC(OINVT1 * 1) D-PIC (-9(13).99)
+%* Get first period in year in reversed format
+       PERMM = SUBSTR (PER,3,2) CONSTANT
+       PERYY = SUBSTR (PER,1,2) CONSTANT
+       PERCC = SUBSTR (ME-DATE,1,2) CONSTANT
+       PER9 = NUMERIC (PERMM) I-PIC (9(2)) CONSTANT
+       MN9 = CALC (1 - PER9) I-PIC (S9(4)) CONSTANT
+       STPER = CATENATE (PERCC,PERYY,'00') CONSTANT
+       STARTPER = NUMERIC (STPER) I-PIC (9(6)) CONSTANT
+       PERFREV = CALC (999999 - STARTPER) I-PIC (9(6)) CONSTANT
+
+%* Transactions
+%* DG change the following msf063a browse because MSO005 (closing a 
+%*    period) puts high values after the julian date in msf000-last-tran-key
+%*    eg."429199999999" 4291 = 1 oct 91, so all trans for 1/10/91 would be
+%*    reported. 
+%*    "END-TNO-REV" becomes "END-TNO-REV1" (A PARAMETER PASSED OR '99999999999')
+%**********************************************************************
+%* NOTE: this change requires MSO005 (closing a period) to be performed 
+%*       on the FIRST DAY of the new period.
+%**********************************************************************
+         Y = REC900-TYPE FROM MSFX96 -
+               WHERE (DSTRCT-CODE = DSTRCT-CODE,    -
+                      STOCK-CODE  = STOCK-CODE,     -
+                      REV-PROC-DATE >= END-PD-REV)  -
+               STOPIF (DSTRCT-CODE <> DSTRCT-CODE)  -
+               STOPIF (STOCK-CODE <> STOCK-CODE)    -
+               REJECTIF (REV-PROC-DATE > ST-PD-REV) -
+               REJECTIF (REV-PROC-DATE < END-PD-REV)
+       PDRX = REV-PROC-DATE                      VIA (Y)
+       PDR = NUMERIC (PDRX) I-PIC (9(8))
+       PD = CALC (99999999 - PDR) D-PIC (9(8))
+       TNORX = REVSD-TRAN-NO                     VIA (Y)
+       TNOR = NUMERIC (TNORX) I-PIC (9(11))
+       TNO = CALC (99999999999 - TNOR) D-PIC (9(11))
+       US = USERNO VIA (Y) D-PIC X(4)
+       MINSTK1 = MIN-STOCK-LVL D-PIC (-9(9))
+       MINSTK  = CALC(MINSTK1 * 1) D-PIC (-9(9)) 
+       REORDQ1 = REORDER-QTY D-PIC (-9(9))
+       REORDQ  = CALC(REORDQ1 * 1) D-PIC (-9(9)) 
+       ROPX1 = ROP D-PIC (-9(9))
+       ROPX  = CALC(ROPX1 * 1) D-PIC (-9(9)) 
+       INVTPR1 = INVENT-COST-PR D-PIC (-9(11).9(2))
+       INVTPR  = CALC(INVTPR1 * 1) D-PIC (-9(11).9(6))
+       FRT1 = FRT-IN-INVT D-PIC (-9(9).99)
+       FRT  = CALC(FRT1 * 1) D-PIC (-9(9).99)
+       CUST1 = CUST-IN-INVT D-PIC (-9(9).99)
+       CUST = CALC(CUST1 * 1) D-PIC (-9(9).99)
+       DI1 = DUES-IN D-PIC (-9(9))
+       DI = CALC(DI1 * 1) D-PIC (-9(9))
+       RES1 = RESERVED D-PIC (-9(9))
+       RES = CALC(RES1 * 1) D-PIC (-9(9))
+       DO1 = DUES-OUT D-PIC (-9(11).99)
+       DO = CALC(DO1 * 1) D-PIC (-9(11).99) 
+       PICK1 = TOTAL-PICKED D-PIC (-9(9))
+       PICK = CALC(PICK1 * 1) D-PIC (-9(9))
+       LID = LAST-ISS-DATE D-PIC X(8)
+       CRD = CREATION-DATE D-PIC X(8)
+       A = ABCD-LEVEL D-PIC X(1)
+       X = XYZ-LEVEL D-PIC X(1)

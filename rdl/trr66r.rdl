@@ -1,0 +1,141 @@
+%*
+%PROGRAM-ID
+   TRR66R
+%*
+%VERSION
+   001
+%*
+%FILES
+   MFILE = MSS660
+   LFILE = MSF660
+   LFILE = MSF810
+   RFILE = TRR66RA
+   OFILE = TRT66RB
+%*
+%ROUTINES
+   MSS660
+   MSSCNV
+   MSSDAT
+%*
+%SELECTION
+   WHERE (OPTION-660      = '5', -
+          DSTRCT-CODE     = %DISTRICT-CODE%, -
+          PROJECT-NO      = %PROJ-NO%, -
+          NO-TO-RETRIEVE  = 1)
+%*
+%BREAK-FIELDS
+   DSTRCT-CODE
+%*
+%REPORT
+   A
+%*
+%TITLE
+   'Revenue Projects (Extract for Oracle)'
+%*
+%PAGE HEADING
+'Project'                   'Project Description'                      'Billable'
+%*
+%*...............................................................................................................................132
+%DETAIL
+ {PROJDISP               }   {DESC                                  }   B   {WARNING                                      }
+%*
+%SUMMARY TEST-PAGE(7)
+
+'(end of projects listing)'
+
+
+<IF %RPT-ONLY% = 'Y'>
+'This batch process has been run in report-only mode. Please re-run without report-only to extract the file of Billable projects.'
+<ELSE>
+'This batch process has produced an extract file of all the Billable projects listed.'
+<ENDIF>
+
+'(end of report)'
+%*
+%CONTROL
+   TRIM-REPORT
+%*
+%OUTPUT-FILE
+   B
+%*
+%*...............................................................................................................................132
+%DETAIL
+<IF %RPT-ONLY% <> 'Y'>
+   <IF B = 'Y'>
+{PROJ  } {DESC                                  } {PARENT} {ST  } {ORIG    } {ORIGNAME                              } {ASSTO   } -
+{ASSTONAME                             } {ACCO} {STRDTE} {ENDDTE} F {FINDTE} {CUST} {REV}
+   <ENDIF>
+<ENDIF>
+%*
+%CONTROL
+   RECORD-LENGTH = 220
+%*
+%REQUEST-PARAMETERS
+   PROJ-NO   PIC(X(8)) TEXT 'Top-level Project Number: '
+   RPT-ONLY  PIC(X(1)) TEXT 'Report-Only Mode: '
+%*
+%VARIABLES
+   WARNLIT  = 'This project has not been marked as Billable'
+   PLIT     = 'Project'
+   PROJ     = PROJ-NO-1
+   DIST     = DSTRCT-CODE
+   DESC     = PROJ-DESC-1
+   PARENT   = PARENT-PROJ-1
+   STRDTE   = ACT-STR-DATE-1
+   ENDDTE   = ACT-FIN-DATE-1
+   PL       = PROJ-LEVEL-1
+   P-1      = CHOOSE (PL)                         I-PIC (9(3))
+   P-2      = CHOOSE (P-1)                        I-PIC (ZZ9)
+   L        = CHOOSE (P-2)                        I-PIC (X(3)) D-PIC (X(3))
+   PL9      = CHOOSE (PL IF (PL < 15), 15)        I-PIC (9(3))
+   INDENT   = '...............'
+   PFX1     = OUT-STRING OF MSSCNV -
+              WHERE (OPTION = 'R', -
+                     JUSTIFY-POS = PL9, -
+                     INP-STRING = INDENT)
+   PFX2     = OUT-STRING OF MSSCNV -
+              WHERE (OPTION = 'R', -
+                     JUSTIFY-POS = 15, -
+                     INP-STRING = PFX1)
+   PFX      = SUBSTR (PFX2,1,15)                  I-PIC (X(15))
+   DISP1    = CATENATE (PFX, PROJ)                I-PIC (X(25))
+   DISP2    = OUT-STRING OF MSSCNV -
+              WHERE (OPTION = 'P', -
+                     INP-STRING = DISP1)
+   DISP3    = CATENATE ('>', DISP2)               I-PIC (X(25))
+   PROJDISP = CHOOSE (DISP2 IF (PL < 15), DISP3)  I-PIC (X(25))
+%*
+   B        = BILLABLE-IND OF MSF660 -
+              WHERE (DSTRCT-CODE  = DIST, -
+                     PROJECT-NO   = PROJ)
+   WARNING  = CHOOSE (WARNLIT IF (B <> 'Y'), SPACES)
+   ASSTO    = ASSIGN-PERSON     VIA (B)
+   ASSTOEMP  = HRGET (EMPLOYEE-ID  -
+                     FROM ('MSF810,MSSEMP') -
+                     KEY (EMPLOYEE-ID = ASSTO))
+   ASSTONME  = FORMATTED-NAME   VIA (ASSTOEMP)
+   ASSTONAME = CHOOSE (ASSTONME IF (ASSTONME <> SPACES), -
+                       ASSTO    IF (ASSTO <> SPACES), -
+                      'Unassigned')
+   ORIG     = ORIGINATOR-ID     VIA (B)
+   ORIGEMP  = HRGET (EMPLOYEE-ID  -
+                     FROM ('MSF810,MSSEMP') -
+                     KEY (EMPLOYEE-ID = ORIG))
+   ORIGNME  = FORMATTED-NAME    VIA (ORIGEMP)
+   ORIGNAME = CHOOSE (ORIGNME IF (ORIGNME <> SPACES), -
+                       ORIG    IF (ORIG <> SPACES), -
+                      'Unknown')
+   STA      = STATUS-660        VIA (B)
+   ST       = CHOOSE ('closed' IF (STA = 'C'), -
+                      'open  ' IF (STA = 'O'), -
+                      '      ')
+   ACCE     = ACCOUNT-CODE      VIA (B)
+   ACC1     = SUBSTR (ACCE, 1, 3)                 I-PIC (X(3))
+   ACC3     = SUBSTR (ACCE, 7, 3)                 I-PIC (X(3))
+   ACCO     = CATENATE (ACC1, ACC3)               I-PIC (X(6))
+   F        = FINAL-COSTS       VIA (B)
+   FINDTE   = FINALISED-DATE    VIA (B)
+   CUST     = CUST-NO           VIA (B)
+   REV      = REVENUE-CODE      VIA (B)
+%*
+%* end

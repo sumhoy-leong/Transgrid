@@ -1,0 +1,248 @@
+%*** TRR26I.RDL
+%*** Revision History ***
+%***
+%*** 17-Apr-13 a9mm4951    M0164 (Version 0002)
+%*** ..................    Replace 9ZZZZZ with ZZZZZZ so when no input
+%*** ..................    parameter typed on Order No, all PO NO which
+%*** ..................    valid for the rest input parameter will be
+%*** ..................    retrieved
+%*** 11-Sep-12 a9jw6280    MO164 (Version 0001)
+%*** ..................    Reset version number to 0001 for E8 upgrade.
+%*** ..................    Convert from ESR26V.
+%*** 08-Feb-07 GPresser    1363645      (Version 004)
+%*** ..................    Allow for GRID's P/O to Range from 6^^^^^ to
+%*** ..................    9ZZZZZ
+%*** 06-Jun-05 AIesho      P05060270
+%*** ..................    Modified program to cope with district consolidation
+%*** ..................    into GRID. Append Warehouse id to request parameter
+%*** 12-Jun-03 RYeung      WCHG023101
+%*** ....................  For INVTYPE <> '4' use AMD-AMT first, followed by ORG-AMT
+%*** 24-Jan-02 LNee        WCHG000909
+%*** ....................  Amended code for daily reports, to use the last
+%*** ....................  working day instead of the last calendar day.
+%*** 10-Sep-01 DDiolaso    W01090317
+%*** ....................  Inclusion of dstrcts with zero total invoice values
+%*** ....................  in the report
+%*** 30-Aug-01 DDiolaso    W01040658
+%*** ..................... Program modified to change files accesses in      
+%*** ..................... order to speed up the execution time.
+%*** ..................... Details of modification:
+%*** .....................   a)  Divided the process into 2.         
+%*** .....................       1) TRR26I - Extract program
+%*** .....................       2) TRR26K - Report Generation program
+%*** .....................
+%PROGRAM-ID
+        TRR26I
+%NARRATIVE
+        **  For the selected Orders invoice headers and
+        **  items are reported filtered by loaded OR approved date.
+%VERSION
+        0002
+%MODULE
+        3260
+%FILES
+        MFILE = MSF260
+        AFILE = MSF26A
+        LFILE = MSF000
+        LFILE = MSF261
+        LFILE = MSF221
+        OFILE = TRO26IA
+%ROUTINES
+        MSSDAT
+        MSS232
+%SELECTION
+        WHERE (DSTRCT-CODE  >= SPACES)            
+        REJECTIF (LOADED-DATE < DATE1)
+        REJECTIF (LOADED-DATE > DATE2)
+%OUTPUT-FILE
+        A
+%CONTROL
+        COPY-REQUEST  = TRR26J
+        RECORD-LENGTH = 85
+%*
+%DETAIL
+%*
+<IF INCL-26A = 'Y'>
+    <IF PINCLUDE = 'Y'>
+{DST}{ON  }{PI}{ININV   }{II}{SN  }{VAL1       }P{DATE1 }{DATE2 }{PONO1 }{PONO2 }{DC}
+    <ENDIF>
+<ENDIF>
+%*
+%REQUEST-PARAMETERS
+       ORDER1        PIC (X(6))   TEXT 'From Order No                         :'
+       ORDER2        PIC (X(6))   TEXT 'To   Order No                         :'
+       DATE1         PIC (9(8))   TEXT 'From Date                             :'
+       DATE2         PIC (9(8))   TEXT 'To   Date                             :'
+       CYCLE-IND     PIC (X)      TEXT 'Report Cycle - (D)aily or (M)onthly   :'
+       LOAD-IND      PIC (X)      TEXT 'Report (L)oaded or (A)pproved Claims  :'
+       ACCOUNT-IND   PIC (X)      TEXT 'Report account code lines Y/N ?       :'
+       EXPREORDER    PIC (X)      TEXT 'Exclude predefined orders             :'
+       NONORDER      PIC (X)      TEXT 'Report on Non-Order invoices only Y/N :'  
+       WHOUSE        PIC (X(2))   TEXT 'Warehouse ID                          :'
+%VARIABLES
+       WHOUSE          = %WHOUSE%     CONSTANT
+       DUM             = 'DUM' CONSTANT
+       BLANK           = ' '   CONSTANT
+       SN              = SUPPLIER-NO
+       DST             = DSTRCT-CODE
+       DC              = %DISTRICT-CODE%  CONSTANT
+       INVTYPE         = INV-TYPE
+       LD              = LOADED-DATE   FORMAT (DATE)
+       AD              = APPROVED-DATE FORMAT (DATE)
+       PS              = PMT-STATUS  
+       CN              = CONTRACT-NO    IF (INVTYPE = 6)  ELSE (SPACES)
+       PN              = PORTION-NO     IF (INVTYPE = 6)  ELSE (SPACES)
+       ININV           = INV-NO
+       EXTINV          = EXT-INV-NO
+       I-NO            = CHOOSE (EXTINV IF (EXTINV <> SPACES), ININV)
+
+       ORD1            = %ORDER1%       CONSTANT
+       ORD2            = %ORDER2%       CONSTANT
+       NONORDER        = %NONORDER%     CONSTANT
+       EXPREORDER      = %EXPREORDER%   CONSTANT
+
+       PREFIX          = PURCH-ORDER-PREF OF MSF000 -
+                         WHERE (DSTRCT-CODE      = %DISTRICT-CODE%, -
+                                CONTROL-REC-TYPE = 'DC',            -
+                                CONTROL-REC-NO   = '0012') CONSTANT
+
+%* IF ORDER NO FIELDS ARE BLANK SET TO DISTRICT SPECIFIC
+       ORDER2DEF       = 'ZZZZZZ'
+       ORDER1          = CHOOSE (ORD1 IF (ORD1 <> SPACES), SPACES) 
+       ORDER2          = CHOOSE (ORD2 IF (ORD2 <> SPACES), ORDER2DEF) 
+       
+       PONO1           = CHOOSE (ORD1 IF (ORD1 <> SPACES), SPACES)
+       PONO2           = CHOOSE (ORD2 IF (ORD2 <> SPACES), SPACES)
+
+       I               = INV-ITEM-NO FROM MSF26A                -
+                         WHERE (DSTRCT-CODE = DST,              -
+                                SUPPLIER-NO = SN,               -
+                                INV-NO      = ININV,            -
+                                INV-ITEM-NO >= SPACES)                  
+
+       DST-26A         = DSTRCT-CODE VIA (I)
+       II              = INV-ITEM-NO VIA (I)
+       ON              = PO-NO       VIA (I)
+       PI              = PO-ITEM-NO  VIA (I)
+       IV              = LOC-VAL-INVD  VIA (I) PIC (S9(11)V99)
+       ATAX            = ATAX-AMT-LOC  VIA (I)
+       LAN             = LAST-AMEND-NO VIA (I)
+
+       WHI             = WHOUSE-ID OF MSF221 -
+                         WHERE (PO-NO      = ON, -
+                                PO-ITEM-NO = PI)
+
+       WHS             = choose('N' IF(WHI <> WHOUSE, WHOUSE <> SPACES), -
+                                'Y')
+       INCL-26A        = CHOOSE ('Y' IF (ON    >= ORDER1, -
+                                         ON    <= ORDER2, WHS = 'Y'), 'N')
+       ONSUBS1         = SUBSTR(ON,2,1)
+       ONSUBS2         = SUBSTR(ON,2,2)
+
+%*DECIDE IF ORDER SHOULD BE PRINTED
+       PINCLUDE        = CHOOSE ('N' IF(NONORDER   = 'Y', INVTYPE <> '4'), -
+                                 'N' IF(EXPREORDER = 'Y', ONSUBS1  = 'T'), -
+                                 'N' IF(EXPREORDER = 'Y', ONSUBS1  = 'R'), -
+                                 'N' IF(EXPREORDER = 'Y', ONSUBS2  = 'AE'), 'Y')
+
+       P               = PINCLUDE D-PIC (X)
+       NO              = NUMERIC (10)   CONSTANT I-PIC (9)
+
+       DCNT            = CHOOSE (1 IF (INCL-26A = 'Y', -
+                                       PINCLUDE = 'Y'), 0)   
+
+       DTOT            = TOTAL  (DCNT)
+
+       TODAY           = DATE ()        CONSTANT FORMAT (DATE)
+
+       YDAY            = DATE2 OF MSSDAT -
+                         WHERE (OPTION = '1', -
+                                DATE1  = TODAY, -
+                                DAYS   = -1) CONSTANT FORMAT (DATE)
+       YESDIS          = DISPLAY-DATE VIA (YDAY) CONSTANT
+
+%*   To determine the DAY today
+      DY              = DAYS OF MSSDAT       -
+                        WHERE (OPTION = '6', -
+                               DATE1  = TODAY)  CONSTANT
+%*
+%*    To choose the Friday Date if today is Sunday in the Approved Loaded Date
+%*
+      SUNDAY          = DATE2 OF MSSDAT      -
+                        WHERE (OPTION = '1', -
+                               DATE1  = TODAY,  -
+                               DAYS   = -2)     -
+                        CONSTANT
+      SUNDIS          = DISPLAY-DATE VIA (SUNDAY) CONSTANT
+%*
+%*    To choose the Friday date if today is Monday in the Approved Loaded Date
+%*
+      MONDAY          = DATE2 OF MSSDAT      -
+                        WHERE (OPTION = '1', -
+                               DATE1  = TODAY,  -
+                               DAYS   = -3)     -
+                        CONSTANT
+      MONDIS          = DISPLAY-DATE VIA (MONDAY) CONSTANT
+      YESTYY          = substr (YESDIS,7,2)       CONSTANT
+      SUNYY           = substr (SUNDIS,7,2)       CONSTANT
+      MONYY           = substr (MONDIS,7,2)       CONSTANT
+      YESTMM          = substr (YESDIS,4,2)       CONSTANT
+      SUNMM           = substr (SUNDIS,4,2)       CONSTANT
+      MONMM           = substr (MONDIS,4,2)       CONSTANT
+      YESTDD          = substr (YESDIS,1,2)       CONSTANT
+      SUNDD           = substr (SUNDIS,1,2)       CONSTANT
+      MONDD           = substr (MONDIS,1,2)       CONSTANT
+      YESTCC          = choose ('20' IF (YESTYY < '25'), '19') CONSTANT
+      SUNCC           = choose ('20' IF (SUNYY  < '25'), '19') CONSTANT
+      MONCC           = choose ('20' IF (MONYY  < '25'), '19') CONSTANT
+      YEST            = catenate (YESTCC,YESTYY,YESTMM,YESTDD) CONSTANT
+      MON             = catenate (MONCC,MONYY,MONMM,MONDD)     CONSTANT
+      SUN             = catenate (SUNCC,SUNYY,SUNMM,SUNDD)     CONSTANT
+%*
+      YESTERDAY       = choose (SUN IF (DY = 7), -
+                                MON IF (DY = 1), -
+                                YEST) CONSTANT
+
+       CP1             = WX-STORES-CP   CONSTANT
+
+       LP              = PERIOD-YRMN OF MSSDAT -
+                         WHERE (OPTION      = 'J', -
+                                PERIOD-YRMN = CP1, -
+                                DAYS        = -1) CONSTANT
+
+       ST-DATE         = STARTING-DATE-1-9  VIA (LP) CONSTANT FORMAT (DATE)
+       END-DATE        = ENDING-DATE-1-9    VIA (LP) CONSTANT FORMAT (DATE)
+       ORDTYPE         = SUBSTR (ORD1,2,1)
+
+       DATE1           = CHOOSE (%DATE1%   IF (%DATE1% <> SPACES), -
+                                 YESTERDAY IF (%CYCLE-IND% = 'D'), ST-DATE) I-PIC (9(8)) -
+                         CONSTANT  FORMAT (DATE)
+       DATE2           = CHOOSE (%DATE2% IF (%DATE2% <> SPACES), -
+                                 DATE1   IF (%CYCLE-IND% = 'D'), END-DATE) I-PIC (9(8)) -
+                         CONSTANT FORMAT (DATE)
+%*
+       ORG-AMT         = calc (IV + ATAX)
+%*
+       ANUM            = AMENDMENT-NO OF MSF261 -
+                         WHERE (DSTRCT-CODE  = DST,  -
+                                SUPPLIER-NO  = SN,   -
+                                INV-NO       = ININV,-
+                                INV-ITEM-NO  = I, -
+                                AMENDMENT-NO = LAN) -
+                         MAX (1)
+
+       ORDVAL          = LOC-AMD-VAL    VIA (ANUM)  PIC (S9(11)V99)
+       AMD-AMT         = calc   (ORDVAL + ATAX)
+
+       VAL1            = CHOOSE (AMD-AMT IF (INVTYPE <> '4', -
+                                             AMD-AMT <> 0),      -
+                                 ORG-AMT IF (INVTYPE <> '4', -
+                                             AMD-AMT = 0),       -
+                                 ORG-AMT IF (ORG-AMT <> 0, -
+                                             INCL-26A = 'Y'),    -
+                                 AMD-AMT IF (ORG-AMT  = 0, -
+                                             INCL-26A = 'Y'), 0) -         
+                                                     D-PIC (S9(11)V99)
+
+%*
+%*END TRR26I

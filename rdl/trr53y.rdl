@@ -1,0 +1,74 @@
+%*** Revision History
+%*** 01-Jul-2012 Amanda N.     Version 0002
+%*** ........................  - Added heading 
+%*** 08-Aug-2012 a9nh4814      MO164 (Version 001)
+%*** ........................  Reset version number to 0001 for E8 upgrade.
+%*** 24-Feb-2011 G Presser     3489785             (Version 002)
+%*** ........................  Only output 4 fields now
+%*** 21-Sep-2007 E Fredeluces  SC1570863
+%*** ........................  Initial Coding.
+%***
+%PROGRAM-ID
+       TRR53Y
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+       This program is called from TRR53Z to create the TRTPR2 file
+       containing the claim estimates.
+%VERSION
+       0002
+%MODULE
+       3820
+%FILES
+       MFILE = MSF536C
+       AFILE = MSF538
+       LFILE = MSF510
+       OFILE = TRTPR2A
+%ORDER
+       INJDTE   
+%BREAK-FIELDS
+       DUM
+       CLAIM-NO
+%SELECTION
+       WHERE    (CLAIM-IND     = 'E'   , -
+                 CLAIM-ENTITY >= SPACES)
+%OUTPUT-FILE
+       A
+%CONTROL
+       RECORD-LENGTH = 40
+%BREAK DUM HEADER
+{HDG                                   }
+%DETAIL
+{CLNO    }HEEH{ESTDTE}H{ESTAMT      }
+%VARIABLES
+%* Constant
+       H         = '~'                             CONSTANT
+       B         = ' '                             CONSTANT
+%*
+%* Main File...
+       CLNO      = CLAIM-NO
+       INCNO     = INCIDENT-NO
+       DIST      = DSTRCT-CODE 
+%*
+%* Incident Information             
+       IDREV     = REV-OCC-DATE-9 OF MSF510  -
+                   WHERE(DSTRCT-CODE = DIST, -
+                         INCIDENT-NO = INCNO)
+
+       INJDTE    = CALC (99999999 - IDREV) 
+%*
+%* MSF538 - Read Claim Estimates
+       MSF538    =  EST-TYPE  FROM MSF538     -
+                    WHERE (CLAIM-NO   = CLNO, -
+                           EST-TYPE  >= SPACES)
+       E         = EST-TYPE       VIA (MSF538)
+       ESTAMT    = ESTIMATE-AMT   VIA (MSF538)      D-PIC (ZZZZZZZZZZ9.99)
+       EDATE     = INVERSE-DATE-9 VIA (MSF538)      
+       ESTDTE    = CALC (99999999 - EDATE)          D-PIC (ZZZZZZZZ)
+
+       HDG       = 'Claim No~Trans Code~Trans Date~EstAmt~'   CONSTANT
+       
+       DUM       = CHOOSE (0 IF (CLAIM-NO = CLAIM-NO), 0)
+       
+%*
+%*                   *** End Of Program ***

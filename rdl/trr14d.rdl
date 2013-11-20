@@ -1,0 +1,245 @@
+%*** trr14d.rdl
+%*** Revision History
+%*** ----------------
+%*** 11-Sep-12 a9jw6280     MO164 ---
+%*** ...................... Fix name for requested-by.
+%*** ...................... Should get formatted-name from RBY not AUTH.
+%*** 13-Aug-12 N Perry      MO164 (Version 0001)
+%*** ...................... Changed trr14b to trr14d
+%*** ...................... Reset version number to 0001 for E8 upgrade.
+%*** 27-Jul-12 N Perry       
+%*** ......................  Replace HRGET MSSEMP call to direct read MSF810.    
+%*** ......................  Convert to Ellipse 8 format.
+%*** ......................  Changed program to get SOH using MSSSOH 
+%*** ......................  as SOH field is no longer exist in MSF170 now.
+%*** 22-Jul-02 EFredeluces WCHG000882 - Added In-Transit column.
+%*** 30-Jul-99 DDiolaso    W99070786 - Bug fix on employee number being
+%*** ...................   truncated
+%*** 16-Apr-96 Mincom      Replace 'RC' table access with HRGET macro.
+%*** ....................
+%*** 08-Jun-93.. DAVID G   Blank status = all; include/exclude wh for mtpp
+%*** ..................    include costing details
+%*** ..................    version 003A
+%*** 20-Apr-93.. Mary W    Amended price field to Pic (Z(6)9.99),
+%*** ..................    was truncating price. Version 001A
+%PROGRAM-ID
+       TRR14D
+%AUTHOR
+       David Gatward
+%NARRATIVE
+      **  This program reports all Issue Requisitions
+      **  for all or nominated statuses
+      **  for a District with the option to exclude 
+      **  issue req items in a nominated warehouse eg.P1.
+      **
+%VERSION
+       0001
+%MODULE
+       3210
+%FILES
+        MFILE = MSF141
+        LFILE = MSF010
+        LFILE = MSF100
+        LFILE = MSF110A
+        LFILE = MSF140
+        LFILE = MSF141
+        LFILE = MSF170
+        LFILE = MSF210
+        LFILE = MSF220
+        LFILE = MSF221B
+        LFILE = MSF240
+        LFILE = MSF810
+        RFILE = TRR14DA
+%ROUTINES
+        MSS232
+        MSSSOH
+%SELECTION
+%* Ensure STATUS request parameter is alphanumeric (AN)
+%*  otherwise it will default to 0 instead of space
+%*  & only report reservations (status 0).
+<IF %STAT1% = SPACES>
+       WHERE    (DSTRCT-CODE   = %DISTRICT-CODE%, -
+                 IREQ-NO      >= SPACES)
+       REJECTIF (%WHI% <> SPACES, WHOUSE-ID <> %WHI%)
+       REJECTIF (%WHE% <> SPACES, WHOUSE-ID =  %WHE%)
+<ELSE>
+       WHERE    (DSTRCT-CODE   = %DISTRICT-CODE%, -
+                 IREQ-NO      >= SPACES)
+       SELECTIF (ITEM-141-STAT = %STAT1%)
+       SELECTIF (ITEM-141-STAT = %STAT2%)
+       SELECTIF (ITEM-141-STAT = %STAT3%)
+       SELECTIF (ITEM-141-STAT = %STAT4%)
+       SELECTIF (ITEM-141-STAT = %STAT5%)
+       SELECTIF (ITEM-141-STAT = %STAT6%)
+       REJECTIF (%WHI% <> SPACES, WHOUSE-ID <> %WHI%)
+       REJECTIF (%WHE% <> SPACES, WHOUSE-ID =  %WHE%)
+<ENDIF>
+%BREAK-FIELDS
+       BREAK1
+	   BREAK2
+%ORDER
+       BREAK1
+%REPORT-TITLE
+       'REVIEW OF PICKING SLIP ITEMS'
+%PAGE HEADING
+              'PICKING SLIPS WITH STATUS ='{STATUS1         }                   'Include warehouse :'{WHI}'Exclude warehouse :'{WHE}
+'Req by/Auth by'                                            'Deliv.Instr./Cost Centre     W/O      Proj     Equip'
+'Date Cr/   Req  Item   Qty   Stkcode                                                        Rec     Dues    Dues    In-    Price'
+'Date Req    No.   No.  Reqd  Stkline  Description                                    Soh   Order     In      Out  Transit  $'
+%BREAK BREAK1 HEADING ON NEW-PAGE
+%DETAIL TEST-PAGE (1)
+%*********** Header Info
+<SUPPRESS>
+{RBY1}   {RNAME                                           }  {INSTA                                                     }
+<SUPPRESS>                            
+                                                             {INSTB                                                     }
+<SUPPRESS>
+{AUT1}   {ANAME                                           }               {GLA          } WWWWWWWW MMMMMMMM NNNNNNNNNNNN
+%*********** Item Info
+{DATECR}  {RNO } {RI} {QREQ} {STK    } {INAME                       }             {SOHO } {SOHRO} {SOHDI} {DO   } {INSOH} {PR      }
+{DATER }        {W1}         {SL     } 
+<IF GITEST = 'I'>
+                                                           'Item Costing:'{GLAI         } {WI    } {MI    } {NI        }
+<ENDIF>
+
+%BREAK BREAK2 FOOTING
+'-----------------------------------------------------------------------------------'
+'Total number of all Picking Slips reported for status'{STATUS1         }':'{COUNT1}
+%SUMMARY
+
+'-----------------------------------------------------------------------------------'
+'Total number of all Picking Slips for all reported status                :'{COUNT1}
+                                                                           '========'
+%CONTROL
+       TRIM-REPORT
+%REQUEST-PARAMETERS
+       STAT1  PIC (X)    TEXT 'Status --------------------------->'
+       STAT2  PIC (X)    TEXT '                                   '	
+       STAT3  PIC (X)    TEXT '                                   '
+       STAT4  PIC (X)    TEXT '                                   '
+       STAT5  PIC (X)    TEXT '                                   '
+       STAT6  PIC (X)    TEXT '                                   '
+       WHI    PIC (X(4)) TEXT 'Include Only items for warehouse ->'
+       WHE    PIC (X(4)) TEXT 'Exclude Only items for warehouse ->'
+%VARIABLES
+       WH1      = WX-WHOUSE-ID                   CONSTANT 
+       WHI      = %WHI%                          CONSTANT 
+       WHE      = %WHE%                          CONSTANT 
+	   BREAK1   = ITEM-141-STAT
+	   BREAK2   = ITEM-141-STAT
+%* msf141 mfile
+       W1       = WHOUSE-ID
+       RNO      = IREQ-NO
+       RI       = IREQ-ITEM
+       QREQ     = QTY-REQ
+       STK      = STOCK-CODE
+       STATUS   = ITEM-141-STAT
+       STATUS1  = CHOOSE ('RESERVED          ' IF (STATUS = 0), -
+                          'DUES OUT          ' IF (STATUS = 1), -
+                          'BEING PICKED      ' IF (STATUS = 2), -
+                          'DUES OUT INABILITY' IF (STATUS = 3), -
+                          'CREDIT            ' IF (STATUS = 4), -
+                          'COMPLETE          ' IF (STATUS = 9), -
+                          '**** UNKNOWN **** ')
+%* msf140
+       AUTH     = AUTHSD-BY OF MSF140 -
+                  WHERE (DSTRCT-CODE           = DSTRCT-CODE,   -
+                         IREQ-NO               = IREQ-NO)       SUPPRESS
+       RBY      = REQUESTED-BY         VIA (AUTH)               SUPPRESS
+       AUT1     = SUBSTR(AUTH,5,6)     D-PIC(X(6))              SUPPRESS
+       RBY1     = SUBSTR(RBY,5,6)      D-PIC(X(6))              SUPPRESS
+       DATECR   = CREATION-DATE        VIA (AUTH)     FORMAT (DATE)
+       DATERQ   = REQ-BY-DATE          VIA (AUTH)
+       DATER    = GET (DISPLAY-DATE FROM (DATERQ))
+       
+       INSTA    = DELIV-INSTR-A        VIA (AUTH)               SUPPRESS
+       INSTB    = DELIV-INSTR-B        VIA (AUTH)               SUPPRESS
+                         
+       ANAME1   = HRGET      (EMPLOYEE-ID                       -
+                  FROM       ('MSSEMP,MSF810')                  -
+                  KEY        (EMPLOYEE-ID = AUTH)
+%*       ANAME1   = SURNAME OF MSF810 -
+%*                  WHERE (EMPLOYEE-ID = AUTH)
+       ANAME    = FORMATTED-NAME       VIA (ANAME1)             SUPPRESS
+       RNAME1   = HRGET      (EMPLOYEE-ID                       -
+                  FROM       ('MSSEMP,MSF810')                  -
+                  KEY        (EMPLOYEE-ID = RBY)
+%*       RNAME1   = SURNAME OF MSF810 -
+%*                  WHERE (EMPLOYEE-ID = RBY)
+       RNAME    = FORMATTED-NAME       VIA (RNAME1)             SUPPRESS
+
+
+%* msf100
+       INAME    = ITEM-NAME OF MSF100 - 
+                  WHERE      (STOCK-CODE       = STOCK-CODE)    PIC X(30)
+%* msf110
+       PP       = CATENATE ('-',DSTRCT-CODE)
+       MNEM     = MNEMONIC OF MSF110A -
+                  WHERE      (DSTRCT-CODE      = '    ',        -
+                              STOCK-CODE       = STOCK-CODE,    - 
+                              PREF-PART-IND   >= '97')          -
+                  SELECTIF   (MNEMONIC         = '-GENL')       -
+                  SELECTIF   (MNEMONIC         = '-TRAN')       -
+                  SELECTIF   (MNEMONIC         = PP)            -
+                  MAX (1)
+       SL       = PART-NO              VIA (MNEM)
+       B        = PREF-PART-IND-9      VIA (MNEM)     FORMAT (BWZ)
+%* msf170
+       ROPT     = ROP OF MSF170 -
+                  WHERE      (DSTRCT-CODE      = DSTRCT-CODE,   -
+                              STOCK-CODE       = STOCK-CODE)
+       SOHA     = get (SOH-AVAIL FROM ('MSF170'))     PIC (Z(8)9)
+%*       SOHO     = SOH                  VIA (ROPT)     PIC (Z(6)9)
+       SOHO     = OWN-CON-SOH OF MSSSOH -
+                  WHERE (OPTION-SOH  = '1', -
+                  DSTRCT-CODE = DSTRCT-CODE, -
+                  STOCK-CODE  = STOCK-CODE)
+
+       SOHDO    = DUES-OUT             VIA (ROPT)     PIC (Z(6)9)
+       SOHB     = TOTAL-PICKED         VIA (ROPT)     PIC (Z(6)9)
+       SOHR     = RESERVED             VIA (ROPT)     PIC (Z(6)9)
+       DO       = CALC (SOHDO + SOHB + SOHR - QREQ)   PIC (Z(6)9)
+       SOHOT    = IN-TRANSIT           VIA (ROPT)     PIC (Z(6)9)
+       INSOH    = XFERS-IN-TRANS       VIA (ROPT)     PIC (Z(6)9) 
+       SOHCT    = CONSIGN-ITRANS       VIA (ROPT)     PIC (Z(6)9)
+       SOHDI    = DUES-IN              VIA (ROPT)     PIC (Z(6)9)
+       SOHXF1   = XFERS-REQUEST        VIA (ROPT)     PIC (Z(6)9)
+       SOHXF2   = XFERS-IN-TRANS       VIA (ROPT)     PIC (Z(6)9)
+       SOHRO    = ROQ                  VIA (ROPT)     PIC (Z(6)9)
+       PR       = INVENT-COST-PR       VIA (ROPT)     PIC (Z(6)9.99)
+       SOHADIRO = CALC (SOHO - DO + SOHDI + SOHRO)        
+       SOHADI   = CALC (SOHO - DO + SOHDI)        
+       SOHADO   = CALC (SOHO - DO)        
+       SUPP     = CURR-SUPPLIER        VIA (ROPT)
+       PC       = PRICE-CODE           VIA (ROPT)
+       X        = '/'
+       UI       = UNIT-OF-ISSUE        VIA (ROPT)
+       IV       = INVENT-VALUE         VIA (ROPT)
+
+%* mss232
+%* Header account(s)
+%* Picking slips can only have a maximum of 1 account per header 
+       GLA      = GL-ACCOUNT OF MSS232 -
+                  WHERE      (OPTION           = 'R',           -
+                              DSTRCT-CODE      = DSTRCT-CODE,   -
+                              REQ-TYPE-IND     = 'I',           -
+                              REQ-NO           = IREQ-NO,       -
+                              IREQ-ITEM        = '0000')        SUPPRESS
+       GTEST    = RETURN-STATUS        VIA (GLA)
+       W        = WORK-ORDER           VIA (GLA)                SUPPRESS
+       M        = PROJECT-NO           VIA (GLA)                SUPPRESS
+       N        = EQUIP-NO             VIA (GLA)                SUPPRESS
+%* Picking slips can only have a maximum of 1 account per item
+       GLAI     = GL-ACCOUNT OF MSS232 -
+                  WHERE      (OPTION           = 'R',           -
+                              DSTRCT-CODE      = DSTRCT-CODE,   - 
+                              REQ-TYPE-IND     = 'I',           -
+                              REQ-NO           = IREQ-NO,       -
+                              IREQ-ITEM        = IREQ-ITEM)
+       GITEST   = RETURN-STATUS        VIA (GLAI)
+       WI       = WORK-ORDER           VIA (GLAI)
+       MI       = PROJECT-NO           VIA (GLAI)
+       NI       = EQUIP-NO             VIA (GLAI)
+%* totals
+       COUNT1   = COUNT (*)
+%***                    *** END OF PROGRAM ***

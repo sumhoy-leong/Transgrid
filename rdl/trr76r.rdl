@@ -1,0 +1,133 @@
+%***  $Id: trr76r.rdl,v 1.2 2010/05/06 04:30:08 mimsdev Exp $
+%*** TRR76R.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 10-Dec-2012  a9jw6280       MO164 ---
+%*** ..........................  - Changed input file into TRT76S
+%*** ..........................  - Change order and break-fields to inline with
+%*** ..........................  the changes in TRR76S.
+%*** ..........................  - Add req param to allow up to 10 employees.
+%*** 06-Sep-2012  a9jw6280       MO164 (VErsion 0001)
+%*** ..........................  Reset version number to 0001 for E8 upgrade.
+%*** ..........................  Added quote for words after TEXT.
+%*** 22-JUL-2010  G Presser      Due to problems with RDL not being 
+%*** ..........................  able to count summary records, we 
+%*** ..........................  have had to create another RDL TRR76R
+%*** ..........................  to actually produce the report 
+%*** 11-JUN-2010  Janak Barar    After testing in development recieved request
+%*** ............................for additions.                               
+%*** 06-MAY-2010  Janak Barar    SC2761152  Request for new prog - OTE salary;
+%*** ..........................  Initial coding. 
+%PROGRAM-ID
+       TRR76R
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This program will generate an OTE(Ordinary Time earnings) salary
+      **  report for active employees and terminated employees terminated    
+      **  within reported parameter period. 
+      **  This RDL actually prints the report   
+%VERSION
+       0001
+%MODULE
+       3880
+%FILES
+        IFILE = TRT76S
+        RFILE = TRR76RA
+%*
+%INPUT-FILE
+        I-UCODE              PIC (X(4))
+        I-RC1                PIC (X(33))
+        I-RC2                PIC (X(10))
+        I-EMP                PIC (X(10))
+        I-SNAME              PIC (X(20))
+        I-FNAME              PIC (X(13))
+        I-BDAT               PIC (X(8))
+        I-TDAT               PIC (X(8))
+        I-NAMT1              PIC (X(13))
+        I-MSG                PIC (X(10))
+%*
+%ORDER
+       ASCENDING I-UCODE
+       ASCENDING I-EMP 
+%BREAK-FIELDS
+       I-UCODE
+       I-EMP
+%REPORT
+       A
+%REPORT-TITLE
+'Ordinary Time Earnings Salary Report'
+%PAGE HEADING     
+{TEXT1       } {FPERIOD }   {TEXT2} {TPERIOD }
+'Super                            Member     Employee   Emp-Last             Emp-First      Birth  Termination       OTE     Message'
+'Fund                               Id       Id         Name                 Name           Date      Date         Salary    '
+%BREAK I-UCODE HEADING on NEW-PAGE
+%*BREAK I-EMP
+%DETAIL
+{RC1                            } {RC2     } {EMP     } {SNAME             } {FNAME      } {BDAT  } {TDAT  } {NAMT1      } {MSG     }
+%BREAK I-UCODE FOOTING
+'                                                                                                                          ' 
+{SUTXT2                               } {RC1                            } {SUT2} {EMPC } 
+%*
+%REPORT-SUMMARY
+
+
+'                                      Total Number of Records               : '{EMPC }
+'------------------------------------------------------------ End of Report  ------------------------------------------------------'
+%*
+%REQUEST-PARAMETERS
+                STARTDT      PIC(X(8))  TEXT  'Report Date From           : '
+                ENDDT        PIC(X(8))  TEXT  'Report Date To             : '
+                EMPLOYEE1    PIC(X(10)) TEXT  'Employee-Id  1             : '
+                EMPLOYEE2    PIC(X(10)) TEXT  'Employee-Id  2             : '
+                EMPLOYEE3    PIC(X(10)) TEXT  'Employee-Id  3             : '
+                EMPLOYEE4    PIC(X(10)) TEXT  'Employee-Id  4             : '
+                EMPLOYEE5    PIC(X(10)) TEXT  'Employee-Id  5             : '
+                EMPLOYEE6    PIC(X(10)) TEXT  'Employee-Id  6             : '
+                EMPLOYEE7    PIC(X(10)) TEXT  'Employee-Id  7             : '
+                EMPLOYEE8    PIC(X(10)) TEXT  'Employee-Id  8             : '
+                EMPLOYEE9    PIC(X(10)) TEXT  'Employee-Id  9             : '
+                EMPLOYEE10   PIC(X(10)) TEXT  'Employee-Id 10             : '
+%VARIABLES
+    FDATE     = %STARTDT%     CONSTANT
+    EDATE     = %ENDDT%       CONSTANT
+    EMPL01    = %EMPLOYEE1%   CONSTANT
+    EMPL02    = %EMPLOYEE2%   CONSTANT
+    EMPL03    = %EMPLOYEE3%   CONSTANT
+    EMPL04    = %EMPLOYEE4%   CONSTANT
+    EMPL05    = %EMPLOYEE5%   CONSTANT
+    EMPL06    = %EMPLOYEE6%   CONSTANT
+    EMPL07    = %EMPLOYEE7%   CONSTANT
+    EMPL08    = %EMPLOYEE8%   CONSTANT
+    EMPL09    = %EMPLOYEE9%   CONSTANT
+    EMPL10    = %EMPLOYEE10%  CONSTANT
+    DUMMY     = 'Y'           CONSTANT
+    TEXT1     = 'Report Period '                                    CONSTANT
+    TEXT2     = 'to '                                               CONSTANT
+    SUTXT2    = '   Total Number of records in the Fund '           CONSTANT
+    SUT2      = 'are:'                                              CONSTANT
+    FDD       = substr (FDATE,7,2)                                  CONSTANT
+    FMM       = substr (FDATE,5,2)                                  CONSTANT
+    FYYYY     = substr (FDATE,1,4)                                  CONSTANT
+    TDD       = substr (EDATE,7,2)                                  CONSTANT
+    TMM       = substr (EDATE,5,2)                                  CONSTANT
+    TYYYY     = substr (EDATE,1,4)                                  CONSTANT
+    FPERIOD   = catenate (FDD,'/',FMM,'/',FYYYY)                    CONSTANT
+    TPERIOD   = catenate (TDD,'/',TMM,'/',TYYYY)                    CONSTANT
+
+    RC1    = I-RC1
+    RC2    = I-RC2
+    EMP    = I-EMP
+    SNAME  = I-SNAME
+    FNAME  = I-FNAME
+    BDAT   = I-BDAT
+    TDAT   = I-TDAT
+    NAMT1  = I-NAMT1
+    MSG    = I-MSG
+
+    EMPC   = count (EMP)
+
+%* END PROGRAM 

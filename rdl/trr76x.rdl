@@ -1,0 +1,1012 @@
+%PROGRAM-ID
+       TRR76X
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **   Extract program for report to show system dates
+      **   which are to become effective in a given number of weeks 
+      **   for nominated Pay Group.
+      **   (W703210026)
+      **
+      **   Initial Version : Neel Chandra.
+      **
+      **   Revision History
+      **   ----------------
+	  **   09-Jan-13 a9jw6280    MO164 ---
+	  **   ...................   Change req param Pay Group into Pay Location.
+      **   07-Sep-12 a9jw6280    MO164 (Version 0001)
+      **   ..................... Reset version number to 0001 for E8 upgrade.
+      **   15-May-06 E.Fredeluces  HD771042
+      **   ..................... The userid is now 6-chars in Ellipse 
+      **   ..................... including the prefix "P".  Modify to
+      **   ..................... substring from the 2nd char.
+      **   09-Nov-05 E Fredeluces  P05110870
+      **   ..................... Fix compilation errors in Ellipse 5.2.3.7.
+      **   04-Sep-03 R Yeung     WHD0119188
+      **   ..................... Fix for the invalid pay group selection.
+      **   24-Mar-00 D. Diolaso  W00030548       (Version 0004)
+      **   ..................... Fix for not producing report when run
+      **   ..................... through HRSUN
+      **   10-Jan-00 G Presser   W99120032       (Version 003)
+      **   ..................... Enhance selection for person running
+      **   ..................... report
+      **   19-Jul-99 G Presser   W99070253       (Version 002)
+      **   ..................... Check access to Pay Group for person
+      **   ..................... running report
+      **   11-May-99 G Presser   W99050095
+      **   ..................... Convert to MIMS 4.3.1
+      **
+%VERSION
+       0001
+%MODULE
+       3760
+%FILES
+        MFILE = MSF820
+        AFILE = MSF827
+        LFILE = MSF723A
+        LFILE = MSF810
+        LFILE = MSF760
+        LFILE = MSF765
+        LFILE = MSF772
+        LFILE = MSF795
+        LFILE = MSF827
+        LFILE = MSF828
+        LFILE = MSF829
+        LFILE = MSF870
+        LFILE = MSF878A
+        LFILE = MSF878B
+        LFILE = MSF888
+        OFILE = TSE76XA
+        RFILE = TRR76XA
+%ROUTINES
+       MSSDAT
+%SELECTION
+%*** Enter selection criteria for MSF810
+       WHERE    (EMPLOYEE-ID >= SPACES)
+       SELECTIF (PAY-LOCATION = PL)
+%REPORT
+       A
+%REPORT-TITLE
+       'Imminent Action Dates Extract Report'
+%DETAIL       
+%REPORT-SUMMARY
+{CNT  }'Employees processed and Extract file for Imminent Dates Report Written'
+%OUTPUT-FILE
+       A
+%DETAIL
+<IF PAYFLG = 'Y' AND SELACC = 'Y'>
+ <IF %TA% = 'Y' AND AREQD = 'Y'>
+A{EMP     }{TGT   }{NAME              }XY{HDATE }{REVDT }
+ <ENDIF>
+ <IF %TB% = 'Y' AND B1REQD = 'Y'>
+B{EMP     }{TGT   }{NAME              }XY{SG1DT }        L
+ <ENDIF>
+ <IF %TB% = 'Y' AND B2REQD = 'Y'>
+B{EMP     }{TGT   }{NAME              }XY{SG2DT }        M
+ <ENDIF>
+ <IF %TB% = 'Y' AND B3REQD = 'Y'>
+B{EMP     }{TGT   }{NAME              }XY{SG3DT }        N
+ <ENDIF>
+ <IF %TB% = 'Y' AND B4REQD = 'Y'>
+B{EMP     }{TGT   }{NAME              }XY{SG4DT }        O
+ <ENDIF>
+ <IF %TC% >= 'Y'>
+   <IF RTSIZE > 0>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 1>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 2>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 3>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 4>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 5>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 6>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 7>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 8>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 9>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 10>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 11>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 12>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 13>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 14>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 15>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 16>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 17>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 18>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+   <IF RTSIZE > 19>
+C{EMP     }{TGT   }{NAME              }XY{RTDT  }         {RT }
+   <ENDIF>
+ <ENDIF>
+ <IF %TD% = 'Y' AND WX-TRAINING-IN = 'Y'>
+   <IF TCSIZE > 0>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 1>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 2>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 3>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 4>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 5>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 6>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 7>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 8>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 9>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 10>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 11>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 12>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 13>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 14>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 15>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 16>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 17>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 18>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+   <IF TCSIZE > 19>
+D{EMP     }{TGT   }{NAME              }XY                      {CRS     }{SE}
+   <ENDIF>
+ <ENDIF>
+ <IF %TE% = 'Y' AND WX-PERF-APPRAISAL-IN = 'Y'>
+   <IF APSIZE > 0>
+E{EMP     }{TGT   }{NAME              }XY{APDT  }
+   <ENDIF>
+   <IF APSIZE > 1>
+E{EMP     }{TGT   }{NAME              }XY{APDT  }
+   <ENDIF>
+   <IF APSIZE > 2>
+E{EMP     }{TGT   }{NAME              }XY{APDT  }
+   <ENDIF>
+   <IF APSIZE > 3>
+E{EMP     }{TGT   }{NAME              }XY{APDT  }
+   <ENDIF>
+   <IF APSIZE > 4>
+E{EMP     }{TGT   }{NAME              }XY{APDT  }
+   <ENDIF>
+ <ENDIF>
+ <IF %TF% = 'Y'>
+   <IF PTSIZE > 0>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 1>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 2>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 3>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 4>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 5>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 6>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 7>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 8>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 9>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 10>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 11>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 12>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 13>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 14>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 15>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 16>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 17>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 18>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+   <IF PTSIZE > 19>
+F{EMP     }{TGT   }{NAME              }XY{PTDT  }                            {POS     }PP
+   <ENDIF>
+ <ENDIF>
+ <IF %TG% = 'Y' AND WX-PAYROLL-IN = 'Y'>
+   <IF GTSIZE > 0>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 1>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 2>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 3>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 4>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 5>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 6>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 7>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 8>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 9>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 10>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 11>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 12>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 13>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 14>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 15>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 16>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 17>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 18>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+   <IF GTSIZE > 19>
+G{EMP     }{TGT   }{NAME              }XY{GTDT  }                                      RRQQQ
+   <ENDIF>
+ <ENDIF>
+ <IF %TH% = 'Y' AND WX-PAYROLL-IN = 'Y'>
+   <IF ATSIZE > 0>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 1>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 2>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 3>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 4>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 5>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 6>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 7>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 8>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 9>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 10>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 11>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 12>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 13>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 14>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 15>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 16>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 17>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 18>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+   <IF ATSIZE > 19>
+H{EMP     }{TGT   }{NAME              }XY{ATDT  }                                      SS   {AW}
+   <ENDIF>
+ <ENDIF>
+ <IF %TI% = 'Y' AND WX-PAYROLL-IN = 'Y'>
+   <IF LTSIZE > 0>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 1>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 2>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 3>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 4>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 5>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 6>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 7>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 8>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 9>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 10>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 11>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 12>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 13>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 14>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 15>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 16>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 17>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 18>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+   <IF LTSIZE > 19>
+I{EMP     }{TGT   }{NAME              }XY{LTDT  }                                      UU       TTT
+   <ENDIF>
+ <ENDIF>
+ <IF %TJ% = 'Y' AND WX-WORK-GROUPS-IN = 'Y'>                    
+   <IF WTSIZE > 0>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 1>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 2>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 3>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 4>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 5>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 6>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 7>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 8>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 9>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 10>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 11>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 12>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 13>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 14>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 15>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 16>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 17>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 18>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+   <IF WTSIZE > 19>
+J{EMP     }{TGT   }{NAME              }XY{WTDT  }                                                  {WG   }
+   <ENDIF>
+ <ENDIF>
+ <IF %TK% = 'Y' AND WX-LEAVE-ADMIN-IN = 'Y'>
+   <IF BLSIZE > 0>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 1>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 2>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 3>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 4>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 5>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 6>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 7>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 8>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 9>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 10>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 11>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>                                                                
+   <IF BLSIZE > 12>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 13>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 14>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 15>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 16>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 17>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 18>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+   <IF BLSIZE > 19>
+K{EMP     }{TGT   }{NAME              }XY{BLDT  }                                                         {BLEDT }
+   <ENDIF>
+ <ENDIF>
+<ENDIF>
+%CONTROL
+       COPY-REQUEST = TRR76I
+%REQUEST-PARAMETERS
+       PL  PIC (X(2)) TEXT 'Pay Location'
+       WKS PIC (9(4)) TEXT 'Number of weeks'
+       TA  PIC (X(1)) TEXT 'New Starters Review'
+       TB  PIC (X(1)) TEXT 'Significant Dates'
+       TC  PIC (X(1)) TEXT 'Resource Types'
+       TD  PIC (X(1)) TEXT 'Training Courses'
+       TE  PIC (X(1)) TEXT 'Performance Appraisals'
+       TF  PIC (X(1)) TEXT 'Position Transfers'
+       TG  PIC (X(1)) TEXT 'Paygroup Transfers'
+       TH  PIC (X(1)) TEXT 'Award Transfers'
+       TI  PIC (X(1)) TEXT 'Physical Location Transfers'
+       TJ  PIC (X(1)) TEXT 'Workgroup Transfers'
+       TK  PIC (X(1)) TEXT 'Booked Leave'
+%VARIABLES
+       PL      = %PL%               CONSTANT
+       WK      = %WKS% D-PIC (9(4)) CONSTANT
+       DAYSIN  = calc (WK * 7) I-PIC (9(6)) CONSTANT
+       TDY     = WX-TODAYS-DATE CONSTANT
+       TDYR    = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = TDY, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '2') CONSTANT
+       TGTT     = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = TDY, -
+                              DAYS       = DAYSIN, -
+                              REV-FORMAT = ' ') CONSTANT
+       TGT     = SUBSTR(TGTT,1,8)							  
+       TGTR    = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = TGTT, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '2') CONSTANT
+       A       = 'A' CONSTANT
+       B       = 'B' CONSTANT
+       C       = 'C' CONSTANT
+       D       = 'D' CONSTANT
+       E       = 'E' CONSTANT
+       F       = 'F' CONSTANT
+       G       = 'G' CONSTANT
+       H       = 'H' CONSTANT
+       I       = 'I' CONSTANT
+       J       = 'J' CONSTANT
+       K       = 'K' CONSTANT
+       
+%* Get Pay Group
+       PG     = PAY-GROUP 
+ 
+%* DD0300 W00030548
+       SYS   = substr (WX-USER-ID,2,6)      CONSTANT D-PIC (X(6))
+%* DD0300 W00030548 end insert
+
+       USRL  = substr (WX-USER-ID,2,5)       CONSTANT D-PIC (X(5))
+ 
+%* DD0300 W00030548 inserted USR1
+       USR1  = substr (WX-USER-ID,2,1)      CONSTANT D-PIC (X(1))
+       USR2  = catenate ('00000',USRL)     CONSTANT D-PIC (X(10))
+
+%* DD0300 W00030548 inserted choose statement below
+       USR   = choose (USR2 IF (USR1 >= '0',  -
+                                    USR1 <= '9'), -
+                         SYS)               CONSTANT
+
+       WPOS   = POSITION-ID OF MSF878A            -
+                 WHERE (EMPLOYEE-ID-1   = USR,   -
+                        PRIMARY-POS-1   = '0',     -
+                        INV-STR-DATE-1 >= SPACES)  -
+                 MAX (1)                       CONSTANT D-PIC (X(10))
+       M870    = POSITION-ID OF MSF870         -
+                 WHERE (POSITION-ID = WPOS)                            CONSTANT
+       ACC     = ACCESS-RULE                   VIA (M870)              CONSTANT
+       ART     = ACCESS-PAYGRP                 VIA (M870)              CONSTANT
+       ART1    = single (ART(1))                                       CONSTANT
+       ART2    = single (ART(2))                                       CONSTANT
+       ART3    = single (ART(3))                                       CONSTANT
+       ART4    = single (ART(4))                                       CONSTANT
+       ART5    = single (ART(5))                                       CONSTANT
+       ART6    = single (ART(6))                                       CONSTANT
+       ART7    = single (ART(7))                                       CONSTANT
+       ART8    = single (ART(8))                                       CONSTANT
+       ART9    = single (ART(9))                                       CONSTANT
+       ART10   = single (ART(10))                                      CONSTANT
+       ART11   = single (ART(11))                                      CONSTANT
+       ART12   = single (ART(12))                                      CONSTANT
+       ART13   = single (ART(13))                                      CONSTANT
+       ART14   = single (ART(14))                                      CONSTANT
+       ART15   = single (ART(15))                                      CONSTANT
+       ART16   = single (ART(16))                                      CONSTANT
+       ART17   = single (ART(17))                                      CONSTANT
+       ART18   = single (ART(18))                                      CONSTANT
+       ART19   = single (ART(19))                                      CONSTANT
+       ART20   = single (ART(20))                                      CONSTANT
+       AWG     = ACC-WORK-GROUP                VIA (M870)              CONSTANT
+       AWG1    = single (AWG(1))                                       CONSTANT
+       AWG2    = single (AWG(2))                                       CONSTANT
+       AWG3    = single (AWG(3))                                       CONSTANT
+       AWG4    = single (AWG(4))                                       CONSTANT
+       AWG5    = single (AWG(5))                                       CONSTANT
+       AWG6    = single (AWG(6))                                       CONSTANT
+       AWG7    = single (AWG(7))                                       CONSTANT
+       AWG8    = single (AWG(8))                                       CONSTANT
+       AWG9    = single (AWG(9))                                       CONSTANT
+       AWG10   = single (AWG(10))                                      CONSTANT
+%*
+       EMP     = EMPLOYEE-ID
+       NAME    = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = EMP)
+       X       = FIRST-INITIAL VIA  (NAME)
+       Y       = SECOND-INITIAL VIA (NAME)
+%* New Starters Review
+       HDATE   = HIRE-DATE OF MSF760 -
+                           WHERE (EMPLOYEE-ID = EMP)
+%* Add 6months to hire date to get review date
+       CYX     = substr (HDATE,1,4)
+       MX      = substr (HDATE,5,2)
+       DX      = substr (HDATE,7,2)
+       CCYY    = choose (CYX IF (HDATE <> SPACES), 9999) I-PIC (9(4))
+       MM      = choose (MX IF (HDATE <> SPACES), 0) I-PIC (9(2))
+       DD      = choose (DX IF (HDATE <> SPACES), 0) I-PIC (9(2))
+       MM6     = calc (MM + 6) I-PIC (9(2))
+       CCYY1   = calc (CCYY + 1) I-PIC (9(4))
+       CCYYR   = choose (CCYY1 IF (MM6 <> 12), CCYY) I-PIC (9(4))
+       MM2     = calc (MM6 - 12) I-PIC (9(2))
+       MMR     = choose (MM2 IF (MM6 <> 12), MM6) I-PIC (9(2))
+       REVDT   = catenate (CCYYR,MMR,DD)
+       AREQD   = choose ('Y' IF (REVDT >= TDY, -
+                                 REVDT <= TGT), -
+                         'N')
+%*  Significant Dates
+       SG1DT   = SIG-DATE-1 VIA (HDATE)
+       B1REQD  = choose ('Y' IF (SG1DT >= TDY, -
+                                 SG1DT <= TGT), -
+                         'N')
+       L       = SIG-REASON-1 VIA (HDATE)
+       SG2DT   = SIG-DATE-2 VIA (HDATE)
+       B2REQD  = choose ('Y' IF (SG2DT >= TDY, -
+                                 SG2DT <= TGT), -
+                         'N')
+       M       = SIG-REASON-2 VIA (HDATE)
+       SG3DT   = SIG-DATE-3 VIA (HDATE)
+       B3REQD  = choose ('Y' IF (SG3DT >= TDY, -
+                                 SG3DT <= TGT), -
+                         'N')
+       N       = SIG-REASON-3 VIA (HDATE)
+       SG4DT   = SIG-DATE-4 VIA (HDATE)
+       B4REQD  = choose ('Y' IF (SG4DT >= TDY, -
+                                 SG4DT <= TGT), -
+                         'N')
+       O       = SIG-REASON-4 VIA (HDATE)
+%*  Resource Types
+       RT      = RESOURCE-TY OF MSF765 -
+                             WHERE (EMPLOYEE-ID  = EMP, -
+                                    EMP-RES-IND  = 'C', -
+                                    RESOURCE-TY >= SPACES) -
+                             SELECTIF (REV-EXP-DATE >= TDY, -
+                                       REV-EXP-DATE <= TGT) MAX (20)
+       RTDT    = REV-EXP-DATE VIA (RT)
+       RTSIZE  = size (RT)
+       RT1     = single (RT(1))
+       RT2     = single (RT(2))
+       RT3     = single (RT(3))
+       RT4     = single (RT(4))
+       RT5     = single (RT(5))
+       RT6     = single (RT(6))
+       RT7     = single (RT(7))
+       RT8     = single (RT(8))
+       RT9     = single (RT(9))
+       RT10    = single (RT(10))
+       RT11    = single (RT(11))
+       RT12    = single (RT(12))
+       RT13    = single (RT(13))
+       RT14    = single (RT(14))
+       RT15    = single (RT(15))
+       RT16    = single (RT(16))
+       RT17    = single (RT(17))
+       RT18    = single (RT(18))
+       RT19    = single (RT(19))
+       RT20    = single (RT(20))
+%*  Training Courses
+       CRS     = COURSE-ID OF MSF772 -
+                           WHERE (ATTENDEE-TY   = 'E', -
+                                  EMPLOYEE-ID   = EMP, -
+                                  COURSE-ID    >= SPACES) -
+                           SELECTIF (ATTEND-STATUS = 'F') -
+                           SELECTIF (ATTEND-STATUS = 'N')  MAX (20)
+       SE      = SESSION-NO VIA (CRS)
+       TCSIZE  = size (CRS)
+%*  Performance Appraisals
+       APDT    = NXT-APPS-DTE OF MSF795 -
+                              WHERE (EMPLOYEE-ID   = EMP, -
+                                     INV-EFF-DATE >= SPACES) -
+                              SELECTIF (NXT-APPS-DTE >= TDY, -
+                                        NXT-APPS-DTE <= TGT) MAX (5)
+       APSIZE  = size (APDT)
+%*  Position Transfers
+       POS     = POSITION-ID OF MSF878B -
+                             WHERE    (EMPLOYEE-ID-2    = EMP,  -
+                                       INV-STR-DATE-2  >= TGTR) -
+                             SELECTIF (INV-STR-DATE-2  <= TDYR) MAX (20)
+       PTSIZE  = size (POS)
+       P       = CHANGE-REASON VIA (POS)
+       PTDTR   = INV-STR-DATE VIA (POS)
+       PTDT    = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = PTDTR, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '1')
+%*  Pay Group  - nominated
+%*       Z       = PAY-GROUP FROM MSF827 -
+%*                           WHERE     (EMPLOYEE-ID = EMP, -
+%*                                     INV-STR-DATE >= 00000000) 
+       Z       = PAY-GROUP FROM MSF827 -
+                           WHERE     (EMPLOYEE-ID = EMP,   -
+                                      INV-STR-DATE >= SPACES )    -
+                 SELECTIF (END-DATE   = '00000000') -
+                 MAX (1)
+       PAYGRP1 = choose ('Y' IF (ACC   = 'I',                 -
+                                 ART1  = Z, ART1 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART2  = Z, ART2 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART3  = Z, ART3 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART4  = Z, ART4 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART5  = Z, ART5 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART6  = Z, ART6 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART7  = Z, ART7 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART8  = Z, ART8 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART9  = Z, ART9 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART10 = Z, ART10 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART11 = Z, ART11 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART12 = Z, ART12 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART13 = Z, ART13 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART14 = Z, ART14 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART15 = Z, ART15 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART16 = Z, ART16 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART17 = Z, ART17 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART18 = Z, ART18 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART19 = Z, ART19 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                 -
+                                 ART20 = Z, ART20 <> SPACES), 'N')
+       PAYGRP2 = choose ('N' IF (ACC   = 'E',                 -
+                                 ART1  = Z, ART1 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART2  = Z, ART2 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART3  = Z, ART3 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART4  = Z, ART4 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART5  = Z, ART5 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART6  = Z, ART6 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART7  = Z, ART7 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART8  = Z, ART8 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART9  = Z, ART9 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART10 = Z, ART10 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART11 = Z, ART11 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART12 = Z, ART12 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART13 = Z, ART13 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART14 = Z, ART14 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART15 = Z, ART15 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART16 = Z, ART16 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART17 = Z, ART17 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART18 = Z, ART18 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART19 = Z, ART19 <> SPACES), -
+                         'N' IF (ACC   = 'E',                 -
+                                 ART20 = Z, ART20 <> SPACES), 'Y')
+       PAYGRP3 = choose ('Y' IF (ACC = 'A'),     -
+                         'Y' IF (ACC = 'I',      -
+                                 PAYGRP1 = 'Y'), -
+                         'Y' IF (ACC = 'E',      -
+                                 PAYGRP2 = 'Y'), 'N')
+       PAYFLG  = choose ('Y' IF (Z = PG), 'N')
+%*
+%*Work Group - Nominated
+       WGROUP  =  WORK-GROUP OF MSF723A -                           
+                  WHERE (REC-723-TYPE-2  = 'W',    -
+                         EQUIP-NO-2      = SPACES, -              
+                         EMPLOYEE-ID-2   = EMP,    -               
+                         EFF-DT-REVSD-2 >= '0') MAX(1)         
+       WGROUP1 = choose ('Y' IF (ACC  = 'W',                      -
+                                 AWG1 = WGROUP, AWG1 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG2 = WGROUP, AWG2 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG3 = WGROUP, AWG3 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG4 = WGROUP, AWG4 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG5 = WGROUP, AWG5 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG6 = WGROUP, AWG6 <> SPACES),  - 
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG7 = WGROUP, AWG7 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG8 = WGROUP, AWG8 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG9 = WGROUP, AWG9 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG10 = WGROUP, AWG10 <> SPACES), 'N')
+       SELACC  = choose ('Y' IF (PAYGRP3 = 'Y'), -
+                         'Y' IF (WGROUP1 = 'Y'), 'N')
+
+       CNTV    = choose (1 IF (PAYFLG = 'Y', SELACC = 'Y'), 0)
+       CNT     = total (CNTV)
+%*  Pay Group Transfers
+       Q       = PAY-GROUP OF MSF827 -
+                           WHERE (EMPLOYEE-ID = EMP, -
+                                  INV-STR-DATE >= TGTR) -
+                           SELECTIF (INV-STR-DATE <= TDYR) MAX (20)
+       GTSIZE  = size (Q)
+       R       = CHANGE-REASON VIA (Q)
+       GTDTR   = INV-STR-DATE VIA (Q)
+       GTDT    = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = GTDTR, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '1')
+%*  Award Transfers
+       AW      = AWARD-CODE OF MSF828 -
+                            WHERE (EMPLOYEE-ID = EMP, -
+                                   INV-STR-DATE >= TGTR) -
+                            SELECTIF (INV-STR-DATE <= TDYR) MAX (20)
+       ATSIZE  = size (AW)
+       S       = CHANGE-REASON VIA (AW)
+       ATDTR   = INV-STR-DATE VIA (AW)
+       ATDT    = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = ATDTR, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '1')
+%*  Physical Location Transfers
+       T      = PHYSICAL-LOC OF MSF829 -
+                             WHERE (EMPLOYEE-ID = EMP, -
+                                    INV-STR-DATE >= TGTR) -
+                             SELECTIF (INV-STR-DATE <= TDYR) MAX (20)
+       LTSIZE  = size (T)
+       U       = CHANGE-REASON VIA (T)
+       LTDTR   = INV-STR-DATE VIA (T)
+       LTDT    = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = LTDTR, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '1')
+%*  Work Group Transfers
+       WG      = WORK-GROUP OF MSF723A -
+                            WHERE (REC-723-TYPE-2  = 'W',    -
+                                   EQUIP-NO-2      = SPACES, -
+                                   EMPLOYEE-ID-2   = EMP,    -
+                                   EFF-DT-REVSD-2 >= TGTR)   -
+                            SELECTIF (EFF-DT-REVSD-2 <= TDYR) MAX (20)
+       WTSIZE  = size (WG)
+       WTDTR   = EFF-DT-REVSD VIA (WG)
+       WTDT    = DATE2 OF MSSDAT -
+                       WHERE (OPTION     = '1', -
+                              DATE1      = WTDTR, -
+                              DAYS       = 0, -
+                              REV-FORMAT = '1')
+%*  Booked Leave
+       BLDT    = LVE-ST-DATE OF MSF888 -
+                             WHERE (EMPLOYEE-ID  = EMP, -
+                                    LVE-ST-DATE >= SPACES) -
+                             SELECTIF (LVE-ST-DATE >= TDY, -
+                                       LVE-ST-DATE <= TGT) -
+                             SELECTIF (LVE-END-DATE >= TDY, -
+                                       LVE-END-DATE <= TGT) -
+                             SELECTIF (LVE-ST-DATE < TDY, -
+                                       LVE-END-DATE > TGT) MAX (20)
+       BLSIZE  = size (BLDT)
+       BLEDT   = LVE-END-DATE VIA (BLDT)
+
+%*
+%*End Of Program

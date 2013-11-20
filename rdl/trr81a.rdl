@@ -1,0 +1,132 @@
+%*** Revision History
+%*** 21-Feb-2013  a9nl6176  Change the way MISC-RPT-FLD-A (1-5) checking for value equals to G.
+%*** 07-Dec-2012  a9jw6280  MO164
+%*** .....................  Changed the way to get MISC-RPT-FLDS value.
+%*** 26-Jul-2012  a9jw6280  MO164 (Version 0001)
+%*** .....................  Changed TRAN-UNITS into TRN-UNITS.
+%*** .....................  Changed record length into 70.
+%*** .....................  Added quote for words ater TEXT.
+%*** .....................  Reset version number to 0001 for e9 upgrade.
+%*** 08-Nov-2000  E Fredeluces  W00100290
+%***                            Initial Coding.
+%***
+%PROGRAM-ID
+    TRR81A
+%AUTHOR
+    Elizabeth Fredeluces
+%NARRATIVE
+    This program will MSF835 records that is GST related,
+    creates an output file and then call TRR81B to generate
+    the report.
+%MODULE
+    3820
+%VERSION
+    0001
+%FILES
+    MFILE = MSF820
+    AFILE = MSF835
+    LFILE = MSF002
+    LFILE = MSF801
+    LFILE = MSF802A
+    OFILE = TRT81AA
+%SELECTION
+    WHERE (EMPLOYEE-ID >= SPACES)
+
+%CONTROL
+    COPY-REQUEST = TRR81B
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 72
+%DETAIL
+<IF F-RF1 = 'Y' OR F-RF2 = 'Y' OR F-RF3 = 'Y' OR F-RF4 = 'Y' OR F-RF5 = 'Y'>
+{EMP     }CCC{ACCNT     }{AMT            }{CDESC                       }
+<ENDIF>
+%REQUEST-PARAMETERS
+    PSD  PIC (X(8)) FORMAT (DATE) TEXT  'Week Ending Date From : '
+    PED  PIC (X(8)) FORMAT (DATE) TEXT  'Week Ending Date To   : '
+%VARIABLES
+    PSD    = %PSD% CONSTANT
+    PED    = %PED% CONSTANT
+    MSF801 = CUR-STR-DT-PG OF MSF801        -
+             WHERE (CNTL-REC-TYPE  = 'PG'  ,-
+                    CNTL-KEY-REST  = 'T01')          CONSTANT
+    PRSD   = PRV-STR-DT-PG   VIA (MSF801)            CONSTANT
+    PRED   = PRV-END-DT-PG   VIA (MSF801)            CONSTANT
+
+    SDAT   = CHOOSE (PSD IF (PSD <> SPACES), PRSD)   CONSTANT
+    EDAT   = CHOOSE (PED IF (PED <> SPACES), PRED)   CONSTANT
+%*
+%*  Pay Group T01 to T13
+    PGT01S = PAY-GROUP OF MSF802A          -
+             WHERE (PAY-GROUP-2   = 'T01', -
+                    PER-END-DT-2 >= SDAT)  -
+             MAX (1)                                 CONSTANT
+    PDT01S = SYS-PRD-NO      VIA (PGT01S)            CONSTANT
+    PGT01E = PAY-GROUP OF MSF802A          -
+             WHERE (PAY-GROUP-2   = 'T01', -
+                    PER-END-DT-2 >= EDAT)  -
+             MAX (1)                                 CONSTANT
+    PDT01E = SYS-PRD-NO      VIA (PGT01E)            CONSTANT
+%*
+%*  Pay Group T15
+    PGT15S = PAY-GROUP OF MSF802A          -
+             WHERE (PAY-GROUP-2   = 'T15', -
+                    PER-END-DT-2 >= SDAT)  -
+             MAX (1)                                 CONSTANT
+    PDT15S = SYS-PRD-NO      VIA (PGT15S)            CONSTANT
+    PGT15E = PAY-GROUP OF MSF802A          -
+             WHERE (PAY-GROUP-2   = 'T15', -
+                    PER-END-DT-2 >= EDAT)  -
+             MAX (1)                                 CONSTANT
+    PDT15E = SYS-PRD-NO      VIA (PGT15E)            CONSTANT
+%*
+    EMP    = EMPLOYEE-ID
+    MSF835 = TRN-UNITS FROM MSF835                                  -
+             WHERE    (EMPLOYEE-ID   =  EMP,                        -
+                       PRD-END-DATE >= SDAT)                        -
+             REJECTIF (TRAN-CODE     > '990')                       -
+             REJECTIF (PREV-RETRO    = 'Y')                         -
+             REJECTIF (PAY-RUN-TYPE <> 'U')                         -
+             REJECTIF (TRAN-IND     <> '1')                         -
+             REJECTIF (PAY-PER-NO    <  PDT01S, PAY-GROUP <> 'T15') -
+             REJECTIF (PAY-PER-NO    >  PDT01E, PAY-GROUP <> 'T15') -
+             REJECTIF (PAY-PER-NO    <  PDT15S, PAY-GROUP  = 'T15') -
+             REJECTIF (PAY-PER-NO    >  PDT15E, PAY-GROUP  = 'T15')
+
+    HDAMT  = HD-AMOUNT     VIA (MSF835)
+    C      = TRAN-CODE     VIA (MSF835)
+    PRDTE  = PRD-END-DATE  VIA (MSF835)
+    RKEY   = CATENATE ('***',C)
+    HDCDE  = HDA-EARN-CODE VIA (MSF835)
+    OAMT   = AMOUNT        VIA (MSF835)
+    AMT    = CHOOSE (HDAMT IF (HDAMT <> 0,HDCDE = SPACES ) , OAMT) -
+                               D-PIC (-Z(12)9.99)
+%*
+%*  Determine the Misc Report Field 1-5 if = 'G'
+    MSF801A= TNAME-A OF MSF801           -
+             WHERE (CNTL-REC-TYPE = 'A', -
+                    CNTL-KEY-REST = RKEY)
+    RF0    = MISC-RPT-FLD-A VIA (MSF801A)
+    RF1    = SINGLE (RF0 (1))
+    RF2    = SINGLE (RF0 (2))
+	RF3    = SINGLE (RF0 (3))
+	RF4    = SINGLE (RF0 (4))
+	RF5    = SINGLE (RF0 (5))
+    F-RF1  = CHOOSE ('Y' IF(RF1 = 'G'), 'N')
+    F-RF2  = CHOOSE ('Y' IF(RF2 = 'G'), 'N')
+    F-RF3  = CHOOSE ('Y' IF(RF3 = 'G'), 'N')
+    F-RF4  = CHOOSE ('Y' IF(RF4 = 'G'), 'N')
+    F-RF5  = CHOOSE ('Y' IF(RF5 = 'G'), 'N')
+    CDESC  = TNAME-A          VIA (MSF801A)
+%*
+%*  Obtain the Account Code
+    MSF801C= TNAME-A OF MSF801            -
+             WHERE (CNTL-REC-TYPE = 'CA', -
+                    CNTL-KEY-REST = RKEY)
+    ACCT   = GL-DEBIT-NO-CA VIA (MSF801C)
+    ELT    = DR-EXP-ELE-CA  VIA (MSF801C)
+    ACCNT  = CHOOSE (ACCT IF (ACCT <> SPACES), ELT)
+%*
+%*          *** End of Program ***
+%*

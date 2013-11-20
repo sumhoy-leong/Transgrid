@@ -1,0 +1,1720 @@
+/**
+ * BPA extraction program
+ * This program will extract BPA information and output to a csv file
+ * @AIT 2013
+ * 28/10/2013 RL - Fixed issue with actuals to use Total Life Cost
+ *               - Change entity type column to show JI as PR/WO/WT
+ * 25/10/2013 RL - removed JE description line 2
+ *               - displayed milestone activity code description instead of code
+ *               - fixed incorrect displayed periods 
+ *               - moved BPA description to a new line
+ *               - displayed BPA preparation purpose's description
+ *               - added BPA user status's description
+ *               - changed label 'BPA preparation from date' to BPA prepared from date'
+ *               - added BPA last modified date 
+ * 04/10/2013 RL - VERSION 1
+ *
+ */package com.mincom.ellipse.script.custom
+
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.Image;
+ 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.mincom.batch.request.Request;
+import com.mincom.batch.script.*;
+import com.mincom.ellipse.reporting.source.ReportSource;
+import com.mincom.ellipse.script.util.*;
+import com.mincom.batch.environment.BatchEnvironment;
+import com.mincom.batch4j.program.m3875.MSBAPS.TallyingSearchCallback;
+import com.mincom.ellipse.common.unix.*;
+import groovy.sql.Sql
+import com.mincom.eql.impl.*
+import com.mincom.eql.*
+import com.mincom.ellipse.edoi.ejb.bpa_head.*;
+import com.mincom.ellipse.edoi.ejb.bpa_costs_spread.*;
+import com.mincom.ellipse.edoi.ejb.bpa_project_budget.*;
+import com.mincom.ellipse.edoi.ejb.bpa_estimates.*;
+import com.mincom.ellipse.edoi.ejb.bpa_actuals_668.*;
+import com.mincom.ellipse.edoi.ejb.msf010.*;
+import com.mincom.ellipse.edoi.ejb.msf623.*;
+import com.mincom.ellipse.edoi.ejb.msf620.*;
+import com.mincom.ellipse.edoi.ejb.msf655.*;
+import com.mincom.ellipse.edoi.ejb.msf656.*;
+import com.mincom.ellipse.edoi.ejb.msf660.*;
+import com.mincom.ellipse.edoi.ejb.msf667.*;
+import com.mincom.ellipse.edoi.ejb.msf668.*;
+import com.mincom.ellipse.edoi.ejb.msfx6w.*;
+import com.mincom.ellipse.edoi.ejb.msfx35.*;
+import com.mincom.ellipse.eroi.linkage.mssdat.*;
+import com.mincom.ellipse.errors.exceptions.*;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.derby.impl.services.bytecode.BCLocalField;
+import org.apache.derby.impl.store.raw.data.DirectActions;
+import org.aspectj.weaver.ast.HasAnnotation;
+import org.bouncycastle.mail.smime.examples.ReadCompressedMail;
+import org.eclipse.jdt.core.compiler.ITerminalSymbols;
+
+import java.util.Date;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.lang.Comparable;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.util.Formatter;
+import java.awt.Font;
+import java.text.SimpleDateFormat;
+import javax.sql.DataSource;
+
+
+////-------------------------------------------------------------------
+//import groovy.lang.Binding;
+//import com.mincom.ellipse.edoi.common.logger.EDOILogger;
+//import com.mincom.ria.xml.bind.BigDecimalBinder;
+//import com.vividsolutions.jts.geom.impl.PackedCoordinateSequence.Double;
+//
+//public class AITBatchbpa implements GroovyInterceptable {
+//
+//	private static final long REFRESH_TIME = 60 * 1000 * 5
+//
+//	public EDOIWrapper edoi
+//	public EROIWrapper eroi
+//	public ServiceWrapper service
+//	public BatchWrapper batch;
+//	public CommAreaScriptWrapper commarea;
+//	public BatchEnvironment env
+//	public UnixTools tools
+//	public Reports report;
+//	public Sort sort;
+//	public Params params;
+//	public RequestInterface request;
+//	public Restart restart;
+//
+//	private String uuid;
+//	private String taskUuid;
+//
+//	private Date lastDate;
+//
+//	private boolean disableInvokeMethod
+//
+//	public static final int SuperBatch_VERSION = 5;
+//	public static final String SuperBatch_CUST = "TRAN1";
+//
+//	/**
+//	 * Print a string into the logger.
+//	 * @param value a string to be printed.
+//	 */
+//	public void info(String value){
+//		def logObject = LoggerFactory.getLogger(getClass());
+//		logObject.info("------------- " + value)
+//	}
+//	
+//	public void debug(String value){
+//		def logObject = LoggerFactory.getLogger(getClass());
+//		logObject.debug("------------- " + value)
+//	}
+//
+//	/**
+//	 * Initialize the variables based on binding object.
+//	 * @param b binding object
+//	 */
+//	public void init(Binding b) {
+//		edoi = b.getVariable("edoi");
+//		eroi = b.getVariable("eroi");
+//		service = b.getVariable("service");
+//		batch = b.getVariable("batch");
+//		commarea = b.getVariable("commarea");
+//		env = b.getVariable("env");
+//		tools = b.getVariable("tools");
+//		report = b.getVariable("report");
+//		sort = b.getVariable("sort");
+//		request = b.getVariable("request");
+//		restart = b.getVariable("restart");
+//		params = b.getVariable("params");
+//
+//		// gets the uuid from the request, in case the vm 'argument mincom.groovy.classes' is true the uuid will be blank
+//		uuid = Boolean.getBoolean("mincom.groovy.classes") ? "" : request.getUUID();
+//
+//		// gets the task uuid from the request, in case the vm 'argument mincom.groovy.classes' is true the uuid will be blank
+//		taskUuid = Boolean.getBoolean("mincom.groovy.classes") ? "" : request.request.getTaskUuid();
+//		
+//	}
+//
+//	/**
+//	 *  Returns the uuid
+//	 * @return String UUID
+//	 */
+//	public String getUUID() {
+//		return uuid
+//	}
+//
+//	/**
+//	 *  Returns the task uuid from the parent
+//	 * @return String UUID
+//	 */
+//	public String getTaskUUID() {
+//		return taskUuid
+//	}
+//
+//	/**
+//	 * Print the version.
+//	 */
+//	public void printSuperBatchVersion(){
+//		info ("SuperBatch Version:" + SuperBatch_VERSION);
+//		info ("SuperBatch Customer:" + SuperBatch_CUST);
+//	}
+//
+//	def invokeMethod(String name, args) {
+//		if (!disableInvokeMethod) {
+//			disableInvokeMethod = true;
+//			try {
+//				keepAliveConnection();
+//			} finally {
+//				disableInvokeMethod = false;
+//			}
+//		}
+//		def result
+//		def metaMethod = metaClass.getMetaMethod(name, args)
+//		result = metaMethod.invoke(this, metaMethod.coerceArgumentsToClasses(args))
+//		return result
+//	}
+//
+//	protected void keepAliveConnection() {
+//		if (lastDate == null) {
+//			lastDate = new Date();
+//		} else {
+//			Date currentDate = new Date();
+//			debug("Time elapsed  = " + (currentDate.getTime() - lastDate.getTime()))
+//			debug("Time refresh  = " + REFRESH_TIME)
+//			if ((currentDate.getTime() - lastDate.getTime()) > REFRESH_TIME ) {
+//				lastDate = currentDate;
+//				restartTransaction();
+//			}
+//		}
+//	}
+//
+//	protected void restartTransaction() {
+//		debug("restartTransaction")
+//		(0..0).each restart.each(1, { debug("Restart Transaction") })
+//		debug("end restart transaction")
+//	}
+//}
+////-------------------------------------------------------------------
+
+public class ParamsTrbbpa
+{
+	//List of Input Parameters
+	String paramBPACode = " ";
+}
+
+/**
+ * <li> BPA Extraction Report <br>
+ * <li> This program extracts BPA information for a specific BPA Code to a CSV file</li>
+ * <li> output: 1 CSV file - TRTbpa </li>
+ */
+
+//public class ProcessTrbbpa extends AITBatchbpa
+public class ProcessTrbbpa extends SuperBatch
+{
+	/*
+	 * IMPORTANT!
+	 * Update this Version number EVERY push to GIT
+	 */
+	private version = 1;
+	private ParamsTrbbpa batchParams;
+
+	private ArrayList arrayOfTrbbpaReportLine = new ArrayList();
+	private DataSource dataSource;
+	
+	private ObjectField TopProject = new ObjectField();
+	private ArrayList<ActEstPerPeriod> AEList = new ArrayList<ActEstPerPeriod>();
+	private ArrayList<String> acctPeriodList = new ArrayList<String>();
+	private ArrayList<projWOHier> pWOHierList = new ArrayList<projWOHier>();
+	private ArrayList<monthlyTot> mtList = new ArrayList<monthlyTot>();
+	private ArrayList <ActEstPerPeriod> rollUpTot = new ArrayList<ActEstPerPeriod>();
+	private ArrayList<budgetCodes> bcList = new ArrayList<budgetCodes>();
+	private ArrayList<jobEstHier> JEH = new ArrayList<jobEstHier>();
+	private ArrayList<jobEstPerPeriod> JEList = new ArrayList<jobEstPerPeriod>();
+	private ArrayList<jobEstPerPeriod> rollUpJETot = new ArrayList<jobEstPerPeriod>();
+	
+	public static final String WX_DISTRICT = "district";
+	private String wxDstrct;
+	
+	private int ReportBLineCounter = 0;
+	private String workDir
+	
+	private String BPAProjectNo;
+	private String BPADstrctCode;
+	private String BPADesc;
+	private String BPAPurpose;
+	private String BPADateFr;
+	private String BPADateCrt;
+	private String BPADateConf;
+	private String BPABudgetType;
+	private String parClassKey;
+	private String BPADateMod;
+	private String BPAInclude;
+	private String BPAUserStatus;
+	
+	private String min_ap1;
+	private String max_ap1;
+	private String min_ap2;
+	private String max_ap2;
+	private String min_ap3;
+	private String max_ap3;
+	
+	//Report A - batch report
+	private def ReportA;
+	
+	//CVS file B - details report
+	File ReportBFile;
+	FileWriter ReportBStream;
+	String ReportBPath;
+	BufferedWriter ReportB; 
+
+	private DecimalFormat decFormatter = new DecimalFormat("################0.00");
+	private DecimalFormat decFormatterNoDec = new DecimalFormat("################0");
+	private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+	private SimpleDateFormat disDateFormat = new SimpleDateFormat("dd/MM/yyyy");
+	
+	/**
+	 * Run the main batch.
+	 * @param b a <code>Binding</code> object passed from <code>ScriptRunner</code>
+	 */
+	public void runBatch(Binding b)
+	{
+		init(b);
+		dataSource = b.getVariable("dataSource");
+		ProcessTrbbpa.printinfo("VERSION      :" + version);
+		ProcessTrbbpa.printinfo("uuid         :" + getUUID());
+		
+		workDir = env.getWorkDir().toString() + "/";
+		
+		ReportBPath = workDir +"TRTBPA" + "." + taskUUID + ".csv";
+		ReportBFile = new File(ReportBPath);
+		ReportBStream = new FileWriter(ReportBFile)
+		ReportB = new BufferedWriter(ReportBStream)
+		ProcessTrbbpa.printinfo("ReportBPath   :" + ReportBPath);
+		
+		printSuperBatchVersion();
+		
+		ProcessTrbbpa.printinfo("runBatch Version : " + version);
+		batchParams = params.fill(new ParamsTrbbpa());
+
+		//PrintRequest Parameters
+		ProcessTrbbpa.printinfo("paramBPACode           : " + batchParams.paramBPACode);
+
+		try
+		{
+			processBatch();
+			
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			ProcessTrbbpa.printinfo("processBatch failed - ${e.getMessage()}");
+		}
+		finally
+		{
+			printBatchReport();
+		}
+	}
+	
+	public static void printinfo(String value)
+	{
+		def logObject = LoggerFactory.getLogger(ProcessTrbbpa);
+		logObject.info("------------- " + value)
+	}
+
+	
+	/**
+	 * Process the main batch.
+	 */
+	private void processBatch()
+	{
+		ProcessTrbbpa.printinfo("processBatch");
+		if (initialise_B000())
+		{
+			processRequest();
+			generateTrbbpaReport();
+		}
+		ReportA.close();
+	}
+	
+	/**
+	 * Initialize the working directory, output file, and other variables.
+	 */
+	private boolean initialise_B000()
+	{
+		ProcessTrbbpa.printinfo("initialise_B000");
+		
+		ReportBLineCounter = 0;
+		
+		ReportA = report.open('TrbbpaA')
+		
+		//validate mandatory fields
+		if (batchParams.paramBPACode.trim().equals("") )
+		{
+			WriteError ("BPA Code is Mandatory");
+			return false;
+		}
+		return true;
+	}
+
+	private void WriteError(String msg)
+	{
+		ReportA.write(" ");
+		ReportA.write(msg);
+		ReportA.write(" ");
+		ReportA.write(" ");
+		ProcessTrbbpa.printinfo ("Error: " + msg);
+	}
+	/**
+	 * Process request. <br>
+	 * <li>process transactions from BPA_Head for a nominated BPA Code </li>
+	 */
+	private void processRequest()
+	{
+		ProcessTrbbpa.printinfo("processRequest");
+		ArrayList <projectHierarchy> phList = new ArrayList <projectHierarchy>();
+		int i;
+		
+		try
+		{
+
+			 
+			
+			Constraint c1 = BPA_HEADKey.budgetPrepId.equalTo(batchParams.paramBPACode);
+			def query = new QueryImpl(BPA_HEADRec.class).and(c1);
+			
+			BPA_HEADRec bpa_headRec = (BPA_HEADRec) edoi.firstRow(query);
+			if (bpa_headRec){
+				//get BPA top project details
+				BPADesc = bpa_headRec.getDescription();
+				BPAPurpose = bpa_headRec.getPurpose().trim();
+				BPADateFr = bpa_headRec.getBudgetPrepFrom();
+				BPADateConf = bpa_headRec.getLastConfDate();
+				BPADateCrt = bpa_headRec.getCreationDate();
+				BPABudgetType =  bpa_headRec.getClassif0();
+				BPAProjectNo = bpa_headRec.getProjectNo();
+				BPADstrctCode = bpa_headRec.getDstrctCode();
+				//25/10/13 RL
+				BPAUserStatus = bpa_headRec.getCurrentUserStatus();
+				BPADateMod = bpa_headRec.getLastModDate();
+				BPAInclude = bpa_headRec.getIncludeSubProjects();
+
+				determineAcctPeriods();
+					
+				TopProject = new ObjectField();
+				TopProject.ObjectType = "PR";
+				TopProject.ObjectKey = BPAProjectNo;
+				TopProject.EntityId = BPAProjectNo;
+				
+				
+				//build projects/work orders hierarchy as required
+				//if (bpa_headRec.getIncludeSubProjects() == "Y")
+				//{
+					 
+					TopProject.PopulateProject(true);
+					TopProject.GetJobEstimates();
+					
+				//}
+				//else
+				//{
+				//	TopProject.PopulateProject(false);
+				//}
+					info("================================================")
+					info("================================================")
+			}
+					 
+		}
+		catch (com.mincom.ellipse.edoi.common.exception.EDOIObjectNotFoundException  e)
+		{
+			e.printStackTrace();
+			ProcessTrbbpa.printinfo("processRequest failed - ${e.getMessage()}");
+		}
+		catch (Exception ex)
+		{
+			ProcessTrbbpa.printinfo ("processRequest Error: " + ex.message);
+		}
+	}
+ 
+	
+	public class ObjectField
+	{
+		String ObjectType = "";
+		String DisplayType = "";
+		String ObjectKey = "";
+		
+		String ParentObjectType = "";
+		
+		String EntityId = "";
+		String ItemNo = "";
+		String Description = "";
+		String ActivityCode = "";
+		String ReportingType = "";
+		ArrayList<ObjectField> Children = new ArrayList<ObjectField>();
+		
+		Map<String,BigDecimal> DirectEstimate = new HashMap<String,BigDecimal>();
+		Map<String,BigDecimal> TotalActual = new HashMap<String,BigDecimal>();
+		
+		Boolean hasProjects = false;
+		Boolean hasJobEstimates = false;
+		Boolean hasWorkOrders = false;
+		Boolean hasWorkOrderTasks = false;
+		Boolean hasJobEstimateTasks = false;
+		Boolean hasEstimates = false;
+		Boolean hasActual = false;
+		
+		public String GetDisplayType()
+		{
+			try
+			{
+				String JE_PR = "JE (PR)";
+				String JI_PR = "JI (PR)";
+				String JI_WO = "JI (WO)";
+				String JI_WT = "JI (WT)"; 
+	
+				if (ObjectType.equals("JE")) return JE_PR;
+				if (ObjectType.equals("PR") || ObjectType.equals("WO") || ObjectType.equals("WT")) return ObjectType;
+				
+				// else JI ... tricky
+				
+				// No children but parent is the Job Estimate header - then work order
+				if (Children.size == 0 && ParentObjectType.equals("JE")) return JI_WO;
+				
+				// No children and parent is not the Job Estimate header - then work order task
+				if (Children.size == 0) return JI_WT;
+				
+				// else ... how do I know where I am?
+				ObjectField obj = (ObjectField)Children.first();
+				if (obj.GetDisplayType().equals(JI_WT)) return JI_WO;
+				
+				// Else it must be JI PR
+				return JI_PR;
+			}
+			catch (Exception e)
+			{
+				info("Died in GetDisplayType " + e.message);
+				throw e;
+			}
+			
+		}
+		public BigDecimal TotalEstimates(String period)
+		{
+			 try
+			 {
+				BigDecimal ret = 0;
+				if (DirectEstimate.containsKey(period))
+					ret = DirectEstimate.get(period);
+				
+				for (ObjectField c : Children)
+				{
+					ret = ret + c.TotalEstimates(period);
+				}
+				
+				return ret;
+			 }
+			 catch (Exception e)
+			 {
+				 info("Died in TotalEstimates " + e.message);
+				 throw e;
+			 }
+			
+		}
+		public BigDecimal TotalActuals(String period)
+		{
+			try
+			{ 
+			
+				BigDecimal ret = 0;
+				if (TotalActual.containsKey(period))
+					ret = TotalActual.get(period);
+				 
+				return ret;
+			}
+			catch (Exception e)
+			{
+				info("Died in TotalActuals " + e.message);
+				throw e;
+			}
+		}
+		public void PrintHierarchy()
+		{
+			PrintHierarchyInternal("",false,false);
+		}
+		public void PrintMonthlyTotals()
+		{
+			PrintHierarchyInternal("",true,false);
+		}
+		public void PrintCummTotals()
+		{
+			PrintHierarchyInternal("",false,true);
+		}
+		private void PrintHierarchyInternal(String spaces, Boolean MonthlyTotals, Boolean CummTotals)
+		{
+			 try
+			 {
+				String totPerPeriodL = "";
+				String APP = "\"";
+				BigDecimal totActEst= 0;
+				BigDecimal totAct = 0;
+				BigDecimal totEst = 0;
+				BigDecimal totPerPeriod = 0;
+				
+				for (String aperiod : acctPeriodList)
+				{ 
+					String fPeriod = "";
+					String sPeriod = "";
+					fPeriod = aperiod;
+					sPeriod = fPeriod.toString();
+					
+					BigDecimal te = TotalEstimates(sPeriod);
+					BigDecimal ta = TotalActuals(sPeriod);
+					
+					if (CummTotals)
+					{
+						totPerPeriod = totPerPeriod + te + ta;
+					}
+					else
+					{
+						totPerPeriod = te + ta;
+					}
+					totEst = totEst + te;
+					totAct = totAct + ta;
+					totActEst = totAct + totEst;
+					
+					if (totPerPeriod == 0)
+						totPerPeriodL = totPerPeriodL + APP + "" + APP + ",";
+					else
+						totPerPeriodL = totPerPeriodL + APP + decFormatter.format(totPerPeriod) + APP + ",";
+					 
+				}
+				String column1 = "";
+				String column2 = "";
+				String column3 = "";
+				String column4 = "";
+				String column5 = "";
+				String column6 = "";
+				String column7 = "";
+				String columntotActEst = "";
+				String columntotAct = "";
+				String columntotEst = "";
+				
+				if (totActEst != 0)
+					columntotActEst = decFormatter.format(totActEst);
+				if (totAct != 0)
+					columntotAct = decFormatter.format(totAct);
+				if (totEst != 0)
+					columntotEst = decFormatter.format(totEst);
+	
+				if (MonthlyTotals)
+				{
+					column5 = "Monthly total";
+				}
+				else if (CummTotals)
+				{
+					column5 = "Cumulative total";
+				}
+				else
+				{
+				 
+					column1 = GetDisplayType();
+					column2 = EntityId;
+					column3 = ItemNo;
+					column4 = spaces + ObjectType + "-" + EntityId + ItemNo;
+					column5 = Description; 
+					column6 = get010Desc ("JD", ActivityCode);
+					column7 = ReportingType;
+				}
+				ReportB.write(APP + column1 + APP + "," +
+					APP + column2 + APP + "," +
+					APP + column3 + APP + "," +
+					APP + column4 + APP + "," +
+					APP + column5 + APP + "," +
+					APP + column6 + APP + "," +
+					APP + column7 + APP + "," +
+					totPerPeriodL +
+					APP + columntotActEst + APP + "," +
+					APP + columntotAct + APP + "," +
+					APP + columntotEst + APP + "," +
+					"\n");
+				 
+	
+				spaces = spaces + "    ";
+				
+				if (!MonthlyTotals && !CummTotals)
+				{
+					for (ObjectField ofc : Children)
+					{
+						ofc.PrintHierarchyInternal(spaces,MonthlyTotals, CummTotals);
+					}
+				}
+			 }
+			 catch (Exception e)
+			 {
+				 info("Died in PrintHierarchyInternal " + e.message);
+				 throw e;
+			 }
+		}
+		private void PrintBudgetCode(String budgetcode)
+		{	
+			try
+			{
+				String totPerPeriodL = "";
+				BigDecimal totPerPeriod = 0;
+				String APP = "\"";
+				
+				for (String aperiod : acctPeriodList)
+				{
+					totPerPeriod = 0;
+					
+					int iRevPeriod;
+					String sRevPeriod;
+					
+					String fPeriod = "";
+					String sPeriod = "";
+					fPeriod = aperiod;
+					sPeriod = fPeriod.toString();
+					
+					iRevPeriod = 999999 - aperiod.toInteger();
+					sRevPeriod = iRevPeriod.toString();
+									
+					Constraint c1 = MSF667Key.dstrctCode.equalTo(BPADstrctCode);
+					Constraint c2 = MSF667Key.projectNo.equalTo(BPAProjectNo);
+					Constraint c3 = MSF667Key.categoryCode.equalTo("");
+					Constraint c4 = MSF667Key.expRevInd.equalTo("E");
+					Constraint c5 = MSF667Key.revsdPeriod.equalTo(sRevPeriod);
+					Constraint c6 = MSF667Key.budgetCode.equalTo(budgetcode);
+					def query = new QueryImpl(MSF667Rec.class).and(c1).and(c2).and(c3).and(c4).and(c5).and(c6)
+		
+					edoi.search(query,10000,{MSF667Rec msf667Rec ->
+						if (msf667Rec)
+						{
+							totPerPeriod = msf667Rec.getTotEstCost().toBigDecimal();	 
+						}
+					})
+					
+					if (totPerPeriod == 0)
+						totPerPeriodL = totPerPeriodL + APP + "" + APP + ",";
+					else
+						totPerPeriodL = totPerPeriodL + APP + decFormatter.format(totPerPeriod) + APP + ",";
+					
+				}
+				
+				String column1 = "";
+				String column2 = "";
+				String column3 = "";
+				String column4 = "";
+				String column5 = "Baseline/Budgeted total - " + budgetcode;
+				String column6 = "";
+				String column7 = "";
+				String columntotActEst = "";
+				String columntotAct = "";
+				String columntotEst = "";
+				
+				ReportB.write(APP + column1 + APP + "," +
+					APP + column2 + APP + "," +
+					APP + column3 + APP + "," +
+					APP + column4 + APP + "," +
+					APP + column5 + APP + "," +
+					APP + column6 + APP + "," +
+					APP + column7 + APP + "," +
+					totPerPeriodL +
+					APP + columntotActEst + APP + "," +
+					APP + columntotAct + APP + "," +
+					APP + columntotEst + APP + "," +
+					"\n");
+			}
+			catch (Exception e)
+			{
+				info("Died in PrintBudgetCode " + e.message);
+				throw e;
+			}
+		}
+		public void PrintBudgets()
+		{
+			try
+			{
+				// Get the budget codes to be written
+				Constraint c1 = MSF667Key.dstrctCode.equalTo(BPADstrctCode);
+				Constraint c2 = MSF667Key.projectNo.equalTo(BPAProjectNo);
+				Constraint c3 = MSF667Key.categoryCode.equalTo("");
+				Constraint c4 = MSF667Key.expRevInd.equalTo("E");
+				Constraint c5 = MSF667Key.revsdPeriod.equalTo("000000");
+				def query = new QueryImpl(MSF667Rec.class).and(c1).and(c2).and(c3).and(c4).and(c5)
+	
+				edoi.search(query,10000,{MSF667Rec msf667Rec ->
+					if (msf667Rec)
+					{
+						String bc = msf667Rec.getPrimaryKey().getBudgetCode().trim();
+						if (!bc.equals(""))
+						{
+							PrintBudgetCode(bc);
+						}
+					}
+				})
+			}
+			catch (Exception e)
+			{
+				info("Died in PrintBudgets " + e.message);
+				throw e;
+			}
+		}
+		public void PrintTotals()
+		{
+			
+		}
+		public void Populate()
+		{
+			try
+			{
+			info("Populate " + ObjectType + " - " + ObjectKey);
+				
+				GetActuals();
+				GetEstimates();
+				
+				GetProjects()
+	
+				GetWorkOrders();
+				GetWorkOrderTasks();
+	
+				GetJobEstimateItems();
+			}
+			catch (Exception e)
+			{
+				info("Died in Populate " + e.message);
+				throw e;
+			}
+			 
+		}
+		public void AddChild(ObjectField of)
+		{
+			 try
+			 {
+				//info("   Adding (AddChild) " + of.ObjectType + " - " + of.ObjectKey);
+				 
+				of.ParentObjectType = ObjectType;
+				
+				for (ObjectField o : Children) 
+				{
+					//info("      CHECKING  " + of.ObjectType + " - " + of.ObjectKey + "/" + o.ObjectType + " - " + o.ObjectKey);
+					if (o.ObjectKey.equals(of.ObjectKey))
+					{
+						return;
+					}	
+				}
+				info("   Adding (AddChild) " + of.ObjectType + " - " + of.ObjectKey);
+				Children.add(of);
+				of.Populate();
+			 }
+			 catch (Exception e)
+			 {
+				 info("Died in AddChild " + e.message);
+				 throw e;
+			 }
+		}
+		public void PopulateProject(Boolean includechildren)
+		{
+			try
+			{
+				MSF660Rec msf660Rec = readMSF660(EntityId);
+				if (msf660Rec)
+				{
+					Description = msf660Rec.getProjDesc();
+				}
+				
+				if (includechildren)
+				{
+					Populate();
+				}
+				else
+				{
+					GetActuals();
+					GetEstimates();
+				} 
+			}
+			catch (Exception e)
+			{
+				info("Died in PopulateProject " + e.message);
+				throw e;
+			}
+		}
+		public void GetProjects()
+		{
+			try
+			{	
+				if (!ObjectType.equals("PR")) return;
+				if (hasProjects) return;
+				hasProjects = true;
+				info("  GetProjects " + ObjectType + " - " + ObjectKey);
+				 
+				Constraint c1 = MSFX6WKey.dstrctCode.equalTo(BPADstrctCode);
+				Constraint c2 = MSFX6WKey.parentProject.equalTo(ObjectKey);
+				Constraint c3 = MSFX6WKey.subProjectLevel.equalTo("001");
+				def query = new QueryImpl(MSFX6WRec.class).and(c1).and(c2).and(c3);
+	
+				edoi.search(query,10000,{MSFX6WRec msfx6wRec ->
+					if (msfx6wRec)
+					{
+						ObjectField of = new ObjectField();
+						of.ObjectType = "PR";
+						of.ObjectKey = msfx6wRec.getPrimaryKey().getSubProject();
+						of.EntityId = msfx6wRec.getPrimaryKey().getSubProject();
+						of.PopulateProject();
+						AddChild(of);
+					}
+				})
+			}
+			catch (Exception e)
+			{
+				info("Died in GetProjects " + e.message);
+				throw e;
+			}
+			
+		}
+		private MSF660Rec readMSF660(String projno)
+		{
+			try
+			{
+				Constraint c1A = MSF660Key.dstrctCode.equalTo(BPADstrctCode);
+				Constraint c2A = MSF660Key.projectNo.equalTo(projno);
+				def queryA = new QueryImpl(MSF660Rec.class).and(c1A).and(c2A)
+	
+				MSF660Rec msf660Rec = (MSF660Rec) edoi.firstRow(queryA);
+				return msf660Rec; 
+			}
+			catch (Exception e)
+			{
+				info("Died in readMSF660 " + e.message);
+				throw e;
+			}
+		}
+		public void GetWorkOrders()
+		{
+			try
+			{
+				if (!ObjectType.equals("PR")) return;
+				if (hasWorkOrders) return; 
+				hasWorkOrders = true;
+				info("  GetWorkOrders " + ObjectType + " - " + ObjectKey);
+				
+			 
+				Constraint c1 = MSF620Key.dstrctCode.equalTo(BPADstrctCode);
+				Constraint c2 = MSF620Rec.projectNo.equalTo(ObjectKey);
+				def query = new QueryImpl(MSF620Rec.class).and(c1).and(c2)
+	
+				edoi.search(query,10000,{MSF620Rec msf620Rec ->
+					if (msf620Rec)
+					{
+						ObjectField of = new ObjectField();
+						of.ObjectType = "WO";
+						of.ObjectKey = msf620Rec.getPrimaryKey().getWorkOrder();
+						of.EntityId = msf620Rec.getPrimaryKey().getWorkOrder();
+						of.Description = msf620Rec.getWoDesc();
+						AddChild(of);
+					}
+				}) 
+			}
+			catch (Exception e)
+			{
+				info("Died in GetWorkOrders " + e.message);
+				throw e;
+			}
+			 
+		}
+		
+		public void GetWorkOrderTasks()
+		{
+			try
+			{
+				if (!ObjectType.equals("WO")) return;
+				if (hasWorkOrderTasks) return;
+				hasWorkOrderTasks = true;
+				info("  GetWorkOrderTasks " + ObjectType + " - " + ObjectKey);
+				
+				//get work order task
+				Constraint c1 = MSF623Key.dstrctCode.equalTo(BPADstrctCode);
+				Constraint c2 = MSF623Key.workOrder.equalTo(ObjectKey);
+				def query = new QueryImpl(MSF623Rec.class).and(c1).and(c2)
+	
+				edoi.search(query,10000,{MSF623Rec msf623Rec ->
+					if (msf623Rec)
+					{
+						ObjectField of = new ObjectField();
+						of.ObjectType = "WT";
+						of.ObjectKey = msf623Rec.getPrimaryKey().getWorkOrder() + msf623Rec.getPrimaryKey().getWoTaskNo();
+						of.EntityId = msf623Rec.getPrimaryKey().getWorkOrder();
+						of.ItemNo = msf623Rec.getPrimaryKey().getWoTaskNo();
+						of.Description = msf623Rec.getWoTaskDesc(); 
+						of.ActivityCode = msf623Rec.getJobDescCode();
+						of.ReportingType = msf623Rec.getCompleteInstr();
+						AddChild(of);
+					}
+				})
+			}
+			catch (Exception e)
+			{
+				info("Died in GetWorkOrderTasks " + e.message);
+				throw e;
+			}
+		}
+		public void GetJobEstimates()
+		{
+			try
+			{
+			
+				// Only for top
+				if (hasJobEstimates) return;
+				hasJobEstimates = true;
+				info("  GetJobEstimates " + ObjectType + " - " + ObjectKey);
+				
+				Constraint c1 = BPA_ESTIMATESKey.budgetPrepId.equalTo(batchParams.paramBPACode);
+				
+				def query = new QueryImpl(BPA_ESTIMATESRec.class).and(c1)
+				
+				edoi.search(query,10000,{BPA_ESTIMATESRec bpaEstimatesRec ->
+					if (bpaEstimatesRec)
+					{
+						ObjectField of = new ObjectField();
+						of.ObjectType = "JE";
+						of.ObjectKey = bpaEstimatesRec.getPrimaryKey().getEstimateNo() + bpaEstimatesRec.getPrimaryKey().getEstimateVersion() + "000000";
+						of.EntityId = bpaEstimatesRec.getPrimaryKey().getEstimateNo();
+						
+						of.PopulateJobEstimate(); 
+						
+						AddChild(of);
+					}
+				})
+			}
+			catch (Exception e)
+			{
+				info("Died in GetJobEstimates " + e.message);
+				throw e;
+			}
+		}
+		public void GetJobEstimateItems()
+		{
+			try
+			{
+			
+				if (!ObjectType.equals("JI") && !ObjectType.equals("JE")) return;
+				if (hasJobEstimateTasks) return;
+				hasJobEstimateTasks = true;
+				info("  GetJobEstimateItems " + ObjectType + " - " + ObjectKey);
+				
+				Constraint c1 = MSFX35Key.parClassKey.equalTo(ObjectKey);
+				
+				def query = new QueryImpl(MSFX35Rec.class).and(c1)
+				
+				edoi.search(query,10000,{MSFX35Rec msfx35Rec ->
+					if (msfx35Rec)
+					{
+						ObjectField of = new ObjectField();
+						of.ObjectType = "JI";
+						of.ObjectKey = msfx35Rec.getPrimaryKey().getChildClassKey();
+						of.EntityId = msfx35Rec.getPrimaryKey().getChildClassKey().substring(0,12);
+						of.ItemNo = msfx35Rec.getPrimaryKey().getChildClassKey().substring(15,21);
+						
+						of.PopulateJobEstimate();  
+						
+						AddChild(of);
+					}
+				})
+			}
+			catch (Exception e)
+			{
+				info("Died in GetJobEstimateItems " + e.message);
+				throw e;
+			}
+			
+		}
+		private void PopulateJobEstimate()
+		{
+			try
+			{
+				String vers = ObjectKey.substring(12,15);
+				String itemnum = ObjectKey.substring(15,21);
+				
+				Constraint c1A = MSF656Key.estimateNo.equalTo(EntityId);
+				Constraint c2A = MSF656Key.versionNo.equalTo(vers);
+				Constraint c3A = MSF656Key.jeItemNo.equalTo(itemnum);
+				def queryA = new QueryImpl(MSF656Rec.class).and(c1A).and(c2A).and(c3A)
+	
+				MSF656Rec msf656Rec = (MSF656Rec) edoi.firstRow(queryA);
+				if (msf656Rec)
+				{
+					//25/10/13 RL - only displayed 1st description line
+					//Description = msf656Rec.getDescLine_1().trim() + " " + msf656Rec.getDescLine_2().trim();
+					Description = msf656Rec.getDescLine_1().trim();
+					ActivityCode = msf656Rec.getJobDescCode();
+					ReportingType = msf656Rec.getBusinessType();
+				}
+			}
+			catch (Exception e)
+			{
+				info("Died in PopulateJobEstimate " + e.message);
+				throw e;
+			}
+		}
+		
+		private String ReadMSF010(String tabletype, String tablecode)
+		{
+			try
+			{
+				String ret = "";
+				Constraint c1A = MSF010Key.tableCode.equalTo(tablecode);
+				Constraint c2A = MSF010Key.tableType.equalTo(tabletype);
+				def queryA = new QueryImpl(MSF010Rec.class).and(c1A).and(c2A);
+				
+				MSF010Rec msf010rec = (MSF010Rec) edoi.firstRow(queryA);
+				if (msf010rec)
+				{
+					 ret = msf010rec.getTableDesc();
+				}
+				return ret;	
+			}
+			catch (Exception e)
+			{
+				info("Died in ReadMSF010 " + e.message);
+				throw e;
+			}
+		}
+		
+		public void GetEstimates()
+		{
+			
+			try
+			{
+				if (!ObjectType.equals("JI") && !ObjectType.equals("WT")) return;
+				if (hasEstimates) return;
+				hasEstimates = true;
+				
+				for (String aperiod : acctPeriodList) 
+				{
+					BigDecimal result = 0;
+					 
+					//format of accounting_period in bpa_costs_spread is YYMM
+					String fPeriod = "";
+					String sPeriod = "";
+					fPeriod = aperiod;
+					sPeriod = fPeriod.toString().substring(2, 6);
+					
+					
+					def query;
+					Constraint c1 = BPA_COSTS_SPREADKey.budgetPrepId.equalTo(batchParams.paramBPACode);
+					
+					Constraint c3 = BPA_COSTS_SPREADKey.accountingPeriod.equalTo(sPeriod);
+					
+					
+					if (ObjectType == "JI")
+					{
+						
+						//get estimates for JI
+						Constraint c2 = BPA_COSTS_SPREADKey.workEntityReference.equalTo(ObjectKey);
+						Constraint c4 = BPA_COSTS_SPREADKey.workEntityType.equalTo("JI");
+						query = new QueryImpl(BPA_COSTS_SPREADRec.class).and(c1).and(c2).and(c3).and(c4);
+					}
+					else
+					{
+						String newKey = BPADstrctCode + "" + ObjectKey;
+						
+						//get estimates for WT
+						Constraint c2 = BPA_COSTS_SPREADKey.workEntityReference.equalTo(newKey);
+						Constraint c4 = BPA_COSTS_SPREADKey.workEntityType.equalTo("WT");
+						query = new QueryImpl(BPA_COSTS_SPREADRec.class).and(c1).and(c2).and(c3).and(c4);
+					}
+					
+					edoi.search(query,10000,{BPA_COSTS_SPREADRec bpaCostsSpreadRec ->
+						if (bpaCostsSpreadRec)
+						{
+							if (!bpaCostsSpreadRec.getCostAmount().equals(""))
+							{
+								
+								//get total estimates (cost type of E + L + M + O) per period
+								result = result + bpaCostsSpreadRec.getCostAmount().toBigDecimal();
+							}
+						}
+					})
+					
+					DirectEstimate.put(fPeriod.toString(), result);
+				}
+			}
+			catch (Exception e)
+			{
+				info("Died in GetEstimates " + e.message);
+				throw e;
+			}
+			
+		}
+		
+		public void GetActuals()
+		{
+			
+			try
+			{
+				if (!ObjectType.equals("WO") && !ObjectType.equals("PR")) return;
+				if (hasActual) return;
+				hasActual = true;
+				info("  GetActuals " + ObjectType + " - " + ObjectKey);
+				
+				int i;
+				int iRevPeriod;
+				String sRevPeriod;
+				 
+				BigDecimal result;
+				
+				String refNo;
+				 
+					
+				refNo = BPADstrctCode + ObjectKey;
+		 
+					
+				for (String aperiod : acctPeriodList) 
+				{
+					String fPeriod = "";
+					String sPeriod = "";
+					fPeriod = aperiod;
+					sPeriod = fPeriod.toString().substring(2, 6);
+						 
+					result = 0;
+					
+				   iRevPeriod = 999999 - aperiod.toInteger();
+				   sRevPeriod = iRevPeriod.toString();
+					
+				   //get actuals for projects & WOs
+				   
+				   def query;
+				   Constraint c1 = BPA_ACTUALS_668Key.budgetPrepId.equalTo(batchParams.paramBPACode);
+				   Constraint c2 = BPA_ACTUALS_668Key.dstrctCode.equalTo(BPADstrctCode);
+				   Constraint c3 = BPA_ACTUALS_668Key.revsdPeriod.equalTo(sRevPeriod);
+				   
+				   //get actuals
+				   if (ObjectType == "PR")
+				   {
+					   Constraint c4 = BPA_ACTUALS_668Key.woProjInd.equalTo("");
+					   Constraint c5 = BPA_ACTUALS_668Key.projectNo.equalTo(ObjectKey);
+					   Constraint c6 = BPA_ACTUALS_668Key.categoryCode.equalTo("");
+					   Constraint c7 = BPA_ACTUALS_668Key.expRevInd.equalTo("E");
+					   query = new QueryImpl(BPA_ACTUALS_668Rec.class).and(c1).and(c2).and(c3).and(c4).and(c5).and(c6).and(c7)
+				   }
+				   else  // WO
+				   {
+					   Constraint c4 = BPA_ACTUALS_668Key.woProjInd.equalTo("W");
+					   Constraint c5 = BPA_ACTUALS_668Key.workOrder.equalTo(ObjectKey);
+					   query = new QueryImpl(BPA_ACTUALS_668Rec.class).and(c1).and(c2).and(c3).and(c4).and(c5)
+				   }
+				   edoi.search(query,10000,{BPA_ACTUALS_668Rec bpaActuals668Rec ->
+					   if (bpaActuals668Rec)
+					   {
+						   if (!bpaActuals668Rec.getTotLifeCost().equals(""))
+						   {
+							   result = result + bpaActuals668Rec.getTotLifeCost().toBigDecimal();
+						   }
+					   }
+				   })
+						 
+				   
+				   TotalActual.put(fPeriod.toString(), result);
+				   //info("        ADDING  ACT " + ObjectType + " - " + ObjectKey  + " - " + sPeriod  + " - " + result );
+				   
+			   } 
+			}
+			catch (Exception e)
+			{
+				info("Died in GetActuals " + e.message);
+				throw e;
+			}
+		}
+	}
+	 
+	
+	/**
+	 * list of project hierarchy records.
+	 * TG currently has 4 levels in the project hierarchy
+	 */
+	public class projectHierarchy
+	{
+		BigDecimal level = 0;
+		String dstrctCode = "";
+		String parentProjNo = "";
+		String path = "";
+	}
+
+	/**
+	 * project WO hierarchy.
+	 */
+	public class projWOHier
+	{
+		BigDecimal level = 0;
+		String dstrctCode = "";
+		String projNo = "";
+		String projWOInd = ""; //P/W/T indicator
+		String projWO = "";   //project or WO
+		String WOTaskNo = "";
+		String description = "";
+		String projPath = "";
+		String actCode = "";
+		String compInst = "";
+	}
+
+	/**
+	 * job estimate hierarchy.
+	 */
+	public class jobEstHier
+	{
+		BigDecimal level = 0;
+		String estNo = "";
+		String verNo = "";
+		String path = "";
+	}
+	
+	/**
+	 * estimate cost for Job Estimates
+	 */
+	public class jobEstPerPeriod
+	{
+		BigDecimal level = 0;
+		String jePath = "";
+		String jobEstNo = "";
+		String jobEstVerNo = "";
+		String jobEstInd = "";  //JI indicator
+		String parItemNo = "";
+		String childItemNo = "";
+		String desc = "";
+		String acctPeriod = "";
+		BigDecimal totalEst = 0;
+	}
+	
+	/**
+	 *actuals/ estimate for projects/WO/WO Tasks
+	 */
+	public class ActEstPerPeriod
+	{
+		BigDecimal level = 0;
+		String projPath = "";
+		String dstrctCode = "";
+		String projNo = "";
+		String projWOInd = "";  //PR/WO/WT indicator
+		String projWO = "";
+		String WOTaskNo = "";
+		String desc = "";
+		String actCode = "";
+		String compInst = "";
+		String acctPeriod = "";
+		BigDecimal totalAct = 0;
+		BigDecimal totalEst = 0;
+	}
+	
+	/**
+	 *monthly totals
+	 */
+	public class monthlyTot
+	{
+		String period = "";
+		BigDecimal totalM = 0;
+	}
+	
+	/**
+	 *budget code and values for top project
+	 */
+	public class budgetCodes
+	{
+		String budgetCode = "";
+		String period = "";
+		BigDecimal totalBud = 0;
+	}
+	 
+	
+	/**
+	 * determine the earliest and latest accounting periods<br>
+	 **/
+	private void determineAcctPeriods()
+	{
+//		ProcessTrbbpa.printinfo("determineAcctPeriods");
+		int ap;
+		String sAP;
+		String sAPY;
+		String sAPP;
+		int iAPY;
+		int iAPP;
+		String minAP1;
+		String maxAP1;
+		int minAP;
+		int maxAP;
+		
+		try
+		{
+			//initialise
+			minAP = 0;
+			minAP = 0;
+			min_ap1 = "";
+			max_ap1 = "";
+			min_ap2 = "";
+			max_ap2 = "";
+			min_ap3 = "";
+			max_ap3 = "";
+			
+			//find min and max periods
+			def sql1 = new Sql(dataSource)
+			sql1.eachRow(qryString1(), {
+				min_ap1 = it.min_ap1
+				max_ap1 = it.max_ap1
+				 
+			})
+			
+			//find min and max periods
+			def sql2 = new Sql(dataSource)
+			sql2.eachRow(qryString2(), {
+				min_ap2 = it.min_ap2
+				max_ap2 = it.max_ap2
+				 
+			})
+			
+			//find min and max periods
+			def sql3 = new Sql(dataSource)
+			sql3.eachRow(qryString3(), {
+				min_ap3 = it.min_ap3
+				max_ap3 = it.max_ap3
+				 
+			})
+			
+			//build accounting periods
+			if (min_ap1 == null){
+				if (min_ap2 != null){
+					if (min_ap3 != null){
+						minAP = Math.min(min_ap2.toInteger(), min_ap3.toInteger());
+						maxAP = Math.max(max_ap2.toInteger(), max_ap3.toInteger());
+					}
+					else{
+						minAP = min_ap2.toInteger();
+						maxAP = max_ap2.toInteger();
+					}
+				}
+				else{
+					minAP = min_ap3.toInteger();
+					maxAP = max_ap3.toInteger();
+				}
+			}
+			else{
+				//accounting period in bpa_costs_spread return as YYMM. Need to convert to YYYYMM!
+				minAP1 = "20" + min_ap1;
+				maxAP1 = "20" + max_ap1;
+				if (min_ap2 != null){
+					if (min_ap3 != null){
+						minAP = Math.min(Math.min(min_ap2.toInteger(), min_ap3.toInteger()), minAP1.toInteger());
+						maxAP = Math.max(Math.max(max_ap2.toInteger(), max_ap3.toInteger()), maxAP1.toInteger());
+					}
+					else{
+						minAP = Math.min(minAP1.toInteger(), min_ap2.toInteger());
+						maxAP = Math.max(maxAP1.toInteger(), max_ap2.toInteger());
+					}
+				}
+				else{
+					if (min_ap3 != null){
+						minAP = Math.min(minAP1.toInteger(), min_ap3.toInteger());
+						maxAP = Math.max(maxAP1.toInteger(), max_ap3.toInteger());
+					}
+					else{
+						minAP = minAP1.toInteger();
+						maxAP = maxAP1.toInteger();
+					}
+				}
+			}
+ 
+			
+			if (minAP > 0){
+				ap = minAP;
+				while (ap <= maxAP){
+					acctPeriodList.add(ap);
+					
+					sAPY = ap.toString().substring(0, 4);
+					sAPP = ap.toString().substring(4, 6);
+					if (sAPP != "12"){
+						ap++; 
+					}
+					else{
+						sAP =  (sAPY.toInteger() + 1) + "01";
+						ap = sAP.toInteger(); 
+					}
+				}
+			}
+			
+		}
+		catch (com.mincom.ellipse.edoi.common.exception.EDOIObjectNotFoundException  e)
+		{
+			e.printStackTrace();
+			ProcessTrbbpa.printinfo("determineAcctPeriods failed - ${e.getMessage()}");
+		}
+		catch (Exception ex)
+		{
+			ProcessTrbbpa.printinfo ("determineAcctPeriods Error: " + ex.message);
+		}
+	}
+		
+	// Create SQL statement to get min & max acct periods from bpa_costs_spread
+	private String qryString1() {
+		//info("qryString1")
+		
+		StringBuffer qry1 = new StringBuffer()
+		qry1.append("select ")
+		qry1.append("min(accounting_period) as min_ap1, ")
+		qry1.append("max(accounting_period) as max_ap1 ")
+		qry1.append("from bpa_costs_spread ")
+		qry1.append("where budget_prep_id = '${batchParams.paramBPACode}' ")
+		//info(qry1.toString())
+		return qry1.toString()
+	}
+
+	// Create SQL statement to get min & max acct periods from bpa_actauls_668
+	private String qryString2() {
+		//info("qryString2")
+		
+		StringBuffer qry2 = new StringBuffer()
+		qry2.append("select ")
+		qry2.append("min(999999 - revsd_period) as min_ap2, ")
+		qry2.append("max(999999 - revsd_period) as max_ap2 ")
+		qry2.append("from bpa_actuals_668 ")
+		qry2.append("where budget_prep_id = '${batchParams.paramBPACode}' ")
+		qry2.append("and revsd_period <> '000000' ")
+		//info(qry2.toString())
+		return qry2.toString()
+	}
+	
+	// Create SQL statement to get min & max acct periods from msf667
+	//assume periods for the sub projects will be within the parent project
+	private String qryString3() {
+		//info("qryString3")
+		
+		StringBuffer qry3 = new StringBuffer()
+		qry3.append("select ")
+		qry3.append("min(999999 - revsd_period) as min_ap3, ")
+		qry3.append("max(999999 - revsd_period) as max_ap3 ")
+		qry3.append("from msf667 ")
+		qry3.append("where project_no = '${BPAProjectNo}' ")
+		qry3.append("and revsd_period <> '000000' ")
+		//info(qry3.toString())
+		return qry3.toString()
+	}
+ 
+	
+	/**
+	 * 25/10/13 RL - Read MSF010 to get table code description. <br>
+	 **/
+	private String get010Desc (String tableType, String tableCode)
+	{
+		String result = "";
+		try
+		{
+			//get table code description
+			Constraint c1 = MSF010Key.tableType.equalTo(tableType);
+			Constraint c2 = MSF010Key.tableCode.equalTo(tableCode);
+			def query = new QueryImpl(MSF010Rec.class).and(c1).and(c2)
+
+			MSF010Rec msf010Rec = (MSF010Rec) edoi.firstRow(query);
+			if (msf010Rec)
+			{
+				result = msf010Rec.getTableDesc();
+			}
+
+		}
+		catch (com.mincom.ellipse.edoi.common.exception.EDOIObjectNotFoundException  e)
+		{
+			e.printStackTrace();
+			info("get010Desc failed - ${e.getMessage()}");
+		}
+		catch (Exception ex)
+		{
+			info ("get010Desc Error: " + ex.message);
+		}
+		return result;
+	}
+	
+	private BigDecimal StringToBigDecimal(String val)
+	{
+		try
+		{
+			return new BigDecimal(val);
+		}
+		catch (Exception ex)
+		{
+			return 0;
+		}
+	}
+ 
+	
+	/**
+	 * generate batch reports <br>
+	 * <li> 1. Output CSV file </li>
+	 **/
+	private generateTrbbpaReport()
+	{
+		ProcessTrbbpa.printinfo ("Process generateTrbbpaReport");
+		String tempString = "";
+		Boolean writeHeader;
+		BigDecimal totPerPeriod = 0;
+		BigDecimal totActEst= 0;
+		BigDecimal totAct = 0;
+		BigDecimal totEst = 0;
+		String totPerPeriodL = "";
+		String totBudPerPeriodL = "";
+		
+		String prevBudgetCode = "";
+		BigDecimal prevBudgetTot = 0;
+		Boolean firstTime;
+		String sTotPerPeriod;
+		
+		try
+		{
+			
+			writeReportHeaderA();
+			TopProject.PrintHierarchy();
+			TopProject.PrintMonthlyTotals();
+			TopProject.PrintCummTotals();
+			TopProject.PrintBudgets();
+			
+			ReportB.close();
+				
+		}
+		catch (Exception ex)
+		{
+			ProcessTrbbpa.printinfo ("generateTrbbpaReport Error: " + ex.message);
+		}
+	}
+
+	
+	/**
+	 * write batch report header <br>
+	 **/
+	private void writeReportHeaderA()
+	{
+		//info("writeReportHeaderA");
+		String tempString;
+		String APP = "\"";
+		String name = "";
+		int i;
+		String sPeriods = "";
+		
+		def tDate = new Date();
+		String sDate = tDate.format("dd/MM/yyyy");
+		
+		Date convDateCon =  new Date().parse("yyyyMMdd", BPADateConf);
+		String dispDateCon = convDateCon.format("dd/MM/yyyy");
+		
+		Date convDateF =  new Date().parse("yyyyMMdd", BPADateFr);
+		String dispDateF = convDateF.format("dd/MM/yyyy");
+		
+		Date convDateCrt =  new Date().parse("yyyyMMdd", BPADateCrt);
+		String dispDateCrt = convDateCrt.format("dd/MM/yyyy");
+		 
+		
+		//25/10/13 RL
+		// moved BPA description to a new line
+		// display purpose description
+		// add user status
+		// changed 'BPA Preparation From Date' to 'BPA Prepared From Date'
+		// add last modified date
+		
+		String BPAPurposeD = get010Desc("BPPU", BPAPurpose);
+		String BPAUserStatusD = get010Desc("BPUS", BPAUserStatus);
+		
+		Date convDateMod =  new Date().parse("yyyyMMdd", BPADateMod);
+		String dispDateMod = convDateMod.format("dd/MM/yyyy");
+		
+		ReportB.write("Report Run Date " + "," + APP + sDate + APP + "\n");
+		ReportB.write("BPA ID " + "," + APP + batchParams.paramBPACode + APP + "\n");
+		ReportB.write("BPA Description " + "," + APP + BPADesc + APP +"\n");
+		ReportB.write("BPA Project No " + "," + APP + BPAProjectNo + APP +"\n");
+		ReportB.write("BPA Budget Type " + "," + APP + BPABudgetType + APP + "\n");
+		ReportB.write("BPA Preparation Purpose " + "," + APP + BPAPurposeD + APP + "\n");
+		ReportB.write("BPA User Status " + "," + APP + BPAUserStatusD + APP + "\n");
+		ReportB.write("BPA Include Sub Projects " + "," + APP + BPAInclude + APP + "\n");
+		
+		ReportB.write("BPA Prepared From Date " + "," + APP + dispDateF + APP + "\n");
+		ReportB.write("BPA Creation Date " + "," + APP + dispDateCrt + APP + "\n");
+		ReportB.write("BPA Last Modified Date " + "," + APP + dispDateMod + APP + "\n");
+		ReportB.write("BPA Last Confirmed Date " + "," + APP + dispDateCon + APP + "\n");
+		
+		//build a dynamic header based on the number of periods
+		int sYr = 0;
+		int sPeriod = 0;
+		String p = "";
+		String sAP = "";
+		i = 0;
+		while (i < acctPeriodList.size()){
+			p = acctPeriodList.get(i);
+			//25/10/13 RL - convert accounting periods to calendar year/month for reporting 
+			// convert to calendar month
+			sPeriod = p.substring(4, 6).toInteger() + 6;  
+			// convert to calendar year
+			if (sPeriod.toInteger() > 12)
+			{
+				//sYr = p.substring(0, 4).toInteger() + 1; 
+				sYr = p.substring(0, 4).toInteger();
+				sPeriod = sPeriod - 12;
+			}
+			else
+			{
+				//sYr = p.substring(0, 4).toInteger();
+				sYr = p.substring(0, 4).toInteger()-1;
+			}
+			sAP = sYr.toString() + sPeriod.toString();
+			
+			Date convPeriod =  new Date().parse("yyyyMM", sAP);
+			String dispPeriod = convPeriod.format("MMM-yy");
+			if (i == 0){
+				sPeriods = APP + dispPeriod + APP;
+			}
+			else{
+				sPeriods = sPeriods + "," + APP + dispPeriod + APP;
+			}
+			i++;
+		}
+	 
+		
+		//CSV column header
+		ReportB.write("Entity Type,Reference,Task/Item,Record,Description,Milestone Activity Code," +
+					  "Milestone Reporting Type," + sPeriods + ",Total," +
+					  "Actuals,left to Spend" + "\n")
+		
+		ReportA.writeLine(132,"-");
+		DoReportA(StringUtils.center("BPA Extract Report", 132));
+		
+		ReportA.writeLine(132,"-");
+		
+		DoReportA(" ");
+	}
+
+	private void DoReportA(String line)
+	{
+		 
+		ReportA.write(line);
+	}
+	
+	
+	/**
+	 * print batch report <br>
+	 * <li> output total record counts </li>
+	 **/
+	private void printBatchReport(String rep)
+	{
+
+		ProcessTrbbpa.printinfo("printBatchReport"); 
+
+	}
+}
+
+
+/*run script*/
+ProcessTrbbpa process = new ProcessTrbbpa();
+process.runBatch(binding);
+

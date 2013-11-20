@@ -1,0 +1,273 @@
+%*** TRR88E.RDL
+%***
+%*** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%***
+%*** Revision History ***
+%*** 05-Sep-12 N Perry       MO164 (Version 0001)
+%*** ......................  Reset version number to 0001 for E8 upgrade
+%*** 08-Aug-12 N Perry       MO164
+%*** ......................  Changed PIC statements to D-PIC.
+%*** ......................  Convert to Ellipse 8 format.
+%***  10-Nov-05 E Fredeluces P05110870
+%***                         Fix compilation errors in Ellipse 5.2.3.7.
+%***  19-02-03  R Yeung      WCHG013749
+%***  ...................... Create Grand totals and CSV file
+%***  13-08-02  E Fredeluces WCHG004986
+%***  ...................... Remove the Access Rule checking.
+%***  12-01-00  G Presser    W99120032             (Version 003)
+%***  ....................   Enhance selection for person running
+%***  ....................   report
+%***   9-08-99  G Presser    W99070253             (Version 002)
+%***  ....................   Check access to Pay Group for person
+%***  ....................   running report
+%***   9-03-99  G Presser    W903080015
+%***  ....................   Allow for 10 PRC codes
+%***  11-02-99  G Presser    W902030036
+%***  ....................   Allow for selection via PRC &
+%***  ....................   output data to a CSV file
+%***  18-03-97  L CAPPLE     ORIGINAL PROGRAM DEVELOPMENT  
+%***                     
+%***
+%PROGRAM-ID
+       TRR88E
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report will display a list of all leave balances and 
+      **  entitlement dates. 
+%VERSION
+       0001
+%MODULE
+       3880
+%FILES
+        MFILE = MSF880
+        LFILE = MSF723A
+        LFILE = MSF878A
+        LFILE = MSF870
+        LFILE = MSF760
+        LFILE = MSF801
+        LFILE = MSF827
+        LFILE = MSF810
+        RFILE = TRR88EA
+        OFILE = TRT88EA
+
+%*%ROUTINES
+%*       HRGET
+%SELECTION
+       WHERE (EMPLOYEE-ID >= '0000000000', -
+              EMPLOYEE-ID <= '9999999999')
+%ORDER
+   EMPLOYEE-ID
+%BREAK-FIELDS
+   DUM
+   EMPLOYEE-ID
+   EMPL-ID
+%REPORT
+    A
+%REPORT-TITLE
+             'Employee Leave Entitlement Report' 
+%PAGE HEADING
+                                             'Employee Leave Entitlement Report'  
+<IF PGROUP > SPACES>
+                                             'for Pay  Group' {GNAME             }
+<ENDIF>
+<IF IWGROUP > SPACES>          
+                                             'for Work Group' {IWGROUP   }
+'----------------------------------------------------------------------------------------------------------------------------------'
+<ENDIF>
+' '
+'Employee     Employee Name                      Service        Annual         Long          Sick         Study'
+'  Id                                             Date          Leave         Service        Leave        Leave'
+%BREAK EMPLOYEE-ID FOOTING
+<IF PEMP = 'Y'>
+{EMPID     }  {NAME                          }   {SDAT  } AAAAAAAAAAAA    LLLLLLLLLLL  FFFFFFFFFFFF   TTTTTTTTTTTT
+<ENDIF>                                                                    
+%REPORT-SUMMARY
+
+                                                         '-----------------------------------------------------------'
+                                   'Total: '              AAAAAAAAAAA    LLLLLLLLLLL  FFFFFFFFFFFF   TTTTTTTTTTTT
+                                                         '-----------------------------------------------------------'
+
+
+                                                 '*** END OF REPORT ***'
+												 
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 120	
+%BREAK DUM HEADING
+'Employee ID,Employee Surname,First Names,Service Date,Annual Leave,Long Service,Sick Leave,Study Leave'
+%DETAIL
+%BREAK EMPL-ID FOOTING
+<IF PEMP = 'Y'>
+{EMPID   }S{NAME                          }S{SDAT  }SAAAAAAAAAAAASLLLLLLLLLLLLSFFFFFFFFFFFFSTTTTTTTTTTTT
+<ENDIF>
+%SUMMARY
+ 
+ S S S'Total: 'SAAAAAAAAAAAASLLLLLLLLLLLLSFFFFFFFFFFFFSTTTTTTTTTTTT  
+%REQUEST-PARAMETERS
+       IPGROUP   D-PIC (X(3))  TEXT 'Pay Group    - Blank for all'            
+       IGROUP    D-PIC (X(10)) TEXT 'Work Group 1 - Blank for all'            
+       IGROUP2   D-PIC (X(10)) TEXT 'Work Group 2                '            
+       IGROUP3   D-PIC (X(10)) TEXT 'Work Group 3                '            
+       IGROUP4   D-PIC (X(10)) TEXT 'Work Group 4                '            
+       IGROUP5   D-PIC (X(10)) TEXT 'Work Group 5                '            
+       IGROUP6   D-PIC (X(10)) TEXT 'Work Group 6                '            
+       IGROUP7   D-PIC (X(10)) TEXT 'Work Group 7                '            
+       IGROUP8   D-PIC (X(10)) TEXT 'Work Group 8                '            
+       IGROUP9   D-PIC (X(10)) TEXT 'Work Group 9                '            
+       IGROUP10  D-PIC (X(10)) TEXT 'Work Group 10               '            
+       PRC       D-PIC (X(40)) TEXT 'Primary Reporting Code      '
+                                                                           
+%VARIABLES    
+       PGROUP    = %IPGROUP%                    CONSTANT               
+       IWGROUP   = %IGROUP%                     CONSTANT               
+       IWGROUP2  = %IGROUP2%                    CONSTANT               
+       IWGROUP3  = %IGROUP3%                    CONSTANT               
+       IWGROUP4  = %IGROUP4%                    CONSTANT               
+       IWGROUP5  = %IGROUP5%                    CONSTANT               
+       IWGROUP6  = %IGROUP6%                    CONSTANT               
+       IWGROUP7  = %IGROUP7%                    CONSTANT               
+       IWGROUP8  = %IGROUP8%                    CONSTANT               
+       IWGROUP9  = %IGROUP9%                    CONSTANT               
+       IWGROUP10 = %IGROUP10%                   CONSTANT              
+       PRCI      = %PRC%                        CONSTANT
+       PRCI-1    = substr (PRCI,1,4)            CONSTANT
+       PRCI-2    = substr (PRCI,5,4)            CONSTANT
+       PRCI-3    = substr (PRCI,9,4)            CONSTANT
+       PRCI-4    = substr (PRCI,13,4)           CONSTANT  
+       PRCI-5    = substr (PRCI,17,4)           CONSTANT
+       PRCI-6    = substr (PRCI,21,4)           CONSTANT
+       PRCI-7    = substr (PRCI,25,4)           CONSTANT
+       PRCI-8    = substr (PRCI,29,4)           CONSTANT
+       PRCI-9    = substr (PRCI,33,4)           CONSTANT
+       PRCI-10   = substr (PRCI,37,4)           CONSTANT
+       S         = ','                          CONSTANT
+%*
+       DPAYG     = CHOOSE(PGROUP IF(PGROUP > SPACES), 'T01')    
+       GNAME     = TNAME-PG OF MSF801 WHERE -        
+                   (CNTL-REC-TYPE = 'PG', -                   
+                    CNTL-KEY-REST = DPAYG )                  
+       EMP       = EMPLOYEE-ID  SUPPRESS
+       LT        = LEAVE-TYPE
+       LVS       = LVE-ST-BALANCE                           
+       LVMA      = LVE-MAN-ADJ                              
+       LVACC     = LVE-ACCRUED                              
+       LVT       = LEAVE-TAKEN                              
+       E         = CALC((LVS + LVMA) - LVT) D-PIC(-ZZZ9.99)                
+       
+%* GET WORK GROUP                                                  
+       VDATE   = DATE() FORMAT (REVERSE-DATE)                      
+       INDAT   = calc (99999999 - VDATE)                           
+       EWGROUP   =  WORK-GROUP OF MSF723A           -             
+                   WHERE (REC-723-TYPE-2  = 'W',    -
+                          EQUIP-NO-2      = SPACES, -     
+                          EMPLOYEE-ID-2   = EMP,    -       
+                          EFF-DT-REVSD-2 >= '0') MAX(1) -       
+                   SELECTIF (EFF-DT-REVSD-2 > '0')
+       VEMP1     = CHOOSE ('Y' IF (IWGROUP = SPACES), - 
+                           'Y' IF (IWGROUP  <> SPACES,  EWGROUP  = IWGROUP),   -
+                           'Y' IF (IWGROUP2 <> SPACES,  EWGROUP  = IWGROUP2),  -
+                           'Y' IF (IWGROUP3 <> SPACES,  EWGROUP  = IWGROUP3),  -
+                           'Y' IF (IWGROUP4 <> SPACES,  EWGROUP  = IWGROUP4),  -
+                           'Y' IF (IWGROUP5 <> SPACES,  EWGROUP  = IWGROUP5),  -
+                           'Y' IF (IWGROUP6 <> SPACES,  EWGROUP  = IWGROUP6),  -
+                           'Y' IF (IWGROUP7 <> SPACES,  EWGROUP  = IWGROUP7),  -
+                           'Y' IF (IWGROUP8 <> SPACES,  EWGROUP  = IWGROUP8),  -
+                           'Y' IF (IWGROUP9 <> SPACES,  EWGROUP  = IWGROUP9),  -
+                           'Y' IF (IWGROUP10 <> SPACES, EWGROUP  = IWGROUP10), -
+                           'N')                
+%*
+%*      Employee Position File (MSF878A)
+%*
+        PID             = POSITION-ID OF MSF878A           -
+                          WHERE (EMPLOYEE-ID-1   = EMP,    -
+                                 PRIMARY-POS-1   = '0',    -
+                                 INV-STR-DATE-1 >= SPACES) -
+                                 MAX (1)
+%*
+%*      Positions File (MSF870)
+%*
+        PRC-GRP         = PRIM-RPT-GRP OF MSF870   -
+                          WHERE (POSITION-ID = PID)
+%*
+        PRC-1           = substr (PRC-GRP,1,4)
+        PRC-2           = substr (PRC-GRP,5,4)
+        PRC-3           = substr (PRC-GRP,9,4)
+        PRC-4           = substr (PRC-GRP,13,4)
+        PRC-5           = substr (PRC-GRP,17,4)
+        PRC-6           = substr (PRC-GRP,21,4)
+        PRC-7           = substr (PRC-GRP,25,4)
+        PRC-8           = substr (PRC-GRP,29,4)
+        PRC-9           = substr (PRC-GRP,33,4)
+        PRC-10          = substr (PRC-GRP,37,4)
+        PRC             = catenate (PRC-1,PRC-2,PRC-3,PRC-4,PRC-5,PRC-6,PRC-7,PRC-8,PRC-9,PRC-10)
+%*
+        PRC-OK1     = choose ('N' IF (PRCI-1 <> SPACES, PRCI-1 <> PRC-1), 'Y')
+        PRC-OK2     = choose ('N' IF (PRCI-2 <> SPACES, PRCI-2 <> PRC-2), 'Y')
+        PRC-OK3     = choose ('N' IF (PRCI-3 <> SPACES, PRCI-3 <> PRC-3), 'Y')
+        PRC-OK4     = choose ('N' IF (PRCI-4 <> SPACES, PRCI-4 <> PRC-4), 'Y')
+        PRC-OK5     = choose ('N' IF (PRCI-5 <> SPACES, PRCI-5 <> PRC-5), 'Y')
+        PRC-OK6     = choose ('N' IF (PRCI-6 <> SPACES, PRCI-6 <> PRC-6), 'Y')
+        PRC-OK7     = choose ('N' IF (PRCI-7 <> SPACES, PRCI-7 <> PRC-7), 'Y')
+        PRC-OK8     = choose ('N' IF (PRCI-8 <> SPACES, PRCI-8 <> PRC-8), 'Y')
+        PRC-OK9     = choose ('N' IF (PRCI-9 <> SPACES, PRCI-9 <> PRC-9), 'Y')
+        PRC-OK10    = choose ('N' IF (PRCI-10 <> SPACES, PRCI-10<> PRC-10), 'Y')
+%*
+        PR-SEL          = choose ('Y' IF (PRC-OK1 = 'Y', -
+                                          PRC-OK2 = 'Y', -
+                                          PRC-OK3 = 'Y', -
+                                          PRC-OK4 = 'Y', -
+                                          PRC-OK5 = 'Y', -
+                                          PRC-OK6 = 'Y', -
+                                          PRC-OK7 = 'Y', -
+                                          PRC-OK8 = 'Y', -
+                                          PRC-OK9 = 'Y', -
+                                          PRC-OK10 = 'Y'), 'N') 
+%*
+%* GET EMPLOYEE NAME
+       EMPID     = HRGET (EMPLOYEE-ID -
+                   FROM ('MSSEMP,MSF810') -
+                   KEY  (EMPLOYEE-ID = EMP))
+%*       EMPID     = SURNAME OF MSF810 -
+%*                  WHERE (EMPLOYEE-ID = EMP)
+       NAME      = FORMATTED-NAME VIA (EMPID)
+%* GET EMPLOYEE STATUS AND SERVICE DATE
+       EMPST     = EMP-STATUS OF MSF760 -
+                   WHERE (EMPLOYEE-ID = EMPID)
+       SCAT      = STAFF-CATEG VIA (EMPST)
+       SDAT      = SERVICE-DATE VIA (EMPST) FORMAT (REVERSE-DATE)
+%* GET EMPLOYEE PAY GROUP
+       EPGROUP   = PAY-GROUP OF MSF827  -
+                   WHERE(EMPLOYEE-ID = EMP, -
+                   INV-STR-DATE >= SPACES) MAX(1) -
+                   SELECTIF(END-DATE = '00000000')
+
+       PEMPP     = CHOOSE ('Y' IF(VEMP1   = 'Y',PGROUP = SPACES),  -
+                           'Y' IF(VEMP1   = 'Y',PGROUP <> SPACES,  -
+                                  EPGROUP = PGROUP), 'N')
+
+       PEMP      = CHOOSE ('Y' IF (PEMPP  = 'Y', -
+                                   EMPST  = 'A', -
+                                   SCAT  <> 'WC', -
+                                   SCAT  <> 'ZA', -
+                                   SCAT  <> 'ZO', -
+                                   PR-SEL = 'Y'), 'N') 
+
+       AL        = CHOOSE (E IF(LT = 'A', PEMP = 'Y'), 0)
+       A         = TOTAL  (AL) D-PIC(-ZZZZZZZ9.99)
+       LS        = CHOOSE (E IF(LT = 'L', PEMP = 'Y'), 0)
+       L         = TOTAL  (LS) D-PIC(-ZZZZZZZ9.99)
+       SF        = CHOOSE (E IF(LT = 'S', PEMP = 'Y'), 0)
+       F         = TOTAL  (SF) D-PIC(-ZZZZZZZ9.99)
+       SH        = CHOOSE (E IF(LT = '1', PEMP = 'Y'), 0)
+       H         = TOTAL  (SH) D-PIC(-ZZZZZZZ9.99)
+       ST        = CHOOSE (E IF(LT = '2', PEMP = 'Y'), 0)
+       T         = TOTAL  (ST) D-PIC(-ZZZZZZZ9.99)
+	   
+       DUMMY     = 'Y'                          CONSTANT
+       EMPL-ID   = EMPLOYEE-ID
+       DUM       = choose ('Y' IF (DUMMY = 'Y'), 'Y') 
+                
+%*END PROGRAM

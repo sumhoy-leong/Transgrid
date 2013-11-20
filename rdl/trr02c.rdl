@@ -1,0 +1,177 @@
+%*** TRR02C.rdl
+%***
+%*** REVISION HISTORY
+%***
+%*** 19-Dec-2012 
+%***           Oliver Santa-Ana
+%***           Conversion for Ellipse 8, renamed to TRR02C
+%***
+%*** 02-Nov-98
+%***           Fix for MIMS 4.3
+%***
+%*** 28-Apr-98 Sarah Tan      W804150041
+%*** ...................... Include employee's name in the report.
+%*** 15-NOV-95 Peter Lacey
+%*** ...................... Converted from 3.010 to 3.013. Changed all fields
+%*** ...................... related to the size of 160 to 250 e.g
+%*** ...................... MSF020-PROF-CHAR-1-80 TO MSF020-PROF-CHAR-1-125 &
+%*** ...................... MSF020-PROF-CHAR-80-160 TO MSF020-PROF-CHAR-125-250
+%*** DAVID G    10-APR-92 ... ALLOW USERID'S TO BE RESTRICTED BY SELECTED GLOBALS or menus or dstrcts
+%PROGRAM-ID
+       TRR02C
+%AUTHOR
+       David Gatward
+%NARRATIVE
+        **  This program lists Security profiles.
+        **  User profiles can optionally be selected by a range
+        **  of user ids or Last-modified-users or globals.
+%VERSION
+       002
+%MODULE
+       3001
+%FILES
+        MFILE = MSF020
+        LFILE = MSF010
+        LFILE = MSF810
+        RFILE = TRR02CA
+%ROUTINES
+        MSSCNV
+%SELECTION
+%*** Enter selection criteria for MSF020
+       REJECTIF (%REQ-USER% = 'N', ENTRY-TYPE = 'S')
+       REJECTIF (%REQ-PROG% = 'N', ENTRY-TYPE = 'P')
+       REJECTIF (%REQ-GLOB% = 'N', ENTRY-TYPE = 'G')
+       REJECTIF (%REQ-USER% = 'Y', %LM-USER-FROM%  <> SPACES, LAST-MOD-USER  < %LM-USER-FROM%)
+       REJECTIF (%REQ-USER% = 'Y', %LM-USER-TO%    <> SPACES, LAST-MOD-USER  > %LM-USER-TO%)
+       REJECTIF (%REQ-USER% = 'Y', %LM-DATE-FROM%  <> SPACES, LAST-MOD-DATE  < %LM-DATE-FROM%)
+       REJECTIF (%REQ-USER% = 'Y', %LM-DATE-TO%    <> SPACES, LAST-MOD-DATE  > %LM-DATE-TO%)
+       REJECTIF (%REQ-USER% = 'Y', %USER-FROM%     <> SPACES, ENTITY         < %USER-FROM%)
+       REJECTIF (%REQ-USER% = 'Y', %USER-TO%       <> SPACES, ENTITY         > %USER-TO%)
+       REJECTIF (%REQ-USER% = 'Y', %GLOB-FROM%     <> SPACES, GLOBAL-PROFILE < %GLOB-FROM%)
+       REJECTIF (%REQ-USER% = 'Y', %GLOB-TO%       <> SPACES, GLOBAL-PROFILE > %GLOB-TO%)
+       REJECTIF (%REQ-USER% = 'Y', %MENU-FROM%     <> SPACES, DEFAULT-MENU   < %MENU-FROM%)
+       REJECTIF (%REQ-USER% = 'Y', %MENU-TO%       <> SPACES, DEFAULT-MENU   > %MENU-TO%)
+       REJECTIF (%REQ-USER% = 'Y', %DISTRICT-CODE% <> SPACES, DSTRCT-CODE   <> %DISTRICT-CODE%)
+%CONTROL-BREAKS
+%*** List names of 2 control break fields
+       ENTRY-TYPE
+       ENTITY
+       DSTRCT-CODE
+%REPORT-TITLE
+       'SECURITY FILE LISTING'
+%PAGE HEADING
+<IF ENTRY-TYPE = 'S'>
+                                                   'USERID Security Profiles'
+'USER-ID Sec  Menu                 Last-Mod-User           10/90     20/100    30/110    40/120    50/130    60/140    70/150   '
+'  Dist  Def Global     Last-Acc  Last-Upd          ....+....0....+....0....+....0....+....0....+....0....+....0....+....0....+....0'
+<ELSE>
+  <IF ENTRY-TYPE = 'P'>
+                                                   'PROGRAM Security Profiles'
+                                                   '       10/90     20/100    30/110    40/120    50/130    60/140    70/150   '
+  'Program Profile                             '   '....+....0....+....0....+....0....+....0....+....0....+....0....+....0....+....0'
+  <ELSE>
+                                                   'GLOBAL Security Profiles'
+                                                   '       10/90     20/100    30/110    40/120    50/130    60/140    70/150   '
+  'Global Profile              '                   '....+....0....+....0....+....0....+....0....+....0....+....0....+....0....+....0'
+  <ENDIF>
+<ENDIF>
+%PAGE FOOTING
+<IF ENTRY-TYPE = 'S'>
+                                                   '....+....0....+....0....+....0....+....0....+....0....+....0....+....0....+....0'
+                                                   '       10/90     20/100    30/110    40/120    50/130    60/140    70/150   '
+<ELSE>
+  <IF ENTRY-TYPE = 'P'>
+  'Program Profile  Last Update  Global Profile'   '....+....0....+....0....+....0....+....0....+....0....+....0....+....0....+....0'
+                                                   '       10/90     20/100    30/110    40/120    50/130    60/140    70/150   '
+  <ELSE>
+  'Global Profile   Last Update'                   '....+....0....+....0....+....0....+....0....+....0....+....0....+....0....+....0'
+                                                   '       10/90     20/100    30/110    40/120    50/130    60/140    70/150   '
+  <ENDIF>
+<ENDIF>
+%*** Control Break headings for up to 2 control level(s)
+%BREAK ENTRY-TYPE HEADING ON NEW-PAGE
+%DETAIL
+<IF ENTRY-TYPE = 'S'>
+<SUPPRESS>
+AAAAAAAAAA  I  GGGGGGGGGG            LLLLLLLLLL
+NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN    MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+<SUPPRESS>
+   BBBB  C  FFFFFFFFFF  EEEEEEEE  HHHHHHHH '1- 125:'-
+{PROFA                                                                                                                         }
+<SUPPRESS>
+                                           '125-250:'-
+{PROFB                                                                                                                      }
+<ELSE>
+<SUPPRESS>
+   AAAAAAAAAA  DDDDDDDDDD                   '1- 125:'-
+{PROFA                                                                                                                      }
+<SUPPRESS>
+                                           '125-250:'-
+{PROFB                                                                                                                      }
+'-------------------------------------------------------+----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+'
+<ENDIF>
+
+%REPORT-SUMMARY ON NEW-PAGE
+<IF %REQ-SEC% = 'Y'>
+'SECURITY PROFILE POSITIONS'
+'Column   Description'
+{UNDERLINE                                                                                                                         }
+  <REPEAT>
+ JJJJJ    KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+  <ENDREPEAT>
+<ENDIF>
+%REQUEST-PARAMETERS
+       REQ-USER LIKE ENTRY-TYPE TEXT Include User Profiles
+       LM-USER-FROM LIKE LAST-MOD-USER TEXT (   - Range of Last Mod Users:From)
+       LM-USER-TO LIKE LAST-MOD-USER   TEXT (                             To)
+       LM-DATE-FROM LIKE LAST-MOD-DATE TEXT (   - Range of Last Mod Users:From)
+       LM-DATE-TO LIKE LAST-MOD-DATE   TEXT (                             To)
+       USER-FROM LIKE ENTITY    TEXT (   - Range of Userids: From)
+       USER-TO LIKE ENTITY      TEXT (                       To)
+       GLOB-FROM LIKE ENTITY    TEXT (   - Range of Globals: From)
+       GLOB-TO LIKE ENTITY      TEXT (                       To)
+       MENU-FROM LIKE ENTITY    TEXT (   - Range of Menus:   From)
+       MENU-TO LIKE ENTITY      TEXT (                       To)
+       REQ-PROG LIKE ENTRY-TYPE TEXT Include Program Profiles
+       REQ-GLOB LIKE ENTRY-TYPE TEXT Include Global Profiles
+       REQ-SEC PIC (X)          TEXT Include Security positions
+%VARIABLES
+       A     = ENTITY                                           SUPPRESS
+       B     = DSTRCT-CODE
+       C     = DEFAULT-FLAG
+       D     = OWNER-ID                                         SUPPRESS
+       E     = GET (DISPLAY-DATE FROM (LAST-ACC-DATE))          SUPPRESS
+       GP    = GLOBAL-PROFILE                                   SUPPRESS
+       F     = choose (GP IF (ENTRY-TYPE <> 'G'),SPACES)        SUPPRESS
+       G     = DEFAULT-MENU                                     SUPPRESS
+       H     = GET (DISPLAY-DATE FROM (LAST-MOD-DATE))          SUPPRESS
+       I     = SECURITY-ACCESS                                  SUPPRESS
+       PROFA = PROF-CHAR-1-125
+       PROFB = PROF-CHAR-125-250
+       J     = TABLE-CODE OF MSF010 -
+               WHERE         (TABLE-TYPE       = 'PW',          -
+                              TABLE-CODE      >= SPACES)        -
+               MAX (250)
+       K     = TABLE-DESC              VIA (J)
+       L     = LAST-MOD-USER
+%***   W804150041
+%*** Get name of last modification user
+       LUSER = catenate ('00000',L)
+       NAME1 = SURNAME OF MSF810 -
+               WHERE         (EMPLOYEE-ID = LUSER)
+       NAME2 = FIRST-NAME              VIA (NAME1)
+       NAME3 = catenate (NAME1,' ',NAME2)
+       M     = OUT-STRING OF MSSCNV -
+               WHERE         (OPTION           = 'P',           -
+                              INP-STRING       = NAME3)
+%*** Get name of entity/userid
+       SNAME = SURNAME OF MSF810 -
+               WHERE         (EMPLOYEE-ID      = EMPLOYEE-ID)
+       FNAME = FIRST-NAME              VIA (SNAME)
+       NAME  = catenate (SNAME,' ',FNAME)
+       N     = OUT-STRING OF MSSCNV  -
+               WHERE         (OPTION           = 'P',           -
+                              INP-STRING       = NAME)
+%***
+%***                    *** END OF PROGRAM ***
+%***

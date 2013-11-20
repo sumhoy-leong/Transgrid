@@ -1,0 +1,122 @@
+%*** TRR34D.RDL
+%***
+%************************************************************************
+%***
+%*** Revision History ***
+%***
+%*** a9jw6280   06-Sep-12   MO164        Reset Version into 0001
+%***                                     Removed STOP IF from the selection file
+%***                                     as it not necessesary. 
+%*** R Yeung    26-10-04    CHG073300    Add in EGI Number parameter and 
+%***                                     include base line to the output file.
+%*** R Yeung    25-09-03    WCHG031866   Change text "Value" to "Measurement"
+%***                                     move from column 7 to 3.
+%*** R Yeung    30-05-03    WHD0079842   Fixed the Value problem by include
+%***                                     CMT340 to MSF345. 
+%*** L NEE      25-03-03    Initial Version.  
+%***
+%************************************************************************
+%***
+%PROGRAM-ID
+       TRR34D
+%AUTHOR
+       LAURA NEE   
+%NARRATIVE
+      **  Condition Monitoring Set Report
+%VERSION
+       0001	  
+%FILES
+    MFILE = MSF340
+	AFILE = MSF341
+    LFILE = MSF345
+	LFILE = MSF010
+    OFILE = TRT34DA
+%SELECTION
+  <IF %EGINO% = spaces>
+    WHERE (REC-340-TYPE      = 'S',           -
+           TYPE-REFERENCE   >= 'E' & %EQUIP%)
+	REJECTIF(COND-MON-POS   <> ICMP)
+	REJECTIF(COND-MON-TYPE  <> ICMT)
+    REJECTIF (STATUS-340     = 'D')
+  <ELSE>
+    WHERE (REC-340-TYPE      = 'S',                -
+           TYPE-REFERENCE      >= 'E            ')
+    REJECTIF (COND-MON-POS   <> ICMP)
+    REJECTIF (COND-MON-TYPE  <> ICMT)
+    REJECTIF (STATUS-340     = 'D')
+    REJECTIF (CM-PROFILE-REF <> %EGINO%)
+  <ENDIF>
+
+%CONTROL-BREAKS
+       DUM
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 126 
+%BREAK-FIELDS
+       DUM
+%BREAK DUM HEADING
+{HDG1                                                                         }
+%DETAIL
+{CMM    }CQ{MEDESC                                }QC C{UNIT   }C{MCLOWR       }C{MCUPPR       }C{MEAS        }C{MBASE       }
+%REQUEST-PARAMETERS
+        EQUIP   PIC (X(12))   TEXT 'Equipment Reference : '     
+        EGINO   PIC (X(12))   TEXT 'EGI Number : '
+        ICMP    PIC (X(7))    TEXT 'Condition Monitoring Position : '
+        ICMT    PIC (X(2))    TEXT 'Condition Monitoring Type : '
+%VARIABLES
+%* parameters 
+	EQUIP		= %EQUIP%    CONSTANT
+    EGINO       = %EGINO%    CONSTANT
+	ICMP		= %ICMP%     CONSTANT
+	ICMT		= %ICMT%     CONSTANT
+
+    CCODE       = COMP-CODE
+    CMCODE      = COMP-MOD-CODE
+    CMPOS       = COND-MON-POS
+    CMPT        = CM-PROFILE-TY
+    CMPR        = CM-PROFILE-REF
+    REFT        = REF-340-TYPE
+    EQNO        = EQUIP-NO
+    CMT340      = COND-MON-TYPE
+
+    K1          = CHOOSE(CMPT IF (CMPT <> SPACES ), REFT)
+    K2          = CHOOSE(CMPR IF (CMPR <> SPACES ), EQNO)
+
+    CMM     = COND-MON-MEAS   FROM MSF341                          -
+              WHERE (TYPE-REFERENCE   = K1 & K2,                   - 
+                     COMP-MOD-DATA    = COMP-CODE & COMP-MOD-CODE & CMPT, -
+                     COND-MON-POS     = COND-MON-POS,              -
+                     COND-MON-TYPE    = COND-MON-TYPE,             -
+                     COND-MON-MEAS   >= SPACES)
+
+    MCUPPR      = MEAS-CAUT-UPPR VIA (CMM)       D-PIC(-9(7).9(6))
+    MCLOWR      = MEAS-CAUT-LOWR VIA (CMM)       D-PIC(-9(7).9(6))
+    MBASE       = MEAS-BASE      VIA (CMM)       D-PIC(-9(7).9(6))
+
+%* get MSF010 details
+    MEDESC      = TABLE-DESC OF MSF010      -
+                  WHERE (TABLE-TYPE = 'MS', -
+                         TABLE-CODE = CMM)   
+	UNITM       = ASSOC-REC VIA (MEDESC)
+    UNIT        = SUBSTR(UNITM, 2, 9)
+
+    MV          = MEASURE-VALUE  OF MSF345                        -
+                  WHERE (REC-345-TYPE   = 'E',                    -
+                         EQUIP-NO       = EQNO,                   -
+                         COMP-POS-DATA  = CCODE & CMCODE & CMPOS & CMT340, -
+                         COND-MON-MEAS  = CMM,                    -
+                         REV-MEAS-DATA >= SPACES) MAX (1)
+
+	MEAS		= MV    D-PIC(-9(9).99)
+
+%*    HDG1        = 'Meas. Type,Description,Unit,Low. Caut,Upper Caut,Last Rec,Value' CONSTANT
+    HDG1        = 'Meas. Type,Description,Measurement,Unit,Low. Caut,Upper Caut,Last Rece,Base Line' CONSTANT
+    C           = ',' CONSTANT
+    Q           = '"' CONSTANT
+    DUMMY       = 'Y' CONSTANT
+    DUM         = choose ('Y' IF (DUMMY = 'Y'), DUMMY)
+
+
+
+

@@ -1,0 +1,289 @@
+%*** TRR38B.rdl
+%***
+%*** Copyright (c) 2007, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%*** Revision History:
+%***
+%*** 06-May-2013  AIT IG Transfer program for E8 Upgrade
+%*** 26-June-2007 E Fredeluces SC1515522
+%***              Amend the parameters to Approved Date From/To and
+%***              perform the selection based on this date.
+%*** 04-May-2007  E Fredeluces SC1450523
+%***              To extract invoices with approval status of '30' instead
+%***              of '10'.
+%*** 09-Feb-2007  E Fredeluces SC1365857
+%***              Initial Coding.  
+%***              This program will generate the List of Contract Valuations
+%***              Loaded to Approved.
+%***
+%***              The Contract valuation number will be retrieved from the
+%***              Ext-Inv-No.  The format is xxxxxxxxpppVnnnn.
+%***              Where: x is Contract Number
+%***                     p is Portion Number 
+%***                     V is literal for Valuation
+%***                     n is Valuation Sequence No 
+%PROGRAM-ID
+     TRR38B
+%AUTHOR
+     Elizabeth Fredeluces		 
+%NARRATIVE
+     This program will generate the List of Contract Valuations 
+     Loaded to Approved.
+%MODULE                                         
+     3380  
+%VERSION
+     001
+%FILES
+     MFILE = MSF26A 
+     LFILE = MSF260
+     LFILE = MSF38B
+     LFILE = MSF200
+     LFILE = MSF810
+     RFILE = TRR38BA
+%SELECTION
+     WHERE    (DSTRCT-CODE   >= SPACES)
+     REJECTIF (INV-ITEM-NO   <> '001')
+     REJECTIF (INV-ITEM-TYPE <> '6')
+     REJECTIF (APPR-STATUS   <> '30')
+     REJECTIF (APPROVED-DATE < %APPDTEFR%, %APPDTEFR% <> SPACES)
+     REJECTIF (APPROVED-DATE > %APPDTETO%, %APPDTETO% <> SPACES)
+%ROUTINES
+     MSSDAT
+     MSSCNV
+%REPORT
+     A
+%TITLE
+'List of Contract Valuations Loaded To Approved'
+%PAGE HEADING
+'       The following Contract Valuations were Loaded To Approved During the Period '{DATEF } 'To '{DATET }
+
+'  Date    Contract  Contractor''s         Supplier No. & Name                       Invoice Amt           Tax Amt        Total Amt'
+'Approved    No.     Claim Ref                                                        (Excl GST)             (GST)       (Incl GST)'
+%DETAIL
+<IF PRNT-FLG = 'Y'>
+
+'INVOICE NO: ' {E-INV-NO          }
+ {APPDTE}  {CON-NO}  {EXT-INV           }  {SUP } {SUP-NAME                  }{INV-AMT        }{TAX-AMT        }{TOT-INV-AMT    }
+
+'Approved By: '{APP-NAME                    } ' Valued By: '{VAL-NAME                    } 'Accountant: '{ACT-NAME             }
+<ENDIF>
+%REPORT-SUMMARY
+{underline                                                                                                                         }
+
+'Total Number of Records: ' {TCNT   }                                           {TOT-INV        }{TOT-TAX        }{GR-TOTAL       }
+{underline                                                                                                                         }
+%REQUEST-PARAMETERS
+      APPDTEFR       PIC (X(8)) FORMAT (DATE)  TEXT   Approved Date From :
+      APPDTETO       PIC (X(8)) FORMAT (DATE)  TEXT   Approved Date To   :
+%VARIABLES
+      APPDFR         = %APPDTEFR% CONSTANT
+      APPDTO         = %APPDTETO% CONSTANT
+      TODAY          = DATE ()    CONSTANT 
+      YESTERDAY      = DATE2 OF MSSDAT -
+                       WHERE (OPTION = '1', -
+                              DATE1  = TODAY, -
+                              DAYS   = -1) CONSTANT 
+      YESDIS         = DISPLAY-DATE VIA (YESTERDAY) CONSTANT
+%*
+%*   To determine the DAY today
+      DY             = DAYS OF MSSDAT       -
+                       WHERE (OPTION = '6', -
+                              DATE1  = TODAY)  CONSTANT
+%*   DAY Values
+      D              = choose ('MON' IF (DY = 1), -
+                               'TUE' IF (DY = 2), -
+                               'WED' IF (DY = 3), -
+                               'THU' IF (DY = 4), -
+                               'FRI' IF (DY = 5), -
+                               'SAT' IF (DY = 6), -
+                               'SUN' IF (DY = 7), -
+                               '   ')    CONSTANT
+%*
+%*    To choose the Friday Date if today is Sunday in the Approved Loaded Date
+      SUNDAY         = DATE2 OF MSSDAT      -
+                       WHERE (OPTION = '1', -
+                              DATE1  = TODAY,  -
+                              DAYS   = -2)     -
+                       CONSTANT
+      SUNDIS         = DISPLAY-DATE VIA (SUNDAY) CONSTANT
+%*
+%*    To choose the Friday date if today is Monday in the Approved Loaded Date
+      MONDAY         = DATE2 OF MSSDAT      -
+                       WHERE (OPTION = '1', -
+                              DATE1  = TODAY,  -
+                              DAYS   = -3)     -
+                       CONSTANT
+      MONDIS         = DISPLAY-DATE VIA (MONDAY) CONSTANT
+      YESTYY         = substr (YESDIS,7,2)       CONSTANT
+      SUNYY          = substr (SUNDIS,7,2)       CONSTANT
+      MONYY          = substr (MONDIS,7,2)       CONSTANT
+      YESTMM         = substr (YESDIS,4,2)       CONSTANT
+      SUNMM          = substr (SUNDIS,4,2)       CONSTANT
+      MONMM          = substr (MONDIS,4,2)       CONSTANT
+      YESTDD         = substr (YESDIS,1,2)       CONSTANT
+      SUNDD          = substr (SUNDIS,1,2)       CONSTANT
+      MONDD          = substr (MONDIS,1,2)       CONSTANT
+      YESTCC         = choose ('20' IF (YESTYY < '25'), '19') CONSTANT
+      SUNCC          = choose ('20' IF (SUNYY  < '25'), '19') CONSTANT
+      MONCC          = choose ('20' IF (MONYY  < '25'), '19') CONSTANT
+      YEST           = catenate (YESTCC,YESTYY,YESTMM,YESTDD) CONSTANT
+      MON            = catenate (MONCC,MONYY,MONMM,MONDD)     CONSTANT
+      SUN            = catenate (SUNCC,SUNYY,SUNMM,SUNDD)     CONSTANT
+%*
+      DTE            = choose (SUN IF (DY = 7), -
+                               MON IF (DY = 1), -
+                               YEST) CONSTANT
+%*
+%*    Determine the Date From/To
+      DATEFR         = choose (APPDFR IF (APPDFR <> SPACES), -
+                               DTE) CONSTANT
+      DATEF          = choose (DATEFR IF (DATEFR <> SPACES), DATEFR) -
+                              FORMAT (DATE) CONSTANT
+      DATETO         = choose (APPDTO IF (APPDTO <> SPACES), -
+                               DTE) CONSTANT
+      DATET          = choose (DATETO IF (DATETO <> SPACES), DATETO) -
+                              FORMAT (DATE) CONSTANT
+%*  MSF26A Data Items
+      DC             = DSTRCT-CODE
+      SUP            = SUPPLIER-NO
+      INV            = INV-NO
+      APPDTE         = APPROVED-DATE  FORMAT (DATE)
+%*
+%*  Check whether to print or not
+      PRNT-FLG       = choose ('Y' IF (APPDTE >= DATEFR,  -
+                                       APPDTE <= DATETO), -
+                               'N')
+%*  MSF260 Data Items
+      MSF260         = SUPPLIER-NO OF MSF260        -
+                       WHERE (DSTRCT-CODE = DC,     -
+                              SUPPLIER-NO = SUP,    -
+                              INV-NO      = INV)    -
+                       IF PRNT-FLG = 'Y'     
+%*
+      ACCNT          = ACCOUNTANT   VIA (MSF260)
+      ORG-INV-AMT    = LOC-INV-ORIG VIA (MSF260)
+      AMD-INV-AMT    = LOC-INV-AMD  VIA (MSF260)
+      TOT-INV-AMT    = choose (ORG-INV-AMT IF(AMD-INV-AMT = 0),-
+                               AMD-INV-AMT)         D-PIC (-------,---,--9.99) 
+      ORG-TAX-AMT    = LOC-ATAX-T-O VIA (MSF260)
+      AMD-TAX-AMT    = LOC-ATAX-T-A VIA (MSF260)    
+      TAX-AMT        = choose (ORG-TAX-AMT IF(AMD-TAX-AMT = 0),-
+                               AMD-TAX-AMT)         D-PIC (-------,---,--9.99)      
+      INV-AMT        = calc (TOT-INV-AMT - TAX-AMT) D-PIC (-------,---,--9.99)
+      CNT            = choose (1           IF (PRNT-FLG = 'Y'), 0)
+      CNT-INV        = choose (INV-AMT     IF (PRNT-FLG = 'Y'), 0)
+      CNT-TAX        = choose (TAX-AMT     IF (PRNT-FLG = 'Y'), 0)
+      CNT-TOT        = choose (TOT-INV-AMT IF (PRNT-FLG = 'Y'), 0)
+      TOT-INV        = total (CNT-INV)     D-PIC (-------,---,--9.99)       
+      TOT-TAX        = total (CNT-TAX)     D-PIC (-------,---,--9.99)
+      GR-TOTAL       = total (CNT-TOT)     D-PIC (-------,---,--9.99)     
+      TCNT           = total (CNT)         D-PIC ZZZ,ZZ9
+%*
+      E-INV-NO       = EXT-INV-NO VIA (MSF260)  PIC (X(20)) 
+%*                                              12345678901234567890   
+%*    EXT-INV-NO format is xxxxxxxxpppVnnnn (ie 00001163P02V0006)
+%*                                              1234567890123456
+      EXT-01         = substr(E-INV-NO,1,1)
+      EXT-02         = substr(E-INV-NO,2,1)     
+      EXT-03         = substr(E-INV-NO,3,1)     
+      EXT-04         = substr(E-INV-NO,4,1)     
+      EXT-05         = substr(E-INV-NO,5,1)     
+      EXT-06         = substr(E-INV-NO,6,1)     
+      EXT-07         = substr(E-INV-NO,7,1)     
+      EXT-08         = substr(E-INV-NO,8,1)     
+      EXT-09         = substr(E-INV-NO,9,1)     
+      EXT-10         = substr(E-INV-NO,10,1)     
+      EXT-11         = substr(E-INV-NO,11,1)     
+      EXT-12         = substr(E-INV-NO,12,1)     	   
+      VAL-01         = substr(E-INV-NO,2,4)
+      VAL-02         = substr(E-INV-NO,3,4)
+      VAL-03         = substr(E-INV-NO,4,4)
+      VAL-04         = substr(E-INV-NO,5,4)
+      VAL-05         = substr(E-INV-NO,6,4)
+      VAL-06         = substr(E-INV-NO,7,4)
+      VAL-07         = substr(E-INV-NO,8,4)
+      VAL-08         = substr(E-INV-NO,9,4)
+      VAL-09         = substr(E-INV-NO,10,4)
+      VAL-10         = substr(E-INV-NO,11,4)
+      VAL-11         = substr(E-INV-NO,12,4)
+      VAL-12         = substr(E-INV-NO,13,4)
+      VAL-NUM        = choose(VAL-01 IF (EXT-01 = 'V'), -
+                              VAL-02 IF (EXT-02 = 'V'), -
+                              VAL-03 IF (EXT-03 = 'V'), -
+                              VAL-04 IF (EXT-04 = 'V'), -
+                              VAL-05 IF (EXT-05 = 'V'), -
+                              VAL-06 IF (EXT-06 = 'V'), -
+                              VAL-07 IF (EXT-07 = 'V'), -
+                              VAL-08 IF (EXT-08 = 'V'), -
+                              VAL-09 IF (EXT-09 = 'V'), -
+                              VAL-10 IF (EXT-10 = 'V'), -
+                              VAL-11 IF (EXT-11 = 'V'), -
+                              VAL-12 IF (EXT-12 = 'V'), -
+                              '0001')
+      VAL-CHAR1      = substr(VAL-NUM,1,1)
+      VAL-CHAR2      = substr(VAL-NUM,2,1)
+      VAL-CHAR3      = substr(VAL-NUM,3,1)
+      VAL-CHAR4      = substr(VAL-NUM,4,1)
+      VAL-CHAR13     = substr(VAL-NUM,1,3)
+      VAL-CHAR12     = substr(VAL-NUM,1,2)
+      VAL-NO1        = catenate('000',VAL-CHAR1)
+      VAL-NO2        = catenate('00',VAL-CHAR12)
+      VAL-NO3        = catenate('0',VAL-CHAR13)
+      VAL-NO         = choose (VAL-NO3 IF (VAL-CHAR4 = ' ',   -
+                                           VAL-CHAR3 <> ' ',  -
+                                           VAL-CHAR2 <> ' ',  -
+                                           VAL-CHAR1 <> ' '), -
+                               VAL-NO2 IF (VAL-CHAR4 = ' ',   -
+                                           VAL-CHAR3 = ' ',   -
+                                           VAL-CHAR2 <> ' ',  -
+                                           VAL-CHAR1 <> ' '), -
+                               VAL-NO1 IF (VAL-CHAR4 = ' ',   -
+                                           VAL-CHAR3 = ' ',   -
+                                           VAL-CHAR2 = ' ',   -
+                                           VAL-CHAR1 <> ' '), -
+                               VAL-NUM)
+      CON-NO         = CONTRACT-NO  VIA (MSF260)
+%*      
+%* Read MSF38B Contract Valuation Master file
+      MSF38B         = CONTRACT-NO OF MSF38B        - 
+                       WHERE (CONTRACT-NO = CON-NO, -
+ 		              VALN-NO     = VAL-NO)
+      EXT-INV        = EXT-INV-NO  VIA (MSF38B)
+      APP-BY         = APPROVED-BY VIA (MSF38B)
+      VAL-BY         = VALUED-BY   VIA (MSF38B)
+%*
+%* Read MSF200 Supplier Master File
+      SUP-NAME        = SUPPLIER-NAME OF MSF200 -
+                        WHERE (SUPPLIER-NO = SUP)
+%*
+%* Read MSF810 Employee Details
+%*  Approved By      
+      MSF810         = SURNAME OF MSF810 -
+                       WHERE (EMPLOYEE-ID = APP-BY)
+      APP-FNAME     = FIRST-NAME VIA (MSF810)  
+      APP-SNAME     = SURNAME    VIA (MSF810)
+      APP           = catenate (APP-SNAME,' ',APP-FNAME)
+      APP-NAME      = OUT-STRING OF MSSCNV -
+                      WHERE (OPTION     = 'P', -
+                             INP-STRING = APP) 
+%* Valued By 
+      MSF810A       = SURNAME OF MSF810 -
+                      WHERE (EMPLOYEE-ID = VAL-BY)
+      VAL-FNAME    = FIRST-NAME VIA (MSF810A) 
+      VAL-SNAME    = SURNAME    VIA (MSF810A)
+      VAL          = catenate (VAL-SNAME,' ',VAL-FNAME)
+      VAL-NAME     = OUT-STRING OF MSSCNV -
+                       WHERE (OPTION     = 'P', -
+                              INP-STRING = VAL )
+%* Accountant 
+      MSF810B       = SURNAME OF MSF810 -
+                      WHERE (EMPLOYEE-ID = ACCNT)
+      ACT-FNAME    = FIRST-NAME VIA (MSF810B) 
+      ACT-SNAME    = SURNAME    VIA (MSF810B)
+      ACT          = catenate (ACT-SNAME,' ',ACT-FNAME)
+      ACT-NAME     = OUT-STRING OF MSSCNV -
+                       WHERE (OPTION     = 'P', -
+                              INP-STRING = ACT )
+%*
+%*      End of Program
+%*

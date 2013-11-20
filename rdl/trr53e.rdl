@@ -1,0 +1,147 @@
+%*** Revision History
+%*** 01-Aug-12 a9nh4814   MO164 (Version 0001)
+%*** .................... Refined report to pass Transgrid RDL compiler.
+%*** .................... - Replace tabs with spaces.
+%*** .................... - Reset version number to 0001 for E8 upgrade.
+%*** 29-Dec-97 L CAPPLE    
+%*** .................... Initial Coding.
+%*** 26-Feb-97 E Fredeluces
+%*** .................... Report not printing parameter details
+%***
+%*** 17-Mar-98 NCHANDRA w802100021.
+%*** .................... Report not printing parameter detail bug.
+%***
+%PROGRAM-ID
+       TRR53E
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+       This RDL will produce a report of details of an employee/s, which
+       can be used for court cases etc.
+%VERSION
+       0001
+%MODULE
+       3820
+%FILES
+       MFILE = MSF539
+       LFILE = MSF010
+       LFILE = MSF510
+       LFILE = MSF536A
+       LFILE = MSF810
+       LFILE = MSF811
+       RFILE = TRR53EA
+%SELECTION
+%ORDER
+    SSNAME
+    SINCT
+    SIDATE
+    SECODE
+        SPCODE
+    SCTYPE
+%CONTROL-BREAKS
+    SSNAME
+    SINCT
+    SIDATE
+    SECODE
+        SPCODE
+    SCTYPE
+%REPORT-TITLE 
+                          'Workers Compensation Full Enquiry Report'
+%PAGE HEADING
+%BREAK SSNAME HEADING NEW-PAGE
+<IF VEMP = 'Y'>
+'Employee :' {DEMP  } {SNAME      } {FNAME       }            'District:' {DIST  }
+<ENDIF>
+%BREAK SINCT HEADING
+<IF VEMP = 'Y', VINCT = 'Y'>
+'Incident :' {SINCT      } {IDESC                           } 'Date    :' {IDATE    }
+'Claim    :' {CLNO       }
+'                                                                           Hours            Value'   
+<ENDIF>
+%BREAK SPCODE FOOTING
+<IF VEMP = 'Y', VINCT = 'Y'>
+ {ECODE     } {PCODE}            {PCDESC                      } {THRSL          }{THRSLV         }
+<ENDIF>
+%BREAK SINCT FOOTING
+<IF VEMP = 'Y', VINCT = 'Y'>
+'                                                                ----------------------------------'
+'Incident Totals                   '                            {THRSL          }{THRSLV         }
+
+<ENDIF>
+%BREAK SSNAME FOOTING
+<IF VEMP = 'Y', VINCT = 'Y'>
+'                                                                ---------------------------------'
+'Employee Totals                              '                 {THRSL          }{THRSLV         }
+'                                                                ================================='
+
+<ENDIF>
+%REPORT-SUMMARY
+'Totals for selecions                         '                 {THRSL          }{THRSLV         }
+
+
+'                                          *******  End Of Report  ******'
+%PARAMETERS
+        IEMP   PIC(X(10)) TEXT  Employee ID     :
+        IIINCT PIC(X(10)) TEXT  Incident Number :
+%VARIABLES
+%*ACCEPT PARAMETERS
+    IEMP        = %IEMP%
+    IIINCT      = %IIINCT%
+        IINCT           = CHOOSE(IIINCT IF(%IIINCT% <> '0000000000'), -
+                                 '0000000000')
+    CLNO        = CLAIM-NO
+    PCODE       = PAY-RECOV-CODE  
+    IHRSL       = HOURS-MINS
+    IHRSLV      = AMOUNT
+    ECODE       = REC-EXP-CODE SUPPRESS 
+    T           = CLAIM-TYP
+    NHRSL       = CALC(IHRSL  * -1)
+    NHRSLV      = CALC(IHRSLV * -1)
+    DIST        = DSTRCT-CODE OF MSF536A -
+                                WHERE(CLAIM-NO-2 >= CLNO) -
+                STOPIF(CLAIM-NO-2 > CLNO) MAX(1) 
+    CIND        = CLAIM-IND    VIA(DIST)
+    EMPID       = EMPLOYEE-ID  VIA(DIST)
+        INCT            = INCIDENT-NO  VIA(DIST) 
+    DEMP        = SUBSTR(EMPID,6,5)
+    VEMP        = CHOOSE('N' IF(IEMP  <> EMPID, IEMP <> SPACES), 'Y')
+    VINCT       = CHOOSE('N' IF(IINCT <> INCT, IINCT <> '0000000000'), 'Y')
+%*IF RECORD IS A RECOVERY CHOOSE NEGATIVE AMOUNTS
+        AHRSL       = CHOOSE(IHRSL  IF(T = 'P'), NHRSL)
+        AHRSLV      = CHOOSE(IHRSLV IF(T = 'P'), NHRSLV)
+    HRSL        = CHOOSE(AHRSL  IF(VEMP = 'Y', VINCT = 'Y'), 0)
+        HRSLV       = CHOOSE(AHRSLV IF(VEMP = 'Y', VINCT = 'Y'), 0)
+        THRSL       = TOTAL(HRSL)
+        THRSLV      = TOTAL(HRSLV)
+%*LOOKUP MSF810 DETAILS	
+        ESNAME      = SURNAME OF MSF810 -
+                WHERE(EMPLOYEE-ID = EMPID)
+    EFNAME      = FIRST-NAME VIA(ESNAME)
+%*LOOKUP MSF811 DETAILS
+    NSNAME      = SURNAME OF MSF811 -
+                WHERE(NON-EMPL-ID = EMPID)
+    NFNAME      = FIRST-NAME VIA(NSNAME)
+%*IF EMPLOYEE TYPE RECORD CHOOSE MSF810 RECORD ELSE CHOOSE MSF811 RECORD
+    SNAME       = CHOOSE(ESNAME IF(CIND = 'E'), NSNAME)
+    FNAME           = CHOOSE(EFNAME IF(CIND = 'E'), NFNAME)
+%*LOOKUP MSF510 DETAILS
+    IDESC       = INCIDENT-DESC OF MSF510 -
+                WHERE(DSTRCT-CODE = DIST, -
+                      INCIDENT-NO =  INCT)
+    IDATE       = REV-OCC-DATE VIA(IDESC)  FORMAT(DATE)
+%*LOOKUP TABLE(MSF010) DESCRIPTIONS
+    PPCDESC     = TABLE-DESC OF MSF010 -
+                WHERE(TABLE-TYPE = 'WCPT', -
+                      TABLE-CODE = PCODE)
+        PRCDESC     = TABLE-DESC OF MSF010 -
+                                WHERE(TABLE-TYPE = 'WCRT', -
+                                      TABLE-CODE = PCODE)
+    PCDESC      = CHOOSE(PPCDESC IF(T = 'P'), PRCDESC)
+%*FORCE SORT ORDERS
+    SSNAME      = CHOOSE(SNAME IF(SNAME > SPACES), SNAME)
+    SINCT       = CHOOSE(INCT  IF(INCT  > SPACES), INCT)
+    SIDATE      = CHOOSE(IDATE IF(IDATE > SPACES), IDATE)
+    SPCODE      = CHOOSE(PCODE IF(PCODE > SPACES), PCODE)
+    SECODE      = CHOOSE(ECODE IF(ECODE > SPACES), ECODE)
+    SCTYPE      = CHOOSE(T IF(T > SPACES), T)
+%* END PROGRAM

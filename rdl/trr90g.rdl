@@ -1,0 +1,222 @@
+%***  $Id: trr90g.rdl,v4e 2010/10/13 13:30:00 Exp $
+%*** TRR90G.RDL
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%*** 
+%*** Revision History ***
+%*** 02-May-13 a9mm4951      MO164 (Version 0002)
+%*** ......................  Implement bursting email.
+%*** 12-Sep-12 N Perry
+%*** ......................  Convert to Ellipse 8 format.
+%*** ......................  Change version number to 0001
+%*** 29-Oct-2010          E Fredeluces SC3021397
+%***                                Change wordings from 
+%***                                goods/services to stock items.  
+%*** 20-Oct-2010          E Fredeluces SC3021397
+%***                                As a result of Audit request,
+%***                                a notation is to display on each page
+%***                                which explains to the authorising 
+%***                                officer the purpose of the report and
+%***                                what is required to complete the report. 
+%*** 16-May-2000          E Fredeluces W00050405
+%***                                Fix the total at break of
+%***                                employee-id.
+%*** 12-Aug-1999          Elizabeth Fredeluces
+%***                                Include the Fortnightly 
+%***                                Cycle Type.
+%*** 16-Jul-1999          Elizabeth Fredeluces
+%***                      W99070445 Include the Cycle Type
+%***                                parameter for Monthly
+%***                                and Daily.   
+%*** 26-May-1999          Elizabeth Fredeluces
+%***                      W99050566 Initial coding.
+%***
+%PROGRAM-ID
+       TRR90G
+%AUTHOR
+       Elizabeth Fredeluces
+%NARRATIVE
+      **  This will generate the Issues Authorised by Team
+      **  Members and the Control Report.
+%VERSION
+        0002
+%FILES
+        IFILE = TRT90F
+        LFILE = MSF010
+        LFILE = MSF100
+        LFILE = MSF810
+        RFILE = TRR90GA
+        RFILE = TRR90GB
+%ROUTINES
+        MSSDAT
+        MSSCNV
+%INPUT-FILE
+        I-DATEFR      PIC (X(8))
+        I-DATETO      PIC (X(8))
+        I-SUPID       PIC (X(10))
+        I-AUTBY       PIC (X(10))
+        I-SUPPOS      PIC (X(10))
+        I-AUTPOS      PIC (X(10))
+        I-REQNO       PIC (X(6))
+        I-REQITEM     PIC (X(4))
+        I-STOCKDE     PIC (X(10))
+        I-ACCTNO      PIC (X(12))
+        I-ISSDATE     PIC (X(5))
+        I-TRTYPE      PIC (X(2))
+        I-ISSQTY      PIC (S9(9)V99)
+        I-ISSPRC      PIC (S9(8)V99)
+        I-ISSVAL      PIC (S9(9)V99)
+%ORDER
+        I-SUPID
+        I-AUTBY
+%BREAK-FIELDS
+        I-SUPID
+        I-AUTBY
+%REPORT
+        A
+%REPORT-TITLE
+'ISSUES AUTHORISED BY THE TEAM MEMBERS'
+%BREAK I-SUPID ON NEW-PAGE RESET-PAGE-COUNT
+<IF EMAIL1 <> SPACES>
+{B1     }{B2                  }
+{EMAIL1                                                    }
+{B3                                                             }
+{B4                                                                                                          }
+{B5      }
+<ENDIF>
+'                                          Period      :  '{DATEFR}' To '{DATETO}  
+'                                          Position No.:  '{SUPPOS  }  {SUPID   } {SUPNAME                        }
+
+{underline                                                                                                                         }
+
+' Req No.     Stockcode  --------- Item Name ---------   Account Code   Auth/Req-By  Iss    TR     Quantity     Price        Value'
+
+{underline                                                                                                                         }
+%BREAK I-SUPID FOOTING
+
+'                                         Total '{TCNT}'Record/s for Team Leader'{SUPNAME                        }     {TOTVAL    }
+'                                                                                                                      ============'
+
+
+'                                                       Authorised By :   _____________________________________________'
+%BREAK I-AUTBY FOOTING
+
+'                                         Total '{TCNT}'Record/s for Team Member'{MEMNAME                        }     {TOTVAL    }
+'                                                                                                                      ------------'
+%PAGE FOOTING TEST-PAGE (6)
+
+'****** The above transaction(s) are the result of Team Member(s)'
+'under your control requesting and authorising stock items'
+'(self approving) via issue requisition(s). Please authorise'
+'the transactions and file a copy of this report in your work'
+'area for future audit review. ********************************'
+%DETAIL                           
+<IF %SUM% = 'N'>
+{SREQ}ZAAAA   {STKCDE }  {ITEMNAME                   }   {ACCTNO    }   {AUTBY   }  {DTE}   BB {SQTY      }{SPRX     } {VAL       }
+<ENDIF>
+%CONTROL REPORT A
+       PAGE-WIDTH = 132
+       LAST-DETAIL-LINE = 55
+       TRIM-REPORT
+       DYNAMIC-PRINTER
+%REPORT
+       B
+%REPORT-TITLE
+'ISSUES AUTHORISED BY THE TEAM MEMBERS - CONTROL REPORT'
+%PAGE HEADING
+
+'                                          Period      :  '{DATEFR}' To '{DATETO}  
+
+{underline                                                                                                                         }
+
+'Position-Id     Team Leader Name                No. of Recs          Value       Date Sent               Date Received'
+
+%BREAK I-SUPID FOOTING
+
+ {SUPPOS  }      {SUPNAME                        }  {TCNT}      {TOTVAL     }     {TDY   }            ' ____________________'
+%PAGE FOOTING TEST-PAGE (6)
+ 
+'****** The above transaction(s) are the result of Team Member(s)'
+'under your control requesting and authorising stock items'
+'(self approving) via issue requisition(s). Please authorise'
+'the transactions and file a copy of this report in your work'
+'area for future audit review. ********************************'
+%SUMMARY
+
+{underline                                                                                                                         }
+%CONTROL REPORT B
+       PAGE-WIDTH = 132
+       LAST-DETAIL-LINE = 55
+       TRIM-REPORT
+       DYNAMIC-PRINTER
+%REQUEST-PARAMETERS
+       DATE1 PIC (X(8))  TEXT  'From Date                                     :'
+       DATE2 PIC (X(8))  TEXT  'To   Date                                     :'
+       POS   PIC (X(10)) TEXT  'Position-Id                                   :'
+       SUM   PIC (X(1))  TEXT  'Summary Report (Y/N)                          :'
+       CYCLE PIC (X(1))  TEXT  'Cycle: M-onthly D-daily F-Fortnightly (M/D/F) :'
+%VARIABLES
+       DC      = %DISTRICT-CODE%  CONSTANT
+       Z       = '/'              CONSTANT
+       TDY     = date() FORMAT (DATE)
+       DCST    = CATENATE (DC,'STORE') 
+       B1      = '<burst>'                                                                                                        CONSTANT
+       B2      = '<type>EMAIL</type><to>'                                                                                         CONSTANT
+       B3      = '</to><subject>ISSUES AUTHORISED BY THE TEAM MEMBERS</subject>'                                              CONSTANT
+       B4      = '<body>Attached file is Issues raised by your team members.</body>' CONSTANT
+       B5      = '</burst>'  
+       PR      = PRINTER OF MSF010 -
+                         WHERE (TABLE-TYPE = 'PR', -
+                                TABLE-CODE = DCST)
+       PRNTR   = PRINTER (PR)
+       DATEFR  = I-DATEFR FORMAT (DATE)
+       DATETO  = I-DATETO FORMAT (DATE)
+       AUTBY   = I-AUTBY
+       SUPID   = I-SUPID
+       AUTPOS  = I-AUTPOS
+       SUPPOS  = I-SUPPOS
+       SREQ    = I-REQNO
+       A       = I-REQITEM
+       STKCDE  = I-STOCKDE
+       DTE     = I-ISSDATE
+       B       = I-TRTYPE
+       SUPAUT  = CATENATE (SUPPOS,AUTPOS)
+       SQTY    = I-ISSQTY PIC (Z(8)9.99)
+       SPRX    = I-ISSPRC PIC (Z(7)9.9(2))
+       ACCTNO  = I-ACCTNO
+       VAL     = I-ISSVAL PIC (-(7)9.99)
+       TVAL    = choose (VAL IF (B <> SPACES), VAL)
+       TOTVAL  = total  (TVAL) PIC (-(7)9.99)
+       CNT     = choose (1 IF (B <> SPACES), 0)
+       TCNT    = total  (CNT)  PIC (ZZ,ZZ9)
+%*
+       ITEMNAME = ITEM-NAME OF MSF100 -
+                  WHERE (STOCK-CODE = STKCDE)
+%*
+%*     Retrieve Team Leader's Name
+%*
+       SSNAME    = SURNAME OF MSF810 -
+                           WHERE (EMPLOYEE-ID = SUPID)
+       SFNAME    = FIRST-NAME VIA (SSNAME)
+       SFSNAME   = CATENATE (SSNAME,' ',SFNAME)
+       SUPNAME   = OUT-STRING OF MSSCNV -
+                           WHERE (OPTION      = 'P', -
+                                  INP-STRING  = SFSNAME)
+%*
+%*     Get email of Team Leader
+%*
+       EMAIL1 = EMAIL-ADDRESS VIA (SSNAME)
+%*
+%*     Retrieve Team Member's Name
+%*
+       MSNAME    = SURNAME OF MSF810 -
+                           WHERE (EMPLOYEE-ID = AUTBY)
+       MFNAME    = FIRST-NAME VIA (MSNAME)
+       MFSNAME   = CATENATE (MSNAME,' ',MFNAME)
+       MEMNAME   = OUT-STRING OF MSSCNV -
+                           WHERE (OPTION      = 'P', -
+                                  INP-STRING  = MFSNAME)
+%*
+%*                   *****  End of Program  *****
+%*

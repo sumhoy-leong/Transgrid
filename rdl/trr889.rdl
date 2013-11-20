@@ -1,0 +1,452 @@
+%**  $Id: trr889.rdl,v 4.0 2008/10/29 10:26:00 Exp $
+%** TRR889.RDL
+%**
+%** Copyright (c) 1994, Mincom Pty Ltd, Brisbane 4120, Australia.
+%** All rights reserved.
+%**
+%** Revision History ***
+%** 13-May-2013 AIT IG        v002 Wrapped quoted around HRS and DAYS.
+%** 17-Apr-2013 AIT NL        v001 Migrated into Ellipse 8 environment.
+%** ......................... Modified selection criteria to use
+%** ......................... LVE-APPR-STATUS instead of DESTN-CODE
+%** ......................... because it doesn't exist in Ellipse 8.
+%** ......................... Added output file TRT889. Changed logic
+%** ......................... to get booked leave description from
+%** ......................... MSF8BL.
+%** 29-Oct-2008 E Fredeluces  SC2088623
+%**                       1.  Changes to the Parameters:
+%**                           o Remove: Employee Id 1 thru 5  
+%**                           o Remove: Work Group 1 thru 10
+%**                           o Default: 'H' in "Report in (D)ays or (H)ours"
+%**                           o Default: Y in "Are emps with subs lvls reqd Y/N"
+%**                           o Add: Approval Status: (A)pproved, (R)ejected, (U)napproved or blank for all (Default U)
+%**                           o Add: Sort order: 1. Pay group  2. PRC  3. Employee-Id
+%**                       2.  Ignore any application where ApprStat = PRO
+%**                       3.  Add a column for Pay Group, Employee's superior, Approval status
+%**                       4.  Remove the column titled "Leave Reason"
+%**                       4.  Remove the column titled "Leave Type"
+%** 10-Nov-2005 E Fredeluces  P05110870
+%**                       Fix compilation errors in Ellipse 5.2.3.7.
+%** 11-Jan-2000 G Presser W99120032           (Version 003)
+%** ...................   Enhance selection for person running report
+%** 28-Jul-1999 G Presser W99070253           (Version 002)
+%** ...................   Check access to Pay Group for person running
+%** ...................   report
+%** 18-Nov-1998           Fix for MIMS 4.3
+%** 11-Sep-97 N.Chandra   W709110015.
+%** ....................  Included to accept 5 employee id's and blank for all,
+%** ....................  Max of 10 workgroups and blank for all,
+%** ....................  Paygorup and blank for all.
+%** 
+%PROGRAM-ID
+       TRR889
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report will display all leave that is booked
+      **  for employees.
+%VERSION
+       002
+%MODULE
+       3880
+%FILES
+        MFILE = MSF888
+        LFILE = MSF723A
+        LFILE = MSF801
+        LFILE = MSF010
+        LFILE = MSF808
+        LFILE = MSF810
+        LFILE = MSF820
+        LFILE = MSF828
+        LFILE = MSF870
+        LFILE = MSF875B
+        LFILE = MSF878
+        LFILE = MSF878A
+        LFILE = MSF8BL
+        RFILE = TRR889A
+        OFILE = TRT889B
+%ROUTINES
+       MSS880
+       MSSEMP
+       MSSCNV
+%SELECTION
+       WHERE    (EMPLOYEE-ID >= SPACES)
+       REJECTIF (%APPSTAT% = 'R', LVE-APPR-STATUS <> 'REJE')
+       REJECTIF (%APPSTAT% = 'U', LVE-APPR-STATUS <> 'UNCD', -
+                 LVE-APPR-STATUS <> 'UNCM', LVE-APPR-STATUS <> 'UNCO')
+       REJECTIF (%APPSTAT% = 'A', LVE-APPR-STATUS <> 'APPD', -
+                 LVE-APPR-STATUS <> 'APPM', LVE-APPR-STATUS <> 'APPR', -
+                 LVE-APPR-STATUS <> 'APRP', LVE-APPR-STATUS <> 'CONF', -
+                 LVE-APPR-STATUS <> 'CONM', LVE-APPR-STATUS <> 'PROC')
+%REPORT-TITLE
+       'Booked Leave Report'
+%ORDER
+       DUMMY                      TEXT General Header
+       PL                         TEXT Pay Location
+       EMPLOYEE-ID                TEXT Employee Id
+       STDTE                      TEXT Booked Leave Start Date
+%CONTROL-BREAKS
+       PL
+       EMPLOYEE-ID 
+%PAGE HEADING
+%*        1         2         3         4         5         6         7         8         9         10        11        12        13 
+%*23456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012
+<IF %IDAYHRS% = 'D'>
+'Pay Employee Last                First            Start    End'
+'Loc Id       Name                Name             Date     Date     Booked Leave Type           Days      Superior           Status'
+<ELSE>
+'Pay Employee Last                First            Start    End'
+'Loc Id       Name                Name             Date     Date     Booked Leave Type           Hours     Superior           Status'
+<ENDIF>
+%BREAK PL HEADING
+<IF SELACC = 'Y', PREMP = 'Y'>
+
+<ENDIF>
+%DETAIL
+<IF SELACC = 'Y' AND ID > 0>
+  <IF PREMP = 'Y'>
+      <IF %IDAYHRS% = 'D'>
+{PL} {ID    } {ESNAME           } {EFNAME        } {STDTE } {ENDTE } {BLD                    } {DAYS    } {SUPNAME           } SSSS
+      <ELSE>   
+{PL} {ID    } {ESNAME           } {EFNAME        } {STDTE } {ENDTE } {BLD                    } {HRS     } {SUPNAME           } SSSS
+      <ENDIF>
+  <ENDIF>
+<ENDIF>
+%REPORT-SUMMARY
+
+
+
+                                                 '*** End Of Report ***'
+%OUTPUT-FILE
+    B
+%CONTROL
+    RECORD-LENGTH = 174 
+%BREAK-FIELDS
+    DUMMY
+%BREAK DUMMY HEADER
+<IF A00 = 1>
+      <IF %IDAYHRS% = 'D'>
+{HDGD                                                                                                }
+      <ELSE>
+{HDGH                                                                                                }
+      <ENDIF>
+<ENDIF>
+%DETAIL
+<IF SELACC = 'Y' AND ID > 0>
+  <IF PREMP = 'Y'>
+      <IF %IDAYHRS% = 'D'>
+{PL}C{ID             }C{ESNAME                 }C{EFNAME                }C{STDTE }C{ENDTE }C-
+{BLD                            }CQ{DAYS    }QC{SUPNAME                    }C{S }C
+      <ELSE>
+{PL}C{ID             }C{ESNAME                 }C{EFNAME                }C{STDTE }C{ENDTE }C-
+{BLD                            }CQ{HRS     }QC{SUPNAME                    }C{S }C
+      <ENDIF>
+  <ENDIF>
+<ENDIF>
+%REQUEST-PARAMETERS
+       PLOC     PIC (X(2))  TEXT  'Pay Location (Blank for All)                                          : '
+       APPSTAT  PIC (X(1))  TEXT  'Approval Status: (A)pproved  (R)ejected  (U)napproved or Blank for All: '
+       IDAYHRS  PIC (X(1))  TEXT  'Report In: (D)ays or (H)ours                                          : '
+       ILVL1    PIC (X(4))  TEXT  'Level 1   Reporting Code                                              : '
+       ILVL2    PIC (X(4))  TEXT  'Level 2   Reporting Code                                              : '
+       ILVL3    PIC (X(4))  TEXT  'Level 3   Reporting Code                                              : '
+       ILVL4    PIC (X(4))  TEXT  'Level 4   Reporting Code                                              : '
+       ILVL5    PIC (X(4))  TEXT  'Level 5   Reporting Code                                              : '
+%VARIABLES 
+       DUM     = 'Y'                                           CONSTANT
+       DUMMY   = choose ('Y' IF (DUM = 'Y'), 'Y')              CONSTANT
+       C       = ','                                           CONSTANT
+       Q       = '"'                                           CONSTANT
+       TDY     = WX-TODAYS-DATE                                CONSTANT
+       A00     = COMPUTE-AND-KEEP ( A00 + 1 )
+       HDG1    = 'Pay Loc,Employee Id,Last Name,First Name,Start Date, End Date,'
+       HDG2    = 'Booked Leave Type,Hours,Superior,Status,'
+       HDG3    = 'Booked Leave Type,Days,Superior,Status,'
+       HDGH    = CATENATE (HDG1,HDG2)
+       HDGD    = CATENATE (HDG1,HDG3)
+       USRL    = substr (WX-USER-ID,2,5)       CONSTANT D-PIC (X(5))
+       USRID   = catenate ('00000',USRL)       CONSTANT D-PIC (X(10))
+       POS     = POSITION-ID OF MSF878A            -
+                 WHERE (EMPLOYEE-ID-1   = USRID,   -
+                        PRIMARY-POS-1   = '0',     -
+                        INV-STR-DATE-1 >= SPACES)  -
+                 MAX (1)                       CONSTANT D-PIC (X(10))
+       M870    = POSITION-ID OF MSF870   -
+                 WHERE (POSITION-ID = POS) CONSTANT
+       ACC     = ACCESS-RULE             VIA (M870) CONSTANT
+       ART     = ACCESS-PAYGRP           VIA (M870) CONSTANT
+       ART1    = single (ART(1))         CONSTANT
+       ART2    = single (ART(2))         CONSTANT
+       ART3    = single (ART(3))         CONSTANT
+       ART4    = single (ART(4))         CONSTANT
+       ART5    = single (ART(5))         CONSTANT
+       ART6    = single (ART(6))         CONSTANT
+       ART7    = single (ART(7))         CONSTANT
+       ART8    = single (ART(8))         CONSTANT
+       ART9    = single (ART(9))         CONSTANT
+       ART10   = single (ART(10))        CONSTANT
+       ART11   = single (ART(11))        CONSTANT
+       ART12   = single (ART(12))        CONSTANT
+       ART13   = single (ART(13))        CONSTANT
+       ART14   = single (ART(14))        CONSTANT
+       ART15   = single (ART(15))        CONSTANT
+       ART16   = single (ART(16))        CONSTANT
+       ART17   = single (ART(17))        CONSTANT
+       ART18   = single (ART(18))        CONSTANT
+       ART19   = single (ART(19))        CONSTANT
+       ART20   = single (ART(20))        CONSTANT
+       AWG     = ACC-WORK-GROUP          VIA (M870) CONSTANT
+       AWG1    = single (AWG(1))         CONSTANT
+       AWG2    = single (AWG(2))         CONSTANT
+       AWG3    = single (AWG(3))         CONSTANT
+       AWG4    = single (AWG(4))         CONSTANT
+       AWG5    = single (AWG(5))         CONSTANT
+       AWG6    = single (AWG(6))         CONSTANT
+       AWG7    = single (AWG(7))         CONSTANT
+       AWG8    = single (AWG(8))         CONSTANT
+       AWG9    = single (AWG(9))         CONSTANT
+       AWG10   = single (AWG(10))        CONSTANT
+%*
+       EMP     = EMPLOYEE-ID
+       ID      = SUBSTR(EMP,6,5)
+       STDTE   = LVE-ST-DATE      FORMAT (DATE)
+       ENDTE   = LVE-END-DATE     FORMAT (DATE)
+       BL      = BOOKED-LV-CODE
+       DAYS    = BL-LVE-DAYS    D-PIC (ZZ,ZZ9.99-)
+       HRS     = BL-LVE-HOURS   D-PIC (ZZ,ZZ9.99-)
+       PG      = PAY-GROUP 
+       PRIM    = RPT-PRC OF MSF820 -
+                 WHERE (EMPLOYEE-ID = EMP)
+       PL      = PAY-LOCATION VIA (PRIM)
+       EMPID   = hrget (EMPLOYEE-ID             -
+                        from ('MSSEMP,MSF810')  -
+                        key  (EMPLOYEE-ID = EMP))
+       ESNAME  = SURNAME VIA (EMPID)
+       EFNAME  = FIRST-NAME VIA (EMPID)
+       VAR     = hrget (CNTL-REC-TYPE   -
+                        from ('MSF801') -
+                        type ('PG')     -
+                        DEFAULT         -
+                        key  (KEY1 = PG))
+       ENDAT   = CUR-END-PG-9   VIA (VAR)
+       INDAT   = calc (99999999 - ENDAT)
+       AWARD   = AWARD-CODE OF MSF828   -
+                            WHERE (EMPLOYEE-ID = EMP,     -
+                                   INV-STR-DATE >= INDAT) -
+                            MAX (1)
+%*       TDATE   = DATE()     FORMAT (REVERSE-DATE)
+%*       HRS     = UNITS-OUT OF MSS880 -
+%*                           WHERE(OPTION-880  = '2'  , -
+%*                                 AWARD-CODE  = AWARD, -
+%*                                 LEAVE-TYPE  = BL   , -
+%*                                 EMPLOYEE-ID = EMP  , -
+%*                                 UNITS-IN    = DAYS)
+       PGFLG1  = choose ('Y' IF (ACC   = 'I',                  -
+                                 ART1  = PG, ART1 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART2  = PG, ART2 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART3  = PG, ART3 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART4  = PG, ART4 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART5  = PG, ART5 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART6  = PG, ART6 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART7  = PG, ART7 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART8  = PG, ART8 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART9  = PG, ART9 <> SPACES),  -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART10 = PG, ART10 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART11 = PG, ART11 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART12 = PG, ART12 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART13 = PG, ART13 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART14 = PG, ART14 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART15 = PG, ART15 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART16 = PG, ART16 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART17 = PG, ART17 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART18 = PG, ART18 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART19 = PG, ART19 <> SPACES), -
+                         'Y' IF (ACC   = 'I',                  -
+                                 ART20 = PG, ART20 <> SPACES), 'N')
+       PGFLG2  = choose ('N' IF (ACC   = 'E',                  -
+                                 ART1  = PG, ART1 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART2  = PG, ART2 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART3  = PG, ART3 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART4  = PG, ART4 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART5  = PG, ART5 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART6  = PG, ART6 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART7  = PG, ART7 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART8  = PG, ART8 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART9  = PG, ART9 <> SPACES),  -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART10 = PG, ART10 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART11 = PG, ART11 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART12 = PG, ART12 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART13 = PG, ART13 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART14 = PG, ART14 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART15 = PG, ART15 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART16 = PG, ART16 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART17 = PG, ART17 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART18 = PG, ART18 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART19 = PG, ART19 <> SPACES), -
+                         'N' IF (ACC   = 'E',                  -
+                                 ART20 = PG, ART20 <> SPACES), 'Y')
+       PGFLG   = choose ('Y' IF (ACC = 'A'),    -
+                         'Y' IF (ACC = 'I',     -
+                                 PGFLG1 = 'Y'), -
+                         'Y' IF (ACC = 'E',     -
+                                 PGFLG2 = 'Y'), 'N')
+       WGROUP  = WORK-GROUP OF MSF723A -
+                            WHERE(REC-723-TYPE-2  = 'W' ,   -
+                                  EQUIP-NO-2      = SPACES, -
+                                  EMPLOYEE-ID-2   = EMP ,   -
+                                  EFF-DT-REVSD-2 >= INDAT) MAX(1)
+       WGFLG   = choose ('Y' IF (ACC  = 'W',                      -
+                                 AWG1 = WGROUP, AWG1 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG2 = WGROUP, AWG2 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG3 = WGROUP, AWG3 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG4 = WGROUP, AWG4 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG5 = WGROUP, AWG5 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG6 = WGROUP, AWG6 <> SPACES),  - 
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG7 = WGROUP, AWG7 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG8 = WGROUP, AWG8 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG9 = WGROUP, AWG9 <> SPACES),  -
+                         'Y' IF (ACC  = 'W',                      -
+                                 AWG10 = WGROUP, AWG10 <> SPACES), 'N')
+
+       PLSW    = CHOOSE ('N' IF (%PLOC% <> SPACES, %PLOC% <> PL), 'Y')
+
+       SELACC  = choose ('Y' IF (PGFLG = 'Y', PLSW = 'Y'), -
+                         'Y' IF (WGFLG = 'Y', PLSW = 'Y'), 'N')
+
+       BLD     = TNAME-BL OF MSF8BL -
+                 WHERE (AWARD-CODE-BL   = AWARD, -
+                        BOOK-LV-CDE-BL  = BL)
+%*
+%*       LR      = LVE-REASON-BL via (VAR1)
+%*       EARN    = EARN-CODE-BL via (VAR1)
+%*       VAR2    = hrget (CNTL-REC-TYPE -
+%*                        from ('MSF801') -
+%*                        type ('A') -
+%*                        DEFAULT -
+%*                        key  (KEY1 = PG,-
+%*                              KEY2 = EARN))
+%*       EC      = EARN-CLASS-A  VIA (VAR2)
+%*       LT      = EARN-TYPE-A   VIA (VAR2)
+%*
+%* PRC parameters
+       ILVL1     = %ILVL1% 
+       ILVL2     = %ILVL2% 
+       ILVL3     = %ILVL3% 
+       ILVL4     = %ILVL4%
+       ILVL5     = %ILVL5% 
+       PRCCAT    = CATENATE(ILVL1,ILVL2,ILVL3,ILVL4,ILVL5)
+       LVL1      = choose (%ILVL1%  IF(%ILVL1%  <> '....'), SPACES)
+       LVL2      = choose (%ILVL2%  IF(%ILVL2%  <> '....'), SPACES)
+       LVL3      = choose (%ILVL3%  IF(%ILVL3%  <> '....'), SPACES)
+       LVL4      = choose (%ILVL4%  IF(%ILVL4%  <> '....'), SPACES)
+       LVL5      = choose (%ILVL5%  IF(%ILVL5%  <> '....'), SPACES)
+%*  Choose primary reporting code level required
+       LVLREQ    = choose ('1'  IF(LVL2  = SPACES)                , -
+                           '2'  IF(LVL2  > SPACES, LVL3  = SPACES), -
+                           '3'  IF(LVL3  > SPACES, LVL4  = SPACES), -
+                           '4'  IF(LVL4  > SPACES, LVL5  = SPACES), -
+                           '5'  IF(LVL5  > SPACES), LVL5)
+       PRCL1     = substr (PRCCAT,1,4)
+       PRCL2     = substr (PRCCAT,1,8)
+       PRCL3     = substr (PRCCAT,1,12)
+       PRCL4     = substr (PRCCAT,1,16)
+       PRCL5     = substr (PRCCAT,1,20)
+       PRCSUB    = choose (PRCL1 IF (LVLREQ = '1'), -
+                           PRCL2 IF (LVLREQ = '2'), -
+                           PRCL3 IF (LVLREQ = '3'), -
+                           PRCL4 IF (LVLREQ = '4'), -
+                           PRCL5 IF (LVLREQ = '5'), -
+                           PRCCAT)
+%*
+%*  Get employee's primary position and PRC
+       PPOS =   POSITION-ID OF MSF878A -
+	        WHERE (EMPLOYEE-ID-1 = EMP, -
+                       PRIMARY-POS-1 = '0', -
+                       INV-STR-DATE-1 >= SPACES) -
+                REJECTIF (POS-STOP-DATE-1 <> '00000000', -
+                          POS-STOP-DATE-1 < TDY) -                     
+                MAX (1)
+
+       EPRCS     = PRIM-RPT-GRP OF MSF870 -
+                   WHERE (POSITION-ID  = PPOS)
+       EPRCL1    = substr (EPRCS,1,4)
+       EPRCL2    = substr (EPRCS,1,8)
+       EPRCL3    = substr (EPRCS,1,12)
+       EPRCL4    = substr (EPRCS,1,16)
+       EPRCL5    = substr (EPRCS,1,20)
+       EPRCSUB   = choose (EPRCL1 IF (LVLREQ = '1'), -
+                           EPRCL2 IF (LVLREQ = '2'), -
+                           EPRCL3 IF (LVLREQ = '3'), -
+                           EPRCL4 IF (LVLREQ = '4'), -
+                           EPRCL5 IF (LVLREQ = '5'), -
+                           EPRCS)
+
+       PREMP     = CHOOSE ('Y' IF (EPRCSUB = PRCSUB), -
+                           'Y' IF (LVL1 = SPACES), 'N')
+%* EF1008 start ->
+       S       = LVE-APPR-STATUS
+       SUPPOS  = SUPERIOR-ID OF MSF875B            -
+                 WHERE  (POSITION-ID     = PPOS,   -
+                         HIER-DETAILS-2 >= SPACES) -
+                 MAX (1)
+       SUPID   = EMPLOYEE-ID OF MSF878                   -
+                 WHERE    (POSITION-ID     = SUPPOS,     -
+                           EMPLOYEE-ID    >= SPACES)     -
+                 REJECTIF (PRIMARY-POS    <> '0')        -
+                 REJECTIF (POS-STOP-DATE  <> '00000000') -
+                 MAX (1)
+       MSF810  = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = SUPID)
+       LNAME   = SURNAME VIA (MSF810)
+       I       = FIRST-INITIAL VIA (MSF810)
+       SNAME   = CATENATE (LNAME,' ',I)
+       SUPNAME = OUT-STRING OF MSSCNV     -
+                 WHERE (OPTION     = 'P', -
+                        INP-STRING = SNAME)
+%* EF1008 End ->               
+%*
+%*End Program

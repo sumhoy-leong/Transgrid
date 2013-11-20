@@ -1,0 +1,537 @@
+%*** TRR93A.RDL
+%*** Revision History
+%***
+%*** 20-May-13  AIT IG   v004 Exclude 'R3','R8','R6','RB' work codes
+%*** ........................ Rostered hours to be calculated via MSSWRK
+%*** ........................ Breaks not to be included in transx if start/end
+%*** ........................  times are not overlapping the break s/e times.
+%*** ........................ Transactions prior to golive not picked up, so
+%*** ........................  changed 891 transx to be found for any paygroup
+%*** ........................  not just TG1.
+%*** 24-Apr-13  AIT IG   v003 PRC now used in the header
+%*** ........................ Work group is to be displayed under PRC in PDF
+%*** ........................ PRC to replace WG in sorting criteria.
+%*** ........................ PRC now added to TRO93A as the first field.
+%*** ........................ RostHrs obtained via ShiftCateg 
+%*** ........................  ('SCAT' OLD:assoc rec,7,5 new:TABLE-DESC,27,4)
+%*** ........................ Act Hours needs to be derived from MSF832 or 835,
+%*** ........................  dependant on approved/reverse status -using MSSWRK
+%*** ........................  and added rostered meal breaks.
+%*** ........................ Staff Categ (ZO(DUMMIES)/WC and ZA) to be excluded.
+%*** ........................ Only the most recent 891 transx to be displayed per
+%*** ........................  date per work code.Need to exclude 891 records where:
+%*** ........................  TRAN-APPR-STATUS ='UNAP' or 'UNCO'
+%*** ........................  and REVERSE-STATUS = 'RPLD' or 'RVSD'
+%*** ........................ Exclude 'RX' work codes.
+%*** ........................ Find Roster meal break for any work code (MSF898). 
+%*** ........................  Should be 1 record per emp per day -always RGEN.
+%*** 15-Apr-13  AIT IG   v002 MSF891 replaces obsolete file MSF893.
+%***                          Roster times now come from MSF898 
+%*** 21-Mar-13  AIT Lubanovic v001 Migrated into Ellipse 8 environment.
+%***                          Added pay location and PRC parameters
+%PROGRAM-ID
+       TRR93A
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **
+      **  This report details attendance history report for  
+      **  the transactions in histories and will report on user
+      **  defined Work group upto 10 , Pay groups , employee id,
+      **  and upto 10 workcodes or blank for all for a requested  
+      **  period.
+      **
+      **  This program will extract the record and TRR93D will
+      **  generate the report.
+      **
+      **  Initial Version : Neel Chandra. (W706190035).
+      **
+%VERSION
+       004
+%MODULE
+       3890
+%ROUTINES
+       MSSWRK
+       MSSPAY
+       MSSEMP
+       MSSDAT
+       MSSTIM
+%FILES
+        MFILE = MSF801
+        AFILE = MSF891
+        LFILE = MSF010
+        LFILE = MSF720
+        LFILE = MSF723
+        LFILE = MSF723A
+        LFILE = MSF760
+        LFILE = MSF801
+        LFILE = MSF808
+        LFILE = MSF810
+        LFILE = MSF820
+        LFILE = MSF828
+        LFILE = MSF829
+        LFILE = MSF830
+        LFILE = MSF840A
+        LFILE = MSF870
+        LFILE = MSF878A
+        LFILE = MSF898
+        OFILE = TRO93AA
+%SELECTION
+        WHERE    (CNTL-REC-TYPE  = 'PG', - 
+                  CNTL-KEY-REST >= 'TG1',- 
+                  CNTL-KEY-REST <= 'TG1')
+%CONTROL
+        COPY-REQUEST  = TRR93D 
+%OUTPUT-FILE
+        A
+%CONTROL
+          RECORD-LENGTH = 184
+%*        RECORD-LENGTH = 202
+%DETAIL
+<IF FLAG1 = 'Y'>
+{P1}{P2}{P3}{P4}{P5}-
+{WGRP  }{WGDESC                           }{SNAME              }-
+IM{EMPID   }TDDD{TDATE }WW{WDESC                       }-
+OOOOHHHH{AI }{AO }{RH }{AH }{SDATE }{EDATE }
+%*{BRKS}{BRKE}{BRK }
+<ENDIF>
+%REQUEST-PARAMETERS
+       FTD     PIC (X(8))  TEXT 'Tran Date From - Blank defaults to Prev Pay Week (Sat) : '
+       TTD     PIC (X(8))  TEXT 'Tran Date To   - Blank defaults to Prev Pay Week (Fri) : '
+       PL      PIC (X(2))  TEXT 'Pay  Location  - Blank For All                         : '
+       WG1     PIC (X(7))  TEXT 'Work Grp1      - Blank For All                         : '
+       WG2     PIC (X(7))  TEXT 'Work Grp2                                              : '
+       WG3     PIC (X(7))  TEXT 'Work Grp3                                              : '
+       WG4     PIC (X(7))  TEXT 'Work Grp4                                              : '
+       WG5     PIC (X(7))  TEXT 'Work Grp5                                              : '
+       WG6     PIC (X(7))  TEXT 'Work Grp6                                              : '
+       WG7     PIC (X(7))  TEXT 'Work Grp7                                              : '
+       WG8     PIC (X(7))  TEXT 'Work Grp8                                              : '
+       WG9     PIC (X(7))  TEXT 'Work Grp9                                              : '
+       WG10    PIC (X(7))  TEXT 'Work Grp10                                             : '
+       INEMP   PIC (X(10)) TEXT 'Emp Id         - Blank For All                         : '
+       WC1     PIC (X(2))  TEXT 'Work Cde1      - Blank For All                         : '
+       WC2     PIC (X(2))  TEXT 'Work Cde2                                              : '
+       WC3     PIC (X(2))  TEXT 'Work Cde3                                              : '
+       WC4     PIC (X(2))  TEXT 'Work Cde4                                              : '
+       WC5     PIC (X(2))  TEXT 'Work Cde5                                              : '
+       WC6     PIC (X(2))  TEXT 'Work Cde6                                              : '
+       WC7     PIC (X(2))  TEXT 'Work Cde7                                              : '
+       WC8     PIC (X(2))  TEXT 'Work Cde8                                              : '
+       WC9     PIC (X(2))  TEXT 'Work Cde9                                              : '
+       WC10    PIC (X(2))  TEXT 'Work Cde10                                             : '
+       PRC     PIC (X(20)) TEXT 'PRC                                                    : '
+%VARIABLES
+       INEMP   = %INEMP%                   CONSTANT
+%*Work Group IN
+       WG1     = %WG1%                     CONSTANT  
+       WG2     = %WG2%                     CONSTANT  
+       WG3     = %WG3%                     CONSTANT  
+       WG4     = %WG4%                     CONSTANT  
+       WG5     = %WG5%                     CONSTANT  
+       WG6     = %WG6%                     CONSTANT  
+       WG7     = %WG7%                     CONSTANT  
+       WG8     = %WG8%                     CONSTANT  
+       WG9     = %WG9%                     CONSTANT  
+       WG10    = %WG10%                    CONSTANT        
+%*Work Code IN
+       WC1     = %WC1%                     CONSTANT  
+       WC2     = %WC2%                     CONSTANT  
+       WC3     = %WC3%                     CONSTANT  
+       WC4     = %WC4%                     CONSTANT  
+       WC5     = %WC5%                     CONSTANT  
+       WC6     = %WC6%                     CONSTANT  
+       WC7     = %WC7%                     CONSTANT  
+       WC8     = %WC8%                     CONSTANT  
+       WC9     = %WC9%                     CONSTANT  
+       WC10    = %WC10%                    CONSTANT        
+       DS      = WX-DISTRICT               CONSTANT
+%* Primary Reporting Code               
+       PRC1 = SUBSTR (%PRC%,1,4)                 CONSTANT
+       PRC2 = SUBSTR (%PRC%,5,4)                 CONSTANT
+       PRC3 = SUBSTR (%PRC%,9,4)                 CONSTANT
+       PRC4 = SUBSTR (%PRC%,13,4)                CONSTANT
+       PRC5 = SUBSTR (%PRC%,17,4)                CONSTANT
+%* 
+       SYSUID  = substr (WX-USER-ID,2,5)   CONSTANT I-PIC (X(5))
+       USRID   = catenate ('00000',SYSUID) CONSTANT I-PIC (X(10))
+       POSID   = POSITION-ID OF MSF878A -
+                    WHERE (EMPLOYEE-ID-1 = USRID, -
+                           PRIMARY-POS-1 = '0', -
+                           INV-STR-DATE-1 >= SPACES) -
+                    REJECTIF (POS-STOP-DATE <> '00000000') -
+                    MAX (1)     
+
+%*  Parameter Transaction From/to Date  
+       P-FTD   = %FTD%                      CONSTANT
+       P-TTD   = %TTD%                      CONSTANT
+%*
+%*  Check the Previous Payroll Week
+       PRSD    = PRV-STR-DT-PG            
+       PRED    = PRV-END-DT-PG  
+
+%*  Use the parameter dates if entered otherwise use the previous 
+%*  payroll week dates
+       S-FRM   = choose (P-FTD IF (P-FTD <> SPACES), PRSD)
+       S-TO    = choose (P-TTD IF (P-TTD <> SPACES), PRED) 
+%*
+       SDATE   = S-FRM FORMAT (DATE)
+       EDATE   = S-TO  FORMAT (DATE)        
+                
+%*  MSF891 File (replaced MSF893 in ELlipse 8)
+       MSF891  = PAY-GROUP FROM MSF891           -
+                 WHERE    (PAY-GROUP   >= SPACES) -
+                 REJECTIF (TRN-DATE    < S-FRM)  -
+                 REJECTIF (TRN-DATE    > S-TO)  -
+                 REJECTIF (EMPLOYEE-ID <> %INEMP%, -
+                           %INEMP% <> SPACES)     -
+                 REJECTIF (TRAN-APPR-STATUS = 'UNCO') -
+                 REJECTIF (TRAN-APPR-STATUS = 'UNAP') -
+                 REJECTIF (REVERSE-STATUS = 'RPLD') -
+                 REJECTIF (REVERSE-STATUS = 'RVSD') -
+                 REJECTIF (WORK-CODE <> %WC1%, -
+                           %WC1%  <> SPACES ,-  
+                           WORK-CODE <> %WC2%, -
+                           %WC2%  <> SPACES ,-  
+                           WORK-CODE <> %WC3%, -
+                           %WC3%  <> SPACES ,- 
+                           WORK-CODE <> %WC4%, -
+                           %WC4%  <> SPACES ,-  
+                           WORK-CODE <> %WC5%, -
+                           %WC5%  <> SPACES ,- 
+                           WORK-CODE <> %WC6%, -
+                           %WC6%  <> SPACES ,- 
+                           WORK-CODE <> %WC7%, -
+                           %WC7%  <> SPACES ,- 
+                           WORK-CODE <> %WC8%, -
+                           %WC8%  <> SPACES ,- 
+                           WORK-CODE <> %WC9%, -
+                           %WC9%  <> SPACES ,- 
+                           WORK-CODE <> %WC10%,-
+                           %WC10% <> SPACES) 
+
+%*
+       PGROUP  = PAY-GROUP  VIA (MSF891)
+       TDATE   = TRN-DATE   VIA (MSF891) FORMAT (DATE)
+       TRDATE  = TRN-DATE   VIA (MSF891)
+       TDAT    = TRN-DATE-9 VIA (MSF891)
+       DY      = DAYS OF MSSDAT               -
+                 WHERE (OPTION = '6', -
+                        DATE1  = TDATE)
+       D       = choose ('MON' IF (DY = 1), -
+                         'TUE' IF (DY = 2), -
+                         'WED' IF (DY = 3), -
+                         'THU' IF (DY = 4), -
+                         'FRI' IF (DY = 5), -
+                         'SAT' IF (DY = 6), -
+                         'SUN' IF (DY = 7), -
+                         '   ')
+       FR893   = FROM-TIME        VIA (MSF891) 
+       ED893   = END-TIME         VIA (MSF891) 
+       UN893   = UNITS            VIA (MSF891) 
+       AI      = CALC (FR893 * 1)         I-PIC (S9(3)V9(2))
+       AO      = CALC (ED893 * 1)         I-PIC (S9(3)V9(2)) 
+
+%*** IG 24/4 MSF891-UNITS no longer populatedin E8   
+%***       AH      = CALC (UN893 * 1)         I-PIC (S9(7)V9(2)) 
+
+%*       CI      = ORIG-STR-TIME    VIA (MSF891) D-PIC (Z9.99)
+%*       CO      = ORIG-STOP-TIME   VIA (MSF891) D-PIC (Z9.99)       
+       PERD    = PAY-PER-NO       VIA (MSF891)
+       EMP     = EMPLOYEE-ID      VIA (MSF891)
+
+%*  Employee
+       EMP-FLG = choose  ('Y' IF (EMP    = INEMP,  -
+                                  INEMP <> SPACES),-
+                          'Y' IF (INEMP  = SPACES),-
+                          'N')
+       EMPID   = hrget (EMPLOYEE-ID           -
+                 from  ('MSSEMP,MSF810')      -
+                 key   (EMPLOYEE-ID = EMP))
+       SUNAME  = SURNAME         VIA (EMPID)
+       SNAME   = choose (SUNAME IF (EMPID = SPACES), -
+                         SUNAME)
+       I       = FIRST-INITIAL   VIA (EMPID)
+       M       = SECOND-INITIAL  VIA (EMPID)
+       FN      = FIRST-NAME      VIA (EMPID)
+       SN      = SECOND-NAME     VIA (EMPID)
+       FULLN   = catenate (SNAME,FN,SN,EMP)     
+       
+       T       = EMP-TYPE OF MSF760 -
+                 WHERE (EMPLOYEE-ID = EMP)
+       SUP     = catenate (I,' ',M,' ',EMPID,' ',T) 
+%* Employee Position
+       EMPPOS     = POSITION-ID OF MSF878A           -
+                    WHERE (EMPLOYEE-ID-1     = EMP, -
+                           PRIMARY-POS-1     = '0')  -  
+                           INV-STR-DATE-1   >= SPACES)  - 
+                    REJECTIF (POS-STOP-DATE-1 <> '00000000', -
+                              POS-STOP-DATE-1 < TDY) -                     
+                    MAX (1)
+       POSX = SUBSTR (EMPPOS,1,5)
+%* Emp Status /Validation
+       STAT  = EMP-STATUS VIA (T)
+       SCAT  = STAFF-CATEG VIA (T)
+       SEL760 = CHOOSE ('N' IF (STAT <> 'A'), -
+                        'N' IF (SCAT = 'ZO', -
+                                POSX = 'DUMMY'), -
+                        'N' IF (SCAT = 'WC'), -
+                        'N' IF (SCAT = 'ZA'), -
+                        'Y')
+%*
+       LOC     = PAY-LOCATION OF MSF820 -
+                 WHERE (EMPLOYEE-ID = EMP)
+       LOCD    = TABLE-DESC OF MSF010    -
+                 WHERE (TABLE-TYPE = 'PAYL',-
+                        TABLE-CODE = LOC)
+       PASSOC  = ASSOC-REC  VIA (LOCD)
+       PAYP    = substr (PASSOC, 1, 2)
+       ITDAT   = calc   (99999999 - TDAT)           I-PIC (9(8))
+       STDTE   = choose (ITDAT IF (TDAT = 0), -
+                         ITDAT)                     I-PIC (X(8))
+
+       SHFCAT  = SHIFT-CAT VIA (LOC)
+       RHX     = TABLE-DESC OF MSF010 -
+                 WHERE (TABLE-TYPE = 'SCAT', -
+                        TABLE-CODE = SHFCAT)
+%***       RH      = SUBSTR (RHX,27,4)           I-PIC (9(4))
+%*eg:7.47 hrs per day          0747
+%*       RHX     = ASSOC-REC OF MSF010 -
+%*                 WHERE (TABLE-TYPE = 'SCAT', -
+%*                        TABLE-CODE = SHFCAT)
+%*       RH      = SUBSTR (RHX,7,5)           I-PIC (9(5))
+
+
+%* PRC
+       PRIM  = RPT-PRC VIA (LOC)
+       P1 = SUBSTR (PRIM,1,4)
+       P2 = SUBSTR (PRIM,5,4)
+       P3 = SUBSTR (PRIM,9,4)
+       P4 = SUBSTR (PRIM,13,4)
+       P5 = SUBSTR (PRIM,17,4)
+
+%*
+       PRC1-OK = CHOOSE ('N' IF (PRC1 <> SPACES, -
+                                 PRC1 <> P1), 'Y')
+       PRC2-OK = CHOOSE ('N' IF (PRC2 <> SPACES, -
+                                 PRC2 <> P2), 'Y')
+       PRC3-OK = CHOOSE ('N' IF (PRC3 <> SPACES, -
+                                PRC3 <> P3), 'Y')
+       PRC4-OK = CHOOSE ('N' IF (PRC4 <> SPACES, -
+                             PRC4 <> P4), 'Y')
+       PRC5-OK = CHOOSE ('N' IF (PRC5 <> SPACES, -
+                                 PRC5 <> P5), 'Y')
+       SELPRC  = CHOOSE ('Y' IF (PRC1-OK = 'Y', -
+                                 PRC2-OK = 'Y', -
+                                 PRC3-OK = 'Y', -
+                                 PRC4-OK = 'Y', -
+                                 PRC5-OK = 'Y'),-
+                         'N')     
+
+%* Work Codes
+       W       = WORK-CODE VIA (MSF891)
+       WC      = catenate ('***',W)
+       WDESC   = TNAME-R1 OF MSF801 -
+                     WHERE (CNTL-REC-TYPE = 'R1', -
+                            CNTL-KEY-REST = WC)
+       R       = choose ('Y' IF (%WC1% = SPACES),     -
+                         'Y' IF (%WC1% <> SPACES,     -
+                                     W    = %WC1%),   - 
+                         'Y' IF (%WC2% <> SPACES,     -
+                                     W    = %WC2%),   -
+                         'Y' IF (%WC3% <> SPACES,     -
+                                     W    = %WC3%),   -
+                         'Y' IF (%WC4% <> SPACES,     -
+                                     W    = %WC4%),   -
+                         'Y' IF (%WC5% <> SPACES,     -
+                                     W    = %WC5%),   -
+                         'Y' IF (%WC6% <> SPACES,     -
+                                     W    = %WC6%),   -
+                         'Y' IF (%WC7% <> SPACES,     -
+                                     W    = %WC7%),   -
+                         'Y' IF (%WC8% <> SPACES,     -
+                                     W    = %WC8%),   -
+                         'Y' IF (%WC9% <> SPACES,     -
+                                     W    = %WC9%),   -
+                         'Y' IF (%WC10% <> SPACES,    -
+                                     W    = %WC10%),  -
+                         'N')
+                         
+%* Roster start and end times
+       RI      = ROST-STR-TIME OF MSF898 -
+                 WHERE (EMPLOYEE-ID = EMP, -
+                        TRN-DATE = TRDATE, -
+                        TRN-STATUS = 'RGEN') D-PIC (Z9.99)
+%*                 REJECTIF (WORK-CODE <> W)  D-PIC (Z9.99)
+       OW      = WORK-CODE VIA (RI)
+       RO      = ROST-STOP-TIME   VIA (RI) D-PIC (Z9.99)
+%* Only use Breaks in calc if the ST and ET are around the break
+
+       BRKSX   = ROST-MB-START VIA (RI)
+       BRKEX   = ROST-MB-STOP VIA (RI)
+%*Rostered Breaks
+	   RBRKST  = CHOOSE (RI IF (RI > BRKSX, RI < BRKEX), -
+	                     BRKSX)
+	   RBRKET  = CHOOSE (RO IF (RO > BRKSX, RO < BRKEX), -
+	                     BRKEX)
+       RBRKS   = CALC(RBRKST * 10000) I-PIC 9(6)
+       RBRKE   = CALC(RBRKET * 10000) I-PIC 9(6)
+       RBRK9   = TIME2 OF MSSTIM -
+                 WHERE (OPTION = '8', -
+                        TIME1 = RBRKS, -
+                        TIME5 = RBRKE)
+       RBRKF = CALC (RBRK9 /100 * 60) 
+       RBRK = CHOOSE (0 IF (RI >=  BRKEX), -
+                      0 IF (RO <=  BRKSX), -
+					  RBRKF)
+%*Actual Breaks
+	   ABRKST  = CHOOSE (FR893 IF (FR893 > BRKSX, FR893 < BRKEX), -
+	                     BRKSX)
+	   ABRKET  = CHOOSE (ED893 IF (ED893 > BRKSX, ED893 < BRKEX), -
+	                     BRKEX)
+       ABRKS   = CALC(ABRKST * 10000) I-PIC 9(6)
+       ABRKE   = CALC(ABRKET * 10000) I-PIC 9(6)
+       ABRK9   = TIME2 OF MSSTIM -
+                 WHERE (OPTION = '8', -
+                        TIME1 = ABRKS, -
+                        TIME5 = ABRKE)
+       ABRKF = CALC (ABRK9 /100 * 60) 
+       ABRK = CHOOSE (0 IF (FR893 >=  BRKEX), -
+                      0 IF (ED893 <=  BRKSX), -
+					  ABRKF)
+       	   
+%* Work Groups
+       WGRP    = WORK-GROUP OF MSF723A -
+                 WHERE    (REC-723-TYPE-2  = 'W',         -
+                           EQUIP-NO-2      = SPACES,      -
+                           EMPLOYEE-ID-2   = EMP,         -
+                           EFF-DT-REVSD-2 >= STDTE)       -
+                 REJECTIF (STOP-DT-REVSD  <> SPACES,      -
+                           STOP-DT-REVSD  <> '00000000',  -
+                           STOP-DT-REVSD   > STDTE)       -
+                 MAX (1)
+%*
+       WORKG   = choose ('Y' IF (%WG1%  = SPACES),   -
+                         'Y' IF (%WG1%  <> SPACES,   -
+                                 WGRP   = %WG1%), -
+                         'Y' IF (%WG2%  <> SPACES,   -
+                                 WGRP   = %WG2%), -
+                         'Y' IF (%WG3%  <> SPACES,   -
+                                 WGRP   = %WG3%), -
+                         'Y' IF (%WG4%  <> SPACES,   -
+                                 WGRP   = %WG4%), -
+                         'Y' IF (%WG5%  <> SPACES,   -
+                                 WGRP   = %WG5%), -
+                         'Y' IF (%WG6%  <> SPACES,   -
+                                 WGRP   = %WG6%), -
+                         'Y' IF (%WG7%  <> SPACES,   -
+                                 WGRP   = %WG7%), -
+                         'Y' IF (%WG8%  <> SPACES,   -
+                                 WGRP   = %WG8%), -
+                         'Y' IF (%WG9%  <> SPACES,   -
+                                 WGRP   = %WG9%), -   
+                         'Y' IF (%WG10% <> SPACES,   -
+                                 WGRP   = %WG10%),-
+                         'N')
+       WGDESC  = WORK-GRP-DESC OF MSF720 -
+                 WHERE (WORK-GROUP = WGRP)
+%* Pay Locations
+      PREMP   = choose ('N' IF (%PL% <> SPACES , %PL% <> LOC), -
+                        'Y')
+%*
+       LC      = PHYSICAL-LOC  OF MSF829 -
+                 WHERE (EMPLOYEE-ID   = EMP,   -
+                        INV-STR-DATE >= ITDAT) -
+                 MAX (1)
+       LC1   = hrget (CNTL-REC-TYPE -
+                        from ('MSF801') -
+                        type ('R1') -
+                        DEFAULT -
+                        key  (KEY1 = LC, -
+                              KEY2 = W))
+       RDO     = RDO-R1        VIA (LC1)
+       ABS     = ABSENCE-TY-R1 VIA (LC1)
+       STDAT9  = TRN-DATE-9    VIA (MSF891)
+       IRDAT   = calc (99999999 - STDAT9) I-PIC (9(8))
+       SUDTE   = choose (IRDAT IF (IRDAT = 0), IRDAT) I-PIC (X(8))
+
+       A       = AWARD-CODE OF MSF828          -
+                 WHERE (EMPLOYEE-ID = EMP,     -
+                        INV-STR-DATE >= SUDTE) -
+                 MAX (1)
+                 
+       RH      = HOURS-MINS OF MSSWRK -
+                 WHERE (OPTION-WRK     = '1',            -
+                        PHYSICAL-LOC   = LOC,            -
+                        FROM-TIME      = RI,             -
+                        END-TIME       = RO,             -
+                        ORIG-WORK-CODE = OW,             -
+                        WORK-CODE      = W,              -
+                        AWARD-CODE     = A,              -
+                        LUNCH-LTH      = RBRK)            - 
+                        I-PIC (S9(3)V9(2))
+                             
+       AH      = HOURS-MINS OF MSSWRK -
+                 WHERE (OPTION-WRK     = '2',            -
+                        PHYSICAL-LOC   = LOC,            -
+                        FROM-TIME      = AI,             -
+                        END-TIME       = AO,             -
+                        ORIG-WORK-CODE = OW,             -
+                        WORK-CODE      = W,              -
+                        AWARD-CODE     = A,              -
+                        LUNCH-LTH      = ABRK)            - 
+                        I-PIC (S9(3)V9(2))
+       V1      = calc (RH * 100)                  I-PIC (9(5))
+       V2      = choose (V1 IF (V1 = 0), V1)      I-PIC (X(5))
+       V3      = substr (V2,1,3)                  I-PIC (X(3))
+       V4      = numeric (V3)                     I-PIC (9(3))
+       V55     = substr (V2,4,2)                  I-PIC (X(2))
+       V5      = numeric (V55)                    I-PIC (9(2))
+       V6      = calc (V4 * 60)                   I-PIC (9(5))
+       V7      = calc (V6 + V5)                   I-PIC (9(5))
+       AHT     = choose (AH IF (AH = 0), AH)      I-PIC (9(3)V99)
+       U1      = calc (AH * 100)                  I-PIC (9(5))
+       U2      = choose (U1 IF (U1 = 0), U1)      I-PIC (X(5))
+       U3      = substr (U2,1,3)                  I-PIC (X(3))
+       U4      = numeric (U3)                     I-PIC (9(3))
+       U55     = substr (U2,4,2)                  I-PIC (X(2))
+       U5      = numeric (U55)                    I-PIC (9(2))
+       U6      = calc (U4 * 60)                   I-PIC (9(5))
+       U7      = calc (U6 + U5)                   I-PIC (9(5))
+       VARM    = calc (V7 - U7)                   I-PIC (9(5))
+       VARH    = calc (VARM / 60)                 I-PIC (9(3)V99)
+       B       = choose (VARH IF (VARH = 0), -
+                         VARH)                    I-PIC (9(3)) D-PIC (ZZ9)
+       VM      = calc (B * 60)                    I-PIC (9(5))
+       C       = calc (VARM - VM)                 I-PIC (9(5)) D-PIC (99)
+       N       = choose ('-' IF (V7 > U7), -
+                         ' ')
+       F       = '.'  CONSTANT
+%*
+%*  Original Rate Reference Code 
+       O       = RATE-REF-CODE OF MSF830 -
+                 WHERE (EMPLOYEE-ID   = EMP,    -
+                        INV-STR-DATE >= SPACES) -
+                 MAX (1)
+       HD      = RATE-REF-CODE OF MSF840A            -
+                 WHERE    (EMPLOYEE-ID-2  = EMP,     -
+                           HD-START-DATE >= SPACES)  -
+                 REJECTIF (INV-END-DATE   > STDTE)   -
+                 REJECTIF (HD-START-DATE  > TRDATE)  -
+                 MAX (1)
+       H       = choose (HD IF (O <> HD), '    ') 
+%*
+       FLAG1   = choose ('Y' IF (WORKG   = 'Y', -
+                                 R       = 'Y', -
+                                 W       <> 'RX', -
+                                 W       <> 'R3', -
+                                 W       <> 'R6', -
+                                 W       <> 'R8', -
+                                 W       <> 'RB', -
+                                 EMP-FLG = 'Y', -
+                                 SELPRC  = 'Y', -
+                                 PREMP   = 'Y', -
+                                 SEL760  = 'Y'),-
+                         'N')
+%*
+%* ------------  End  of  the  Program  ------------------------

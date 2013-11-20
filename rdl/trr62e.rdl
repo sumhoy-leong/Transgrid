@@ -1,0 +1,78 @@
+%PROGRAM-ID
+       TRR62E
+%NARRATIVE
+      *** Select and report where Project No or Account Code
+      *** is blank or if both are blank.
+      *** Creates a comma seperated sequential file to upload 
+      *** into PC for EXCEL.
+      *** 
+      *** Initial Version : Neel Chandra. (W807060007).
+      *** 
+      *** Revision History.
+      *** -----------------
+      *** 30-Apr-2013   a9wp3261  Added apostrophe in front of account code.
+      *** 26-Feb-2013   a9ll4261  Adjust field length based on MSF620 field length
+      *** 29-Oct-2012   a9nl6176  Remove MFILE selection SELECTIF (WO-STATUS-M    = 'A')
+      *** 31-Aug-2012   a9tl3060  Convert from ellipse 5 to ellipse 8
+
+%*
+%VERSION
+    0004
+%FILES
+        MFILE = MSF620
+        OFILE = TRT62EA
+%*
+%ORDER
+      WORK-ORDER
+      PROJECT-NO
+      ACCOUNT-CODE 
+%*
+%SELECTION
+      WHERE    (DSTRCT-CODE >= %DISTRICT-CODE% ,-
+                DSTRCT-CODE <= %DISTRICT-CODE%)
+      REJECTIF (WO-STATUS-M    = 'C')
+      SELECTIF (WO-STATUS-U    >=  SPACES)
+%*
+%* CSV File
+%BREAK-FIELDS
+    DUM
+%OUTPUT-FILE
+    A
+%CONTROL
+    RECORD-LENGTH = 87
+%BREAK DUM HEADER
+{HDG                                                                                  }
+%DETAIL
+<IF WGFL = 'Y' , PNAC = 'Y'>
+{D }C{WG   }C{WO    }C{W}C{PN    }C{ACC                   }
+<ENDIF>
+%*
+%REQUEST-PARAMETERS
+       WGRP  PIC (X(7)) TEXT 'Work Group    - Blank For All:'
+%*
+%VARIABLES
+       HDG     = 'District,Work Group,WO Number,System Status & User Status,Project Number,Account Number'  CONSTANT
+       C       = ','                                     CONSTANT
+       DUMMY   = 'Y'                                     CONSTANT
+       DUM     = CHOOSE ('Y' IF (D = D), DUMMY)
+       D       = DSTRCT-CODE
+       WO      = WORK-ORDER
+       WG      = WORK-GROUP
+       M       = WO-STATUS-M
+       U       = WO-STATUS-U
+       W       = catenate(M,U)
+       PN      = PROJECT-NO
+       AC      = ACCOUNT-CODE
+       ACC     = CATENATE (''',AC)
+       SJN     = STD-JOB-NO
+%*Work group selection.
+       WGFL    = choose ('Y' IF (%WGRP% = SPACES) ,-
+                         'Y' IF (WG     = %WGRP%) ,-
+                         'N')
+%*Select project number or account code if blanks or both blanks.
+       PNAC    = choose ('Y' IF (PN = SPACES) ,-
+                         'Y' IF (AC = SPACES) ,-
+                         'Y' IF (PN = SPACES ,AC = SPACES) ,-
+                         'N') 
+%*
+%*End Of Program

@@ -1,0 +1,1197 @@
+%*** TRR24C.rdl
+%*** Revision History ***
+%*** 13-Jun-13 EFredeluces SC4278715
+%*** ..................... Disable the dynamic printing.
+%*** 19-Apr-13 a9nl6176    Only retrieved Global PART-NO.
+%*** 10-Apr-13 a9nl6176    Corrected the way to print PART-NO details.
+%*** 18-Mar-13  a9nl6176   Lengthen Purch Officer's id field. Aligned some
+%*** ..................... fields so all the lines printed in the same alignment.
+%*** ..................... Modify the way to get MSF110-PART-NO.
+%*** 22-Feb-13  a9ll4261   Modify the Group Class literal to Category ID.
+%*** ..................... Add the new request parameter: purchasing team.
+%*** ..................... Removed unused code related to MSF235.
+%*** 14-Aug-12  a9tl3060   Convert from ellipse 6 to ellipse 8 (Version 001).
+%*** 27-Jul-06  LNee          WCHG154622
+%*** ..................... Amended printer 'STOREGRID' to 'GRIDSTOREGRID'. This
+%*** ..................... has been a matter of trial and error.
+%*** 18-Jul-06  LNee          WCHG154622
+%*** ..................... Reverted the previous change.
+%*** 10-Jul-06  LNee          WCHG154622
+%*** ..................... Amended printer 'STOREGRID' to 'Q1151A132'.
+%*** 22-Feb-06  AIesho        P05110872
+%*** .....................Append 'GRID' to STORE when searching for a printer.
+%*** .....................This is part of the Ellipse Upgrade where every
+%*** .....................printer must be unique. District code has to be
+%*** .....................before and after the word STORE
+%*** 13-Feb-06 DDiolaso   Ellipse Upgrade [DD13]
+%*** .................... Modification due changes to the printer naming
+%*** .................... convention.
+%*** 14-Nov-05 E Fredeluces  P05110870
+%***                         Fix compilation errors in Ellipse 5.2.3.7.
+%*** 10-Feb-05 LNee          WCHG085637 - Amended the format of the
+%*** .....................   district commentary.
+%*** 05-Apr-04 Lubanovic     WHD0238148 - Global and District commentary
+%*** .....................   details were not being printed. I had a look
+%*** .....................   at the way the standard program was working
+%*** .....................   which looked at the value stored in field
+%*** .....................   MSF001-PRINT-BUY-11 to determine if the
+%*** .....................   commentary details are printed. This rdl
+%*** .....................   was using MSF001-PRINT-STORES-10 which looked
+%*** .....................   incorrect. Changed the program to use the
+%*** .....................   MSF001-PRINT-BUY fields as per msr242.rdl.
+%*** .....................   Also modified the way the commentary is
+%*** .....................   retrieved to be the same as msr242.
+%*** 29-Oct-02 EFredeluces   Retrieve the Expiry & Effective Date from
+%*** .....................   MSF210 instead of MSF170.
+%*** 03-Jan-02 DDiolaso      WCHG000708 Report B to print even if no
+%*** ......................  records were extracted.
+%*** 04-Dec-01 EFredeluces   WCHG000394 Include Order Quantity in the
+%*** ......................  Order History.
+%*** 22-Jun-99 EFredeluces   W99060627
+%*** ......................  To set the dynamic printing to the GRID's
+%*** ......................  STORE printer.
+%*** 10-Jun-99 EFredeluces   W99060289
+%*** ......................  To fix the problem of the global mnemonic and
+%*** ......................  part number not printing.
+%*** 05-May-99 JN            W99050066 re-instate fixed printer '01'
+%*** ....................    (Probably removed for testing)
+%*** 16-Apr-96 Mincom        Replace 'RC' table access with HRGET macro.
+%*** ....................
+%*** 16-NOV-95 Peter Lacey
+%*** ...................... Converted from 3.010 to 3.013. Changed fields
+%*** ...................... MSF190-PRIME-LOCATION & MSF190-BIN-CODE to use
+%*** ...................... MSF190-BIN-DETAILS. Changed SUPP-LEAD-TIME to use
+%*** ...................... the numeric version SUPP-LEAD-TIME-9, doesn't
+%*** ...................... compile when using (BWZ) BLANK WHEN ZERO.
+%*   09-DEC-92 DAVID_G    Print UN trpt & hazardous goods codes
+%*   20-JAN-92 DAVID_G    Add "B" Report (ROB Register)
+%*   16-DEC-91 DAVID_G    Use class & type from MSF170 not MSF100
+%*   16-Oct-90 Steve      Use correct key for 'RO' record on MSF000.
+%*** 16-Oct-90 Steve      Base on PURCH-OFFICER rather than EMPLOYEE-ID.
+%PROGRAM-ID
+       TRR24C
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This program reports on newly created buy recommended orders.
+      **  The input parameters are:
+      **  - Run number
+      **  - A (or range of) specified Purchasing Officer code.
+      **  - Purchasing Team
+      **  - Supplier
+      **  - Category ID
+      **
+      **  The report provides a sort sequence of
+      **  - Purchasing Officer
+      **  - Supplier Number
+      **  - Category ID
+      **  - Stock Code and
+      **  - Recommended order number (activity counter).
+      **
+      **  District control file indicators and other values on the
+      **  MSF000 'RO' record determine how comprehensive the report
+      **  is to be regarding the printing of various details.
+      **
+      **  NO-CODE  Need to get ROQ etc from MSS240
+      **
+%VERSION
+       006
+%MODULE
+       3210
+%FILES
+        MFILE = MSF000
+        AFILE = MSF240
+        LFILE = MSF000
+        LFILE = MSF001
+        LFILE = MSF010
+        LFILE = MSF062
+        LFILE = MSFX96A
+        LFILE = MSF100
+        LFILE = MSF110A
+        LFILE = MSF160
+        LFILE = MSF170
+        LFILE = MSF170A
+        LFILE = MSF171
+        LFILE = MSF180
+        LFILE = MSF190
+        LFILE = MSF200
+        LFILE = MSF203
+        LFILE = MSF210
+        LFILE = MSF220
+        LFILE = MSF221B
+        LFILE = MSF254
+        LFILE = MSF250
+        LFILE = MSF900
+        LFILE = MSF1CSA
+        LFILE = MSF1HB
+        RFILE = TRR24CA
+        RFILE = TRR24CB
+%ROUTINES
+       MSS110
+       MSS175
+       MSS240
+       MSSSOH
+%SELECTION
+     WHERE     (DSTRCT-CODE = SPACES, -
+                CONTROL-REC-TYPE = 'AD', -
+                CONTROL-REC-NO >= %DISTRICT-CODE%, -
+                CONTROL-REC-NO <= %DISTRICT-CODE%)
+
+%ORDER
+       PURCH-OFFICER  VIA (RO-AT)
+       SUPPLIER-NO    VIA (RO-AT)
+       CATEG-ID       VIA (RO-AT)
+       STOCK-CODE     VIA (RO-AT)
+%REPORT
+       A
+%REPORT-TITLE
+       'BUY RECOMMENDED ORDER REPORT'
+%PAGE HEADING
+'PURCH OFFICER' {EMPPO     }{PONAME                                          }         'Run Number:'{RN}   'ORDER NO.'{L9          }
+'Category ID'   {GC}  'Plant Contrlr'{EMPIV   }'Item reviewed by Inventory Control? Yes / No  Signed:                  Date   /   /'
+%DETAIL ON NEW-PAGE
+<IF COUNT1 = 1>
+'Stock Code:'{STK    }'Recommended Order No.:'AAA                                   'R.O.P.'     {ROPT   }  'Owned SOH'    {SOHO   }
+'Description *********'                      '***  Part Nos - District/Global Prefs  Reorder Qty'{RQTY   } '-Being Picked' {SOHB   }
+ {INAME                                 } {MNEM  } {PARTNO                      } BB'Min.Stk.Lvl'{MINS   } '-Dues Out'     {SOHDO  }
+ {STKDESC                               } {MNEM  } {PARTNO                      } BB'U.O.I.'          {UI} '-Reserved'     {SOHR   }
+ {STKDESC                               } {MNEM  } {PARTNO                      } BB'Bypass Str/P'    HXJ  '+Dues in'      {SOHDI  }
+ {STKDESC                               } {MNEM  } {PARTNO                      } BB'Upd ROPs/Min'    EXG  '+Other rec-ord'{SOHRO  }
+ {STKDESC                               } {MNEM  } {PARTNO                      } BB'ABCD/XYZ Lvl'    YXW  '+Xfer Request' {SOHXF1 }
+ <IF STKSIZE = 0>
+                                          {MNEM  } {PARTNO                      } BB'Class/Type'      KXM  '+Xfer in Tran' {SOHXF2 }
+    <IF TN <> SPACES>
+'********** UN Trpt code :'{TN}'*********'{MNEM  } {PARTNO                      } BB'WH/Bin'{WH}{BIN     }
+    <ELSE>
+                                          {MNEM  } {PARTNO                      } BB'WH/Bin'{WH}{BIN     }
+    <ENDIF>
+ {TNDESC                                } {MNEM  } {PARTNO                      } BB'Inv.Pr' {IP         } '+Consign tran' {SOHCT  }
+    <IF TN <> SPACES>
+'********** Hazardous Mat:'{HZ}'*********'{MNEM  } {PARTNO                      } BB'Inv.Val'{IV         } '+Consign SOH'  {SOHC   }
+    <ELSE>
+                                          {MNEM  } {PARTNO                      } BB'Inv.Val'{IV         } '+Consign SOH'  {SOHC   }
+    <ENDIF>
+ {HZDESC                                } {MNEM  } {PARTNO                      } BB
+    <IF SOHW < MIN-STK-LVL>
+'************MIN STOCK BREACH************'{MNEM  } {PARTNO                      } BB
+    <ENDIF>
+    <IF EXP-DATE <> SPACES AND EXP-DATE < WX-TODAYS-DATE>
+'***************FPA EXPIRED**************'{MNEM  } {PARTNO                      } BB
+    <ELSE>
+        <IF ROV > 0>
+            <IF CUMM-VAL-SIZE > 0>
+                <IF ROV-ICV > MAX-VAL>
+'*Max value of FPA exceeded with this RO*'{MNEM  } {PARTNO                      } BB
+                <ELSE>
+                    <IF RQIP-ICV > MAX-VAL>
+'*Max value of FPA exceeded with this RO*'{MNEM  } {PARTNO                      } BB
+                    <ENDIF>
+                <ENDIF>
+            <ENDIF>
+        <ENDIF>
+    <ENDIF>
+<REPEAT>
+<SUPPRESS>
+                                          {MNEM } {PARTNO                       } BB
+<ENDREPEAT>
+<ELSE>
+ {STKEXT                                } {MNEM } {PARTNO                       } BB'Class/Type'      KXM  '+Xfer in Tran'{SOHXF2 }
+ {STKEXT                                } {MNEM } {PARTNO                       } BB'WH/Bin'{WH}{BIN      }
+ {STKEXT                                } {MNEM } {PARTNO                       } BB'Inv.Pr' {IP          }'+Consign tran'{SOHCT  }
+ {STKEXT                                } {MNEM } {PARTNO                       } BB'Inv.Val'{IV          }'+Consign SOH' {SOHC   }
+ {STKEXT                                } {MNEM } {PARTNO                       } BB
+<REPEAT>
+<SUPPRESS>
+ {STKEXT                                } {MNEM } {PARTNO                       } BB
+<ENDREPEAT>
+    <IF TN <> SPACES>
+'********** UN Trpt code :'{TN} {TNDESC                                }'**********'
+    <ENDIF>
+    <IF HZ <> SPACES>
+'********** Hazardous Mat:'{HZ} {HZDESC                                }'**********'
+    <ENDIF>
+    <IF SOHW < MIN-STK-LVL>
+'************MIN STOCK BREACH************'
+    <ENDIF>
+    <IF EXP-DATE <> SPACES AND EXP-DATE < WX-TODAYS-DATE>
+'***************FPA EXPIRED**************'
+    <ELSE>
+        <IF ROV > 0>
+            <IF CUMM-VAL-SIZE > 0>
+                <IF ROV-ICV > MAX-VAL>
+'*Max value of FPA exceeded with this RO*'
+                <ELSE>
+                    <IF RQIP-ICV > MAX-VAL>
+'*Max value of FPA exceeded with this RO*'
+                    <ENDIF>
+                <ENDIF>
+            <ENDIF>
+        <ENDIF>
+    <ENDIF>
+<ENDIF>
+ {UNDERLINE                                                  }{L4   }{UNDERLINE                                                   }
+ 'Rec.Order Qty'{ROQP      } {UP}'(UOP)         Rec.Order Type' {L6              } '         Rec.Ord.Value.'{ROV         }
+'---------------************-****-------------------------------******************--------------------------**************---------'
+<IF PS4 = 'Y'>
+<SUPPRESS>
+                                'Qualifiers:'FF {FNAME                                 } FF {FNAME                                 }
+      <REPEAT>
+<SUPPRESS>
+                                             FF {FNAME                                 } FF {FNAME                                 }
+      <ENDREPEAT>
+<ENDIF>
+<IF PS6 = 'Y'>
+'Significant Dates :'                      'Last Receipt'                 'Last Issue'                    'Last Dues In'
+ 'Item Creation Date'{ICDATE }         'Date'     {LRDATE }          'Date'          {LIDATE }     'Order/Date'  {LDO } {LDT    }
+                                       'Order'    {LRO }             'Requisition'   {LIRQ}        'Expedite Code/Count' {EX} {W1}
+ 'Last Changed Date' {LCDATE }         'Supplier' {LRS }             'Responsibility'{LIRS    }    'Order Quantity'{LDOQ    }
+                                       'Quantity' {LRQ     }         'Quantity'      {LIQ     }    'O/S Quantity  '{LDOSQ   }
+<ENDIF>
+<IF PS8 = 'Y' OR PS9 = 'Y'>
+   <IF PS8 = 'Y'>
+                                                                      '12mths Use: Unschd:Total'{USP     }'Av'{USAV  }'MAD'{USMAD  }
+   <ENDIF>
+   <IF PS9 = 'Y'>
+                                                                                  'Sched :Total'{SP      }'Av'{SAV   }'MAD'{SMAD   }
+   <ENDIF>
+<ENDIF>
+<IF PS2 = 'Y'>
+                                                                    {UNDERLINE                                                     }
+                                                                   'Preferred Supplier:'     {PSUP} {PSNAME                        }
+                                                                   'Cont:'{SCT                     }{SADD1                         }
+                                                                   'Tel :'{STEL          }          {SADD2                         }
+<SUPPRESS>
+                                                                   'Fax :'{SFAX          }          {SADD3                         }
+<SUPPRESS>
+                                                                   'Tlx :'{STLX              }'TaxCode'{TC}'Tax%'{TPC }'DelPerf'{DL}
+<SUPPRESS>
+                                                                   'sL/Time'QQQQ'Pr'{PRICE         }'UOP'{UP}'Conv.Fact'{CONV      }
+                                                                   'aL/Time'{PA}'Pc'VV 'Std Pk'{PK }'Exp'TT          '-Disc1'{DA   }
+                                                                   'Medium'{OM }'Fr'SS'Currency'{CU}'Close Xmas'{XM} '-Disc2'{DB   }
+<SUPPRESS>
+                                                                   'Pr.Eff.Dte'  {PEFD    } 'Pr.Exp.Dte'{PEXD   }  'FPA/Ref'{PREF  }
+                                                                    {UNDERLINE                                                     }
+<ELSE>
+   <IF PS1 = 'Y'>
+'Preferred Supplier:'
+{PSUP} {PSNAME                        }{SADD1                         }{SADD2                         }{SADD3                      }
+'Tel/Fax'{STEL          } {SFAX          }  'Telex'  {STLX                } 'Contact'{SCT                           }
+   <ENDIF>
+<ENDIF>
+<IF PS3 = 'Y'>
+   <IF ASSIZE > 0>
+                                                     'Alt.Supplrs:'{ASUP} {ASNAME                       }'PC'{Y1}'A/S L/T'{AAL}{ASL}
+      <REPEAT>
+<SUPPRESS>
+                                                                   {ASUP} {ASNAME                       }    {Y1}         {AAL}{ASL}
+      <ENDREPEAT>
+   <ENDIF>
+<ENDIF>
+<IF PS5 = 'Y'>
+ <IF OHPOS > 0>
+                                        'Order Hist: O/No'{OHPO}X{G1}'Date'{OHDATE } {OHS }'Qty'{OHQTY      }'Pr'{OHPR        } {RV}
+   <REPEAT>
+<SUPPRESS>
+                                                          {OHPO}X{G1}      {OHDATE } {OHS }     {OHQTY      }    {OHPR        } {RV}
+   <ENDREPEAT>
+ <ENDIF>
+<ENDIF>
+<IF PS7 = 'Y'>
+ 'Cross Referenced Stock Codes:'                       'Code Xref Description/'
+  'Stock Code  Item Name/Part Number'                  'G/D  Comment'
+   <REPEAT>
+    {GSTK   }  {GINAME                                } {H1} {GXREF                                          }
+                                                        'G'  {GCOM                                  }
+   <ENDREPEAT>
+   <REPEAT>
+    {DSTK   }  {DINAME                                } {J1} {DXREF                                          }
+                                                        'D'  {DCOM                                  }
+   <ENDREPEAT>
+<ENDIF>
+<IF I <> SPACES>
+'********* Recommended Order Recycled -  Recycle/Defer Code' II {RCDESC                                 }'Date '{IDATE }'*********'
+<ENDIF>
+<IF PS11 = 'Y'>
+  <IF EXSIZE > 0 >
+'RO Info :'{EXTRO                                                     } {EXTRO                                                     }
+  <REPEAT>
+           {EXTRO                                                     } {EXTRO                                                     }
+  <ENDREPEAT>
+  <ENDIF>
+<ENDIF>
+<IF PS11 = 'Y'>
+  <IF SZSUPGT > 0 OR SZSTGT > 0 OR SZSSGT > 0>
+ 'Global Commentary:'
+    <IF SZSUPG1 > 0>
+'Supplier:'{SUPGLOB1                                                  } {SUPGLOB1                                                  }
+      <REPEAT>
+<SUPPRESS>
+           {SUPGLOB1                                                  } {SUPGLOB1                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSUPG2 > 0>
+      <REPEAT>
+'Supplier:'{SUPGLOB2                                                  } {SUPGLOB2                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSUPG3 > 0>
+      <REPEAT>
+'Supplier:'{SUPGLOB3                                                  } {SUPGLOB3                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSUPG4 > 0>
+      <REPEAT>
+'Supplier:'{SUPGLOB4                                                  } {SUPGLOB4                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSUPG5 > 0>
+      <REPEAT>
+'Supplier:'{SUPGLOB5                                                  } {SUPGLOB5                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSTG1 > 0>
+    'Item:'{STKGLOB1                                                  } {STKGLOB1                                                  }
+      <REPEAT>
+<SUPPRESS>
+           {STKGLOB1                                                  } {STKGLOB1                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSTG2 > 0>
+      <REPEAT>
+    'Item:'{STKGLOB2                                                  } {STKGLOB2                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSTG3 > 0>
+      <REPEAT>
+    'Item:'{STKGLOB3                                                  } {STKGLOB3                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSTG4 > 0>
+      <REPEAT>
+    'Item:'{STKGLOB4                                                  } {STKGLOB4                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSTG5 > 0>
+      <REPEAT>
+    'Item:'{STKGLOB5                                                  } {STKGLOB5                                                  }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSSG1 > 0>
+  'Supplier/Item:'
+      <REPEAT>
+<SUPPRESS>
+           {SUPSTKGL1                                                 } {SUPSTKGL1                                                 }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSSG2 > 0>
+      <REPEAT>
+           {SUPSTKGL2                                                 } {SUPSTKGL2                                                 }
+      <ENDREPEAT>
+    <ENDIF>
+    <IF SZSSG3 > 0>
+      <REPEAT>
+           {SUPSTKGL3                                                 } {SUPSTKGL3                                                 }
+      <ENDREPEAT>
+    <ENDIF>
+    <IF SZSSG4 > 0>
+      <REPEAT>
+           {SUPSTKGL4                                                 } {SUPSTKGL4                                                 }
+      <ENDREPEAT>
+    <ENDIF>
+    <IF SZSSG5 > 0>
+      <REPEAT>
+           {SUPSTKGL5                                                 } {SUPSTKGL5                                                 }
+      <ENDREPEAT>
+    <ENDIF>
+   <ENDIF>
+%*
+  <IF SZSUPDT > 0 OR SZSTDT > 0 OR SZSSDT > 0>
+ 'District Commentary:'
+    <IF SZSUPD1 > 0>
+'Supplier:'{SUPDST1                                                   }
+      <REPEAT>
+<SUPPRESS>
+           {SUPDST1                                                   }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+   <IF SZSUPD2 > 0>
+      <REPEAT>
+           {SUPDST2                                                   }
+      <ENDREPEAT>
+   <ENDIF>
+%*
+   <IF SZSUPD3 > 0>
+      <REPEAT>
+           {SUPDST3                                                   }
+      <ENDREPEAT>
+   <ENDIF>
+%*
+   <IF SZSUPD4 > 0>
+      <REPEAT>
+           {SUPDST4                                                   }
+      <ENDREPEAT>
+   <ENDIF>
+%*
+   <IF SZSUPD5 > 0>
+      <REPEAT>
+           {SUPDST5                                                   }
+      <ENDREPEAT>
+   <ENDIF>
+%*
+    <IF SZSTD1 > 0>
+  'Item:'  {STKDST1                                                   }
+      <REPEAT>
+           {STKDST1                                                   }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSTD2 > 0>
+      <REPEAT>
+           {STKDST2                                                   }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSTD3 > 0>
+      <REPEAT>
+           {STKDST3                                                   }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSTD4 > 0>
+      <REPEAT>
+           {STKDST4                                                   }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSTD5 > 0>
+      <REPEAT>
+           {STKDST5                                                   }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSSD1 > 0>
+  'Supplier/Item:'
+      <REPEAT>
+           {SUPSTKDST1                                                }
+      <ENDREPEAT>
+    <ENDIF>
+%*
+    <IF SZSSD2 > 0>
+      <REPEAT>
+           {SUPSTKDST2                                                }
+      <ENDREPEAT>
+    <ENDIF>
+    <IF SZSSD3 > 0>
+      <REPEAT>
+           {SUPSTKDST3                                                }
+      <ENDREPEAT>
+    <ENDIF>
+    <IF SZSSD4 > 0>
+      <REPEAT>
+           {SUPSTKDST4                                                }
+      <ENDREPEAT>
+    <ENDIF>
+    <IF SZSSD5 > 0>
+      <REPEAT>
+           {SUPSTKDST5                                                }
+      <ENDREPEAT>
+    <ENDIF>
+  <ENDIF>
+<ENDIF>
+%*
+<IF WX-CENTRAL-PURCH = 'Y' AND WX-MULTIDSTRCT = '2'>
+'Districts Holding Stock:'                       'Stock   ABCD/'
+                                              'Class Type  XYZ   Available     S.O.H.    R.O.P.   Reorder Min Stock  Inventory Price'
+  <REPEAT>
+ {DR} {DNAME                                 }   K    M    N O  {D1      } {D2      } {D3     } {D4     } {D5     } {D6            }
+  <ENDREPEAT>
+<ENDIF>
+<IF PS11 = 'Y'>
+'Offers -   Supplier Name |Contact Officer|Phone No |Price  |L/Time|  Disc|Settle.Disc|UOP |C.Fct|Std Pk|Freight|Delivery|Signature'
+'1 |                      |               |         |$      |      |     %|   %   Days|    |     |      |       |        | '
+  '|Comments:______________________________________________________________________________________________________________________'
+'2 |                      |               |         |$      |      |     %|   %   Days|    |     |      |       |        | '
+  '|Comments:______________________________________________________________________________________________________________________'
+'3 |                      |               |         |$      |      |     %|   %   Days|    |     |      |       |        | '
+  '|Comments:______________________________________________________________________________________________________________________'
+'Order Details- |Supp Code |Price Code|Frt Code|Del Code|PO Clauses|Recycle Code|Exped Code| P.O. No. | Item|Order Date| Due Date  '
+               '|          |          |        |        |          |            |          |          |     |   /  /   |   /  /    '
+               '*******************************************************************************************************************'
+
+'QUOTATIONS INVITED IN ACCORDANCE WITH PROCUREMENT PROCEDURES - Signed .................... Date ........ Total Expenditure $......'
+
+'OFFERS  ACCEPTED   IN ACCORDANCE WITH PROCUREMENT PROCEDURES - Signed .................... Title .................... Date .......'
+<ENDIF>
+<ENDIF>
+%REPORT
+       B
+%REPORT-TITLE
+       'REGISTER OF RECOMMENDED ORDER BUYS REPORT'
+%PAGE HEADING
+'Stock Code Rec No. Run No.  Run Date  Buyer Code  Date Referred  Follow Up Date    Comments'
+%DETAIL
+<IF COUNT1 = 1>
+{STK    }    AAA    {RN}     {RUN-DTE}           L               L              L
+{L9                                                              }{L9                                                              }
+<ENDIF>
+%SUMMARY
+
+
+'Total Number of Recommended Order Buys = '{ROBCOUNT}     'Total Value = '{ROBTOTAL     }
+
+%CONTROL REPORT A
+%*     DYNAMIC-PRINTER
+       TRIM-REPORT
+%CONTROL REPORT B
+%*     DYNAMIC-PRINTER
+%*     TRIM-REPORT
+%REQUEST-PARAMETERS
+       RUN-NO       PIC (9(4))     TEXT 'Run Number'
+       EMP-ID       PIC (9(10))    TEXT 'Inventory Controller'
+       TEAM-ID      PIC (X(10))    TEXT 'Purchasing Team'
+       SUPP-NO      PIC (X(6))     TEXT 'Supplier'
+       GRP-CLASS    PIC (X(4))     TEXT 'Category ID'
+%VARIABLES
+       DST      = CONTROL-REC-NO
+%*DD13 Changed 'GRIDSTORE' to 'STOREGRID'
+       PRIN  = PRINTER OF MSF010 -
+                       WHERE (TABLE-TYPE  = 'PR', -
+                              TABLE-CODE  = 'GRIDSTOREGRID')
+%*TDD  PRIN  = 'X0' CONSTANT
+%*     PRINX = PRINTER (PRIN)
+       RNOX = MSB240-NXT-RUN-9 OF MSF000 -
+                       WHERE (DSTRCT-CODE      = %DISTRICT-CODE%, -
+                              CONTROL-REC-TYPE = 'DC', -
+                              CONTROL-REC-NO   = '0002') CONSTANT
+       RNO1 = NUMERIC (RNOX) CONSTANT I-PIC (9(04))
+       RNO = CALC (RNO1 - 1) CONSTANT I-PIC (9(04))
+       RN = CHOOSE (%RUN-NO% IF (%RUN-NO% <> SPACES ,%RUN-NO% <> ZEROES), -
+                        RNO IF (RNO <> 0), 1) I-PIC (9(04)) CONSTANT
+
+       RO-AT    = RO-ACTION-TYPE FROM MSF240            -
+                  WHERE    (DSTRCT-CODE = DST,          -
+                            STOCK-CODE >= SPACES)       -
+                  REJECTIF (RO-ACTION-TYPE <> 'B')      -
+                  REJECTIF (RUN-NUMBER     <> RN)       -
+                  REJECTIF (%SUPP-NO% <> SPACES,        -
+                            SUPPLIER-NO <> %SUPP-NO%)   -
+                  REJECTIF (%EMP-ID% <> SPACES,         -
+                            PURCH-OFFICER <> %EMP-ID%)  -
+                  REJECTIF (%GRP-CLASS% <> SPACES,      -
+                            CATEG-ID <> %GRP-CLASS%)
+
+       COUNT1  = CHOOSE (1 IF (RO-AT > SPACES), 0)
+       ROBCOUNT = TOTAL (COUNT1)
+
+       RUN-DTE = RUN-B-DATE VIA (RO-AT) FORMAT DATE
+       EMPIV   = INVT-CTLLER VIA (RO-AT)
+       CR-TYPE = CREATION-TYPE VIA (RO-AT)
+       IVNAME1 = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = EMPIV)
+       IVNAME  = FORMATTED-NAME via (IVNAME1)
+
+       EMPPO = PURCH-OFFICER VIA (RO-AT)
+       PONAME1 = hrget  (EMPLOYEE-ID -
+                        from ('MSSEMP,MSF810') -
+                        key  (EMPLOYEE-ID = EMPPO)
+       PONAME  = FORMATTED-NAME via (PONAME1)
+
+       SUP = SUPPLIER-NO VIA (RO-AT)
+       SNAME = SUPPLIER-NAME OF MSF200 WHERE (SUPPLIER-NO = SUP)
+       GC =  CATEG-ID VIA (RO-AT)
+       GC1 = SUBSTR(GC,1,2)
+       GC2 = SUBSTR(GC,3,2)
+       GCDESC = GC-DESC-LN OF MSF160 WHERE (GROUP-CODE = GC1, -
+               CLASS-CODE = GC2)
+       STK = STOCK-CODE  VIA (RO-AT)
+       A = ACTIVITY-CTR  VIA (RO-AT)
+       INAME = ITEM-NAME OF MSF100 WHERE (STOCK-CODE = STK)
+       STKDESC = DESC-LINE VIA (INAME)
+       EXT = CAT-EXT-UUID VIA (INAME)
+       HZ = HAZARD-MAT VIA (INAME)
+       HZDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'HZ', -
+                TABLE-CODE = HZ)
+       TN = UN-TRANSP-CODE VIA (INAME)
+       TNDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'TN', -
+                TABLE-CODE = TN)
+       MNEM   = MNEMONIC OF MSF110A WHERE (DSTRCT-CODE = SPACES, -
+                STOCK-CODE = STK, PREF-PART-IND >= SPACES) -
+                REJECTIF (PREF-PART-IND = '99') -
+                MAX (30)
+       PARTNO = PART-NO VIA (MNEM)
+       BG     = PREF-PART-IND VIA (MNEM)
+       B11  = SUBSTR(BG,1,1)
+	   B12  = SUBSTR(BG,1,2)
+       B21  = SUBSTR(BG,2,1)
+	   BS   = CATENATE (' ',B21)
+       B    = CHOOSE (BS IF (B11 = '0'), B12)
+       PPP = CATENATE ('-', DST)
+       MNEMG = MNEMONIC OF MSF110A -
+                   WHERE    (DSTRCT-CODE     >= SPACES)     -
+                   REJECTIF (STOCK-CODE      <> STK)        -
+                   REJECTIF (DSTRCT-CODE     <> SPACES)     -
+                   MAX      (30)
+       PARTNOG = PART-NO VIA (MNEMG)
+       Z = PREF-PART-IND-9 VIA (MNEMG)
+       DSC = DSTRCT-CODE VIA (RO-AT)
+       DS = choose (DSC IF (WX-CENTRAL-PURCH = 'Y' AND -
+            WX-MULTIDSTRCT = '2'), SPACES)
+       ROPT = ROP OF MSF170 WHERE (DSTRCT-CODE = DST,  -
+              STOCK-CODE = STK)
+       RQTY = REORDER-QTY VIA (ROPT)
+       MINS = MIN-STOCK-LVL VIA (ROPT)
+       UI = UNIT-OF-ISSUE VIA (ROPT)
+       E = ROP-ROQ-UPDATE VIA (ROPT)
+       G = MIN-STK-UPDATE VIA (ROPT)
+       H = INVENTORY-FLAG VIA (ROPT)
+       J = PURCH-FLAG VIA (ROPT)
+       SLVL = PLANNED-SLEVEL VIA (ROPT) D-PIC (ZZ9.99)
+       X4 = RAF VIA (ROPT)
+       Y = ABCD-LEVEL VIA (ROPT)
+       W = XYZ-LEVEL VIA (ROPT)
+       WH = HOME-WHOUSE VIA (ROPT)
+       IV = INVENT-VALUE VIA (ROPT)
+       IP = INVENT-COST-PR VIA (ROPT) D-PIC (ZZZZZZZZZZ9.99)
+       CUSTDIAN-ID = CUSTODIAN-ID OF MSF1CSA -
+       WHERE (DSTRCT-CODE            = DST, -
+              WHOUSE-ID             <= WH, -
+              WHOUSE-ID             >= WH) -
+       MAX(1)
+       BIN = BIN-CODE OF MSF1HB -
+       WHERE (CUSTODIAN-ID           = CUSTDIAN-ID, -
+              STOCK-CODE             = STK, -
+              BIN-CODE              >= SPACES) -
+       SELECTIF (PRIME-LOCATION = '1') -
+       MAX(1)
+       SOHW = DSTRCT-OWN-SOH OF MSSSOH -
+              WHERE(OPTION-SOH        = '2',-
+                    DSTRCT-CODE       = DST,-
+                    STOCK-CODE        = STK,-
+                    WHOUSE-ID         = WH,-
+                    DSTRCT-SOH-REQ-SW = 'Y')
+       MIN-STK-LVL = MIN-STOCK-LVL OF MSF180 -
+                     WHERE(DSTRCT-CODE = DST,-
+                           STOCK-CODE = STK, -
+                           WHOUSE-ID = WH)
+       SOHO = DSTRCT-OWN-SOH OF MSSSOH -
+              WHERE (OPTION-SOH             = '1', -
+                     DSTRCT-CODE            = DST, -
+                     STOCK-CODE             = STK, -
+                     DSTRCT-SOH-REQ-SW      = 'Y')
+       SOHC = DSTRCT-CON-SOH VIA (SOHO) D-PIC (--------9)
+       SOHDO = DUES-OUT VIA (ROPT) D-PIC (--------9)
+       SOHB = TOTAL-PICKED VIA (ROPT) D-PIC (--------9)
+       SOHR = RESERVED VIA (ROPT) D-PIC (--------9)
+       SOHOT = IN-TRANSIT VIA (ROPT) D-PIC (--------9)
+       SOHCT = CONSIGN-ITRANS VIA (ROPT) D-PIC (--------9)
+       SOHDI = DUES-IN VIA (ROPT) D-PIC (--------9)
+       SOHXF1 = XFERS-REQUEST VIA (ROPT) D-PIC (--------9)
+       SOHXF2 = XFERS-IN-TRANS VIA (ROPT) D-PIC (--------9)
+       SOHR1 = ROQ  VIA (ROPT) D-PIC (--------9)
+       SIN = CALC (SOHO + SOHC)
+       SOUT = CALC (TOTAL-PICKED VIA (ROPT) + DUES-OUT VIA (ROPT))
+       SOHA = CALC (SIN - SOUT) D-PIC (--------9)
+       EXTIT = GET (READ-TEXT FROM ('MSF096') CODE ('SC') -
+                    KEY (STK))
+       EXTITSIZ = SIZE (EXTIT)
+       L2 = choose ('(See below for extended description)' -
+            IF (EXTITSIZ > 0), SPACES)
+       EXTRO = GET (READ-TEXT FROM ('MSF096') CODE ('RO') -
+                    KEY (DST, STK, A))
+       EXSIZE = SIZE (EXTRO)
+       L3 = choose ('Additional information exists for this Recommended Order' -
+            IF (EXSIZE > 0), SPACES)
+       I = DEF-RCYCLE-CDE VIA (RO-AT)
+       IDATE = DEFER-DATE VIA (RO-AT) FORMAT (DATE)
+       RCDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'RJ', -
+                TABLE-CODE = I)
+       DR = DSTRCT-CODE OF MSF170A WHERE (STOCK-CODE-1 >= STK) -
+            STOPIF (STOCK-CODE-1 <> STK) MAX (3) -
+            IF (WX-CENTRAL-PURCH = 'Y' AND WX-MULTIDSTRCT = '2') ELSE (SPACES)
+       DNAME = DSTRCT-NAME OF MSF000 -
+                     WHERE (DSTRCT-CODE       = DR, -
+                            CONTROL-REC-TYPE  = 'DC', -
+                            CONTROL-REC-NO    = '0001')
+       K = CLASS VIA (DR)
+       M = STOCK-TYPE VIA (DR)
+       N = ABCD-LEVEL VIA (DR)
+       O = XYZ-LEVEL VIA (DR)
+       D1 = STOCK-AVAILABLE OF MSSSOH -
+              WHERE (OPTION-SOH         = '1', -
+                     DSTRCT-CODE        = DST, -
+                     STOCK-CODE         = STK, -
+                     BYPASS-CAT-SEC-SW  = 'Y')
+       D2 = DSTRCT-OWN-SOH OF MSSSOH -
+              WHERE (OPTION-SOH          = '1', -
+                     STOCK-CODE          = STK, -
+                     DSTRCT-SOH-REQ-SW   = 'Y') -
+              IF (WX-CENTRAL-PURCH = 'Y' AND WX-MULTIDSTRCT = '2') ELSE (ZERO)
+       D3 = ROP VIA (DR)
+       D4 = REORDER-QTY VIA (DR)
+       D5 = MIN-STOCK-LVL VIA (DR)
+       D6 = INVENT-VALUE VIA (DR)
+       L4 = 'SUMMARY'
+       L5 = '|USAGE'
+       L6 = choose ('System Generated' IF (CR-TYPE = 'S'), -
+            'Manually Generated')
+       L = '|'
+       P = WX-NO-OF-PERIODS D-PIC (99)
+       USP = ANN-UNSCHED-USAGE OF MSS175 WHERE (OPTION = 'G', -
+                     DSTRCT-CODE = DST, STOCK-CODE = STK,    -
+                     WHOUSE-ID = SPACES, CURR-PERIOD = WX-STORES-CP, -
+                     CURR-REQ-SW = 'N', PAST-FUTURE-SW = 'P', -
+                     ZERO-USAGES-SW = 'Y', NO-OF-USAGES-9 = P, -
+                     NO-OF-PERIODS-9 = P)
+       SP = ANN-SCHED-USAGE VIA (USP)
+       USAV = CALC (USP / P)
+       SAV = CALC (SP / P)
+%*  MEAN ABSOLUTE DEVIATION
+       USMAD = ACT-SOH-OWNED VIA (USP)
+       SMAD = ACT-SOH-CONS VIA (USP)
+       ALPH = ALPHA-FACTOR VIA (ROPT)
+       V = PRICE-CODE VIA (ROPT)
+%* Unscheduled Usage last 18 periods
+       UP1 = PER-DISP OF MSS175 WHERE (OPTION = 'G', -
+                     DSTRCT-CODE = DST, STOCK-CODE = STK,    -
+                     WHOUSE-ID = SPACES, CURR-PERIOD = WX-STORES-CP, -
+                     CURR-REQ-SW = 'N', PAST-FUTURE-SW = 'P', -
+                     ZERO-USAGES-SW = 'Y', NO-OF-USAGES-9 = 12, -
+                     NO-OF-PERIODS-9 = 12)
+       USH1 = UNSCHED-USAGE VIA (UP1)
+%* Scheduled Usage last 18 periods
+       SP1 = PER-DISP VIA (UP1)
+       SH1 = SCHED-USAGE VIA (UP1)
+%* Unscheduled Usage last 18 periods
+       PER18 = PER-DISP-9 VIA (UP1)
+       PERYY = SUBSTR (PER18,4,2)
+       PERMM = SUBSTR (PER18,1,2)
+       PYYMM = CATENATE (PERYY,PERMM) I-PIC (9(4))
+       UP2 = PER-DISP OF MSS175 WHERE (OPTION = 'G', -
+                     DSTRCT-CODE = DST, STOCK-CODE = STK, -
+                     WHOUSE-ID = SPACES, CURR-PERIOD = PYYMM, -
+                     CURR-REQ-SW = 'N', PAST-FUTURE-SW = 'P', -
+                     ZERO-USAGES-SW = 'Y', NO-OF-USAGES-9 = 6, -
+                     NO-OF-PERIODS-9 = 6)
+       USH2 = UNSCHED-USAGE VIA (UP2)
+%* Scheduled Usage last 18 periods
+       SP2 = PER-DISP VIA (UP2)
+       SH2 = SCHED-USAGE VIA (UP2)
+       ROQI = ROQ VIA (RO-AT)
+%* ROQ in UOP
+       CNV = CONV-FACTOR VIA (RO-AT)
+       ROQP = CALC (ROQI / CNV)
+       SOHRO = CALC (SOHR1 - ROQI)
+       ST1 = TAX-PERCENT VIA (RO-AT)
+       DISC-A = DISCOUNT-A VIA (RO-AT)
+       DISC-B = DISCOUNT-B VIA (RO-AT)
+       ST = choose (ST1 IF (WX-SALES-TAX-FLAG = 'Y'), ZERO)
+       GPI = GROSS-PRICE-I VIA (RO-AT)
+       GP2 = calc ( GPI + ((GPI * DISC-A) / 100 ))
+       GP3 = calc ( GP2 + ((GP2 * DISC-B) / 100 ))
+       NETP = calc (GP3 + ((GP3 * ST) / 100))
+       ROV = calc (ROQI * NETP)
+       ROBTOTAL = total (ROV)
+       L7 = '(UOI)'
+       PG = G-BLANK-LINES-9 OF MSF001 WHERE (DSTRCT-CODE = DST, -
+            CTL-REC-TYPE = 'RO', CONTROL-REC-NO = SPACES)
+       PD = D-BLANK-LINES-9 VIA (PG)
+       PS1 = PRINT-BUY-1 VIA (PG)
+       PS2 = PRINT-BUY-2 VIA (PG)
+       PS3 = PRINT-BUY-3 VIA (PG)
+       PS4 = PRINT-BUY-4 VIA (PG)
+       PS5 = PRINT-BUY-5 VIA (PG)
+       PS6 = PRINT-BUY-6 VIA (PG)
+       PS7 = PRINT-BUY-7 VIA (PG)
+       PS8 = PRINT-BUY-8 VIA (PG)
+       PS9 = PRINT-BUY-9 VIA (PG)
+       PS10 = PRINT-BUY-10 VIA (PG)
+       PS11 = PRINT-BUY-11 VIA (PG)
+%* Preferred Supplier
+       PSUP = CURR-SUPPLIER VIA (ROPT)
+       PSNAME = SUPPLIER-NAME OF MSF200 WHERE (SUPPLIER-NO = PSUP)
+       SADD1 = ORDER-ADDR-1 VIA (PSNAME)
+       SADD2 = ORDER-ADDR-2 VIA (PSNAME)
+       SADD3 = ORDER-ADDR-3 VIA (PSNAME)
+       STEL = ORDER-PHONE VIA (PSNAME)
+       SFAX = ORDER-FAX-NO VIA (PSNAME)
+       STLX = ORDER-TLX-NO VIA (PSNAME)
+       SCT = ORDER-CONTACT VIA (PSNAME)
+%* Preferred Supplier Details
+       Q = SUPP-LEAD-TIME-9 OF MSF210 WHERE (DSTRCT-CODE = DST, -
+           STOCK-CODE = STK, SUPPLIER-NO = PSUP, PRICE-CODE = V) FORMAT (BWZ)
+       PA = LAST-ACT-LEAD  VIA (Q)
+       S = FREIGHT-CODE VIA (Q)
+       PEFD = PRICE-EFF-DATE VIA (Q) FORMAT DATE
+       PEXD = PRICE-EXP-DATE VIA (Q) FORMAT DATE
+       PRICE = GROSS-PRICE-I VIA (Q)
+       PREF = PRICE-UPD-REF VIA (Q)
+       DA = DISCOUNT-A VIA (Q) D-PIC (ZZ9.99)
+       DB = DISCOUNT-B VIA (Q) D-PIC (ZZ9.99)
+       CU = CURRENCY-TYPE VIA (Q)
+       UP = UNIT-OF-PURCH VIA (Q)
+       CONV = CONV-FACTOR VIA (Q) FORMAT (BWZ)
+       PK = STD-PACK VIA (Q) D-PIC ZZZZZ
+       T = EXPEDITE-CODE VIA (Q)
+       OMI = ORD-MEDIUM-IND VIA (Q)
+       OM = choose ('Telex' IF (OMI = 'T'), 'Fax' IF (OMI = 'F'), -
+                    'Print' IF (OMI = 'P'), 'EDI' IF (OMI = 'E'), -
+                    SPACES)
+       TC = TAX-CODE VIA (Q)
+       TPC = TAX-PERCENT VIA (Q) FORMAT (BWZ)
+       FRT = FPA-REC-TYPE VIA (Q)
+       FPID = FPA-ID VIA (Q)
+       FG = SUBSTR(FPID,1,5)
+       FA = SUBSTR(FPID,6,3)
+       FIN = FPA-ITEM-NO VIA (Q)
+       CUMM-VAL = CUMM-VALUE OF MSF254 -
+                      WHERE (FPA-REC-TYPE  = FRT, -
+                             FPA-GROUP     = FG, -
+                             FPA-AGREEMENT = FA, -
+                             FPA-ITEM-NO   = ZEROS, -
+                             DSTRCT-CODE   = SPACES)
+       MAX-VAL = MAX-VALUE VIA (CUMM-VAL)
+       CUMM-VAL-SIZE = SIZE(CUMM-VAL)
+       EXP-DATE = EXPIRY-DATE OF MSF250 -
+                  WHERE (FPA-REC-TYPE  = FRT,-
+                         FPA-GROUP     = FG)
+       ROV-ICV = CALC (ROV + CUMM-VAL)
+       RQIP-ICV = CALC (ROQP * IP + CUMM-VAL)
+       U = NO-ITEM-ORDER VIA (PSNAME)
+       XM = CLOSE-XMAS VIA (PSNAME)
+       DL = DELIV-PERF-RTE OF MSF203 WHERE (DSTRCT-CODE = DST, -
+            SUPPLIER-NO = PSUP) FORMAT (BWZ)
+       CROP = ' '
+       CR = ' '
+%* Alternate Suppliers
+       ASUP = SUPPLIER-NO OF MSF210 WHERE (DSTRCT-CODE = DST, -
+              STOCK-CODE = STK, SUPPLIER-NO >= SPACES) -
+              REJECTIF (SUPPLIER-NO = PSUP) MAX (4)
+       ASSIZE = SIZE (ASUP)
+       Y1 = PRICE-CODE VIA (ASUP)
+       ASL = SUPP-LEAD-TIME VIA (ASUP)
+       AAL = LAST-ACT-LEAD  VIA (ASUP)
+       ASNAME = SUPPLIER-NAME OF MSF200 WHERE (SUPPLIER-NO = ASUP)
+%* Classifications
+       C = CLASS VIA (INAME)
+       CDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'CL', -
+               TABLE-CODE = C)
+       D = STOCK-TYPE VIA (INAME)
+       TDESC = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'ST', -
+               TABLE-CODE = D)
+       E0 = STOCK-SECTION VIA (INAME)
+       E1 = STOCK-SECTION-1 VIA (INAME)
+       E2 = STOCK-SECTION-2 VIA (INAME)
+       E3 = STOCK-SECTION-3 VIA (INAME)
+       E4 = STOCK-SECTION-4 VIA (INAME)
+       E5 = STOCK-SECTION-5 VIA (INAME)
+       E6 = STOCK-SECTION-6 VIA (INAME)
+       E7 = STOCK-SECTION-7 VIA (INAME)
+       E8 = STOCK-SECTION-8 VIA (INAME)
+       E9 = STOCK-SECTION-9 VIA (INAME)
+       E10 = STOCK-SECTION-10 VIA (INAME)
+       ENAME1 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C0', -
+                TABLE-CODE = E1)
+       ENAME2 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C1', -
+                TABLE-CODE = E2)
+       ENAME3 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C2', -
+                TABLE-CODE = E3)
+       ENAME4 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C3', -
+                TABLE-CODE = E4)
+       ENAME5 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C4', -
+                TABLE-CODE = E5)
+       ENAME6 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C5', -
+                TABLE-CODE = E6)
+       ENAME7 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C6', -
+                TABLE-CODE = E7)
+       ENAME8 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C7', -
+                TABLE-CODE = E8)
+       ENAME9 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C8', -
+                TABLE-CODE = E9)
+       ENAME10 = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'C9', -
+                TABLE-CODE = E10)
+       F = STOCK-QUAL VIA (ROPT)
+       FNAME = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'QL', -
+               TABLE-CODE = F)
+%* Significant Dates
+       ICDATE1 = CREATION-DATE VIA (ROPT)
+       ICDATE = GET (DISPLAY-DATE FROM (ICDATE1))
+       LCDATE1 = LAST-MOD-DATE VIA (ROPT)
+       LCDATE = GET (DISPLAY-DATE FROM (LCDATE1))
+%* Last Receipt Date
+       TR-NOR = REVSD-TRAN-NO OF MSFX96A            -
+                WHERE (STOCK-CODE-1  = STK,         -
+                       DSTRCT-CODE-1 = DST, -
+                       REC900-TYPE-1 = 'R',         -
+                       PROCESS-DATE >= SPACES)      -
+               STOPIF (STOCK-CODE-1  <> STK)        -
+               STOPIF (DSTRCT-CODE-1 <> DST)        -
+               MAX (1)
+       TR-DATER = REV-PROC-DATE    VIA (TR-NOR)
+       TR-DATEN = NUMERIC (TR-DATER) I-PIC (9(8))
+       TR-DATE = CALC (99999999 - TR-DATEN) I-PIC (9(8))
+       TR-IDN = NUMERIC (TR-NOR) I-PIC (9(11))
+       TR-ID = CALC (99999999999 - TR-IDN) I-PIC (9(11))
+       TR-USR = USERNO-1 VIA (TR-NOR)
+       LRO = PO-NO-R OF MSF900 WHERE (DSTRCT-CODE = DST,     -
+             PROCESS-DATE = TR-DATE, TRANSACTION-NO = TR-ID, -
+             USERNO = TR-USR, REC900-TYPE = 'R')
+       LRDATE = CREATION-DATE VIA (LRO) FORMAT (DATE)
+       LRS = SUPPLIER-NO-R VIA (LRO)
+       LRQ = QTY-RCV-UOI-R VIA (LRO)
+%* Last Issue Date
+       TS-NOR = REVSD-TRAN-NO OF MSFX96A -
+                WHERE (STOCK-CODE-1  = STK,         -
+                       DSTRCT-CODE-1 = DST,         -
+                       REC900-TYPE-1 = 'S',         -
+                       PROCESS-DATE >= SPACES)      -
+               STOPIF (STOCK-CODE-1  <> STK)        -
+               STOPIF (DSTRCT-CODE-1 <> DST)        -
+               MAX (1)
+       TS-DATER = REV-PROC-DATE VIA (TS-NOR)
+       TS-DATEN = NUMERIC (TS-DATER) I-PIC (9(8))
+       TS-DATE = CALC (99999999 - TS-DATEN) I-PIC (9(8))
+       TS-IDN = NUMERIC (TS-NOR) I-PIC (9(11))
+       TS-ID = CALC (99999999999 - TS-IDN) I-PIC (9(11))
+       TS-USR = USERNO-1 VIA (TS-NOR)
+       LIDATE = CREATION-DATE OF MSF900 WHERE (DSTRCT-CODE = DST, -
+             PROCESS-DATE = TS-DATE, TRANSACTION-NO = TS-ID, -
+             USERNO = TS-USR, REC900-TYPE = 'S') FORMAT (DATE)
+       LIRQ = ISSUE-REQ-NO-S VIA (LIDATE)
+       LIRS = AUTH-BY-S VIA (LIDATE)
+       LIQ = QUANTITY-ISS-S VIA (LIDATE)
+       LDATE = REVSD-CRT-DATE OF MSF221B WHERE (PREQ-STK-CODE = STK,   -
+                       REVSD-CRT-DATE >= SPACES) MAX (1)
+       LDT1 = NUMERIC (LDATE) I-PIC (9(8))
+       LDT2 = CALC (99999999 - LDT1) I-PIC (9(8))
+       LDT = GET (DISPLAY-DATE FROM (LDT2))
+       LDO = PO-NO VIA (LDATE)
+       EX = EXPEDITE-CODE VIA (LDATE)
+       W1 = EXPEDITE-COUNT VIA (LDATE)
+       LDOQ = ORIG-QTY-I VIA (LDATE)
+       LDOSQ = QTY-RCV-OFST-I VIA (LDATE)
+%* Order History
+       OHPO = PO-NO OF MSF221B WHERE (PREQ-STK-CODE = STK,      -
+                                      REVSD-CRT-DATE >= SPACES) -
+                               SELECTIF (PO-ITEM-TYPE = 'O') -
+                               SELECTIF (PO-ITEM-TYPE = 'C') MAX (4)
+       OHPOS = SIZE (OHPO)
+       X = '/'
+       G1 = PO-ITEM-NO VIA (OHPO)
+       RC = RECEIPT-STATUS VIA (OHPO)
+       RV = CHOOSE ('R' IF (RC = '2'), 'P' IF (RC = '1'), ' ')
+       OHPC = PRICE-CODE VIA (OHPO)
+       OHDATE = ORDER-DATE OF MSF220 WHERE (PO-NO = OHPO) FORMAT (DATE)
+       OHPR = CURR-NET-PR-I VIA (OHPO)
+       OHS = SUPPLIER-NO VIA (OHDATE)
+%*EF1201 include CURR-QTY-I
+       OHQTY = CURR-QTY-I VIA (OHPO) D-PIC -(8)9.99
+       L8 = ' '
+       L9 = '__________________________________________________________________'
+       SL = ' '
+       AL = ACT-LEAD-TIME VIA (OHPO)
+%* Cross Referenced Stock Codes
+       GSTK = STOCK-CODE-2 OF MSF171 WHERE (STOCK-CODE = STK,    -
+                   DSTRCT-CODE = SPACES, STOCK-CODE-2 >= SPACES) MAX (20)
+       GINAME = ITEM-NAME OF MSF100 WHERE (STOCK-CODE = GSTK)
+       H1 = STK-XREF-CODE VIA (GSTK)
+       GXREF = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XR', -
+                       TABLE-CODE = H1)
+%* 1 PART NO REQUIRED VIA MSS110 HOWEVER WILL BE DEFINED AS OCCURS 10
+%*       GPART = '*******'
+       GCOM = COMMENT-TXT VIA (GSTK)
+       DSTK = STOCK-CODE-2 OF MSF171 WHERE (STOCK-CODE = STK,  -
+                   DSTRCT-CODE = DST, STOCK-CODE-2 >= SPACES) MAX (20)
+       DINAME = ITEM-NAME OF MSF100 WHERE (STOCK-CODE = DSTK)
+       J1 = STK-XREF-CODE VIA (DSTK)
+       DXREF = TABLE-DESC OF MSF010 WHERE (TABLE-TYPE = 'XR', -
+                       TABLE-CODE = J1)
+%* 1 PART NO REQUIRED VIA MSS110 HOWEVER WILL BE DEFINED AS OCCURS 10
+%*       DPART = '*******'
+       DCOM = COMMENT-TXT VIA (DSTK)
+%* Extra RO Information See EXTRO
+%* Extended Stock Code description
+       STKEXT = GET (READ-TEXT FROM ('MSF096') CODE ('SC') KEY (STK))
+       STKSIZE = SIZE (STKEXT)
+       TY = '|Type'
+       STO = '|Stores'
+%*
+%* Global Level Commentary Codes
+    GCC = TABLE-CODE OF MSF010 -
+          WHERE    (TABLE-TYPE     = 'CS', -
+                    TABLE-CODE    >= SPACES) -
+          SELECTIF (ASSOC-CHAR-15  = 'Y') -
+          MAX(5) -
+          CONSTANT
+    GCCS1 = SINGLE(GCC (1)) CONSTANT
+    GCCS2 = SINGLE(GCC (2)) CONSTANT
+    GCCS3 = SINGLE(GCC (3)) CONSTANT
+    GCCS4 = SINGLE(GCC (4)) CONSTANT
+    GCCS5 = SINGLE(GCC (5)) CONSTANT
+    GCC1  = SUBSTR(GCCS1,1,2) CONSTANT
+    GCC2  = SUBSTR(GCCS2,1,2) CONSTANT
+    GCC3  = SUBSTR(GCCS3,1,2) CONSTANT
+    GCC4  = SUBSTR(GCCS4,1,2) CONSTANT
+    GCC5  = SUBSTR(GCCS5,1,2) CONSTANT
+%*
+%* District Level Commentary Codes
+    DCC = TABLE-CODE OF MSF010 -
+          WHERE    (TABLE-TYPE    = 'CS', -
+                    TABLE-CODE   >= SPACES) -
+          SELECTIF (ASSOC-CHAR-5  = 'Y') -
+          MAX(5) -
+          CONSTANT
+    DCCS1 = SINGLE(DCC (1)) CONSTANT
+    DCCS2 = SINGLE(DCC (2)) CONSTANT
+    DCCS3 = SINGLE(DCC (3)) CONSTANT
+    DCCS4 = SINGLE(DCC (4)) CONSTANT
+    DCCS5 = SINGLE(DCC (5)) CONSTANT
+    DCC1  = SUBSTR(DCCS1, 1, 2) CONSTANT
+    DCC2  = SUBSTR(DCCS2, 1, 2) CONSTANT
+    DCC3  = SUBSTR(DCCS3, 1, 2) CONSTANT
+    DCC4  = SUBSTR(DCCS4, 1, 2) CONSTANT
+    DCC5  = SUBSTR(DCCS5, 1, 2) CONSTANT
+%*
+%* Global Commentary
+%*
+%* Stock Code Global
+       STKGLOB1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC1)-
+                  STOCK-CODE-VALUE(STK)) MAX(20) TEXT-WIDTH(60)
+       STKGLOB2 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC2)-
+                  STOCK-CODE-VALUE(STK)) MAX(20) TEXT-WIDTH(60)
+       STKGLOB3 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC3)-
+                  STOCK-CODE-VALUE(STK)) MAX(20) TEXT-WIDTH(60)
+       STKGLOB4 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC4)-
+                  STOCK-CODE-VALUE(STK)) MAX(20) TEXT-WIDTH(60)
+       STKGLOB5 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC5)-
+                  STOCK-CODE-VALUE(STK)) MAX(20) TEXT-WIDTH(60)
+       SZSTG1   = SIZE (STKGLOB1)
+       SZSTG2   = SIZE (STKGLOB2)
+       SZSTG3   = SIZE (STKGLOB3)
+       SZSTG4   = SIZE (STKGLOB4)
+       SZSTG5   = SIZE (STKGLOB5)
+       SZSTGT   = CALC (SZSTG1 + SZSTG2 + SZSTG3 + SZSTG4 + SZSTG5)
+%*
+%* Supplier Global
+       SUPGLOB1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC1)-
+                  SUPPLIER-VALUE(SUP)) MAX(20) TEXT-WIDTH(60)
+       SUPGLOB2 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC2)-
+                  SUPPLIER-VALUE(SUP)) MAX(20) TEXT-WIDTH(60)
+       SUPGLOB3 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC3)-
+                  SUPPLIER-VALUE(SUP)) MAX(20) TEXT-WIDTH(60)
+       SUPGLOB4 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC4)-
+                  SUPPLIER-VALUE(SUP)) MAX(20) TEXT-WIDTH(60)
+       SUPGLOB5 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC5)-
+                  SUPPLIER-VALUE(SUP)) MAX(20) TEXT-WIDTH(60)
+       SZSUPG1  = SIZE (SUPGLOB1)
+       SZSUPG2  = SIZE (SUPGLOB2)
+       SZSUPG3  = SIZE (SUPGLOB3)
+       SZSUPG4  = SIZE (SUPGLOB4)
+       SZSUPG5  = SIZE (SUPGLOB5)
+       SZSUPGT  = CALC (SZSUPG1 + SZSUPG2 + SZSUPG3 + SZSUPG4 + SZSUPG5)
+%*
+%* Supplier Stock Code Global
+       SUPSTKGL1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC1)-
+                   SUPPLIER-VALUE (SUP) STOCK-CODE-VALUE (STK))-
+                   MAX(20) TEXT-WIDTH(60)
+       SUPSTKGL2 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC2)-
+                   SUPPLIER-VALUE (SUP) STOCK-CODE-VALUE (STK))-
+                   MAX(20) TEXT-WIDTH(60)
+       SUPSTKGL3 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC3)-
+                   SUPPLIER-VALUE (SUP) STOCK-CODE-VALUE (STK))-
+                   MAX(20) TEXT-WIDTH(60)
+       SUPSTKGL4 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC4)-
+                   SUPPLIER-VALUE (SUP) STOCK-CODE-VALUE (STK))-
+                   MAX(20) TEXT-WIDTH(60)
+       SUPSTKGL5 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (GCC5)-
+                   SUPPLIER-VALUE (SUP) STOCK-CODE-VALUE (STK))-
+                   MAX(20) TEXT-WIDTH(60)
+       SZSSG1 = SIZE (SUPSTKGL1)
+       SZSSG2 = SIZE (SUPSTKGL2)
+       SZSSG3 = SIZE (SUPSTKGL3)
+       SZSSG4 = SIZE (SUPSTKGL4)
+       SZSSG5 = SIZE (SUPSTKGL5)
+       SZSSGT = CALC (SZSSG1 + SZSSG2 + SZSSG3 + SZSSG4 + SZSSG5)
+%*
+%* District Commentary
+%*
+%* District Stock Code
+       STKDST1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC1) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) STOCK-CODE-VALUE (STK))-
+                      MAX(20) TEXT-WIDTH(60)
+       STKDST2 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC2) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) STOCK-CODE-VALUE (STK))-
+                      MAX(20) TEXT-WIDTH(60)
+       STKDST3 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC3) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) STOCK-CODE-VALUE (STK))-
+                      MAX(20) TEXT-WIDTH(60)
+       STKDST4 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC4) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) STOCK-CODE-VALUE (STK))-
+                      MAX(20) TEXT-WIDTH(60)
+       STKDST5 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC5) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) STOCK-CODE-VALUE (STK))-
+                      MAX(20) TEXT-WIDTH(60)
+       SZSTD1 = SIZE (STKDST1)
+       SZSTD2 = SIZE (STKDST2)
+       SZSTD3 = SIZE (STKDST3)
+       SZSTD4 = SIZE (STKDST4)
+       SZSTD5 = SIZE (STKDST5)
+       SZSTDT = CALC (SZSTD1 + SZSTD2 + SZSTD3 + SZSTD4 + SZSTD5)
+%*
+%* District Supplier
+       SUPDST1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC1) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP))-
+                      MAX(20) TEXT-WIDTH(60)
+       SUPDST2 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC2) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP))-
+                      MAX(20) TEXT-WIDTH(60)
+       SUPDST3 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC3) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP))-
+                      MAX(20) TEXT-WIDTH(60)
+       SUPDST4 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC4) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP))-
+                      MAX(20) TEXT-WIDTH(60)
+       SUPDST5 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC5) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP))-
+                      MAX(20) TEXT-WIDTH(60)
+       SZSUPD1 = SIZE (SUPDST1)
+       SZSUPD2 = SIZE (SUPDST2)
+       SZSUPD3 = SIZE (SUPDST3)
+       SZSUPD4 = SIZE (SUPDST4)
+       SZSUPD5 = SIZE (SUPDST5)
+       SZSUPDT = CALC (SZSUPD1 + SZSUPD2 + SZSUPD3 + SZSUPD4 + SZSUPD5)
+%*
+%* District Supplier Stock Code
+       SUPSTKDST1 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC1) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP) -
+                      STOCK-CODE-VALUE (STK)) MAX(20) TEXT-WIDTH(60)
+       SUPSTKDST2 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC2) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP) -
+                      STOCK-CODE-VALUE (STK)) MAX(20) TEXT-WIDTH(60)
+       SUPSTKDST3 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC3) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP) -
+                      STOCK-CODE-VALUE (STK)) MAX(20) TEXT-WIDTH(60)
+       SUPSTKDST4 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC4) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP) -
+                      STOCK-CODE-VALUE (STK)) MAX(20) TEXT-WIDTH(60)
+       SUPSTKDST5 = GET (READ-TEXT FROM ('MSF096') CODE ('CS') TYPE (DCC5) -
+                      DISTRICT-VALUE (%DISTRICT-CODE%) SUPPLIER-VALUE (SUP) -
+                      STOCK-CODE-VALUE (STK)) MAX(20) TEXT-WIDTH(60)
+       SZSSD1 = SIZE (SUPSTKDST1)
+       SZSSD2 = SIZE (SUPSTKDST2)
+       SZSSD3 = SIZE (SUPSTKDST3)
+       SZSSD4 = SIZE (SUPSTKDST4)
+       SZSSD5 = SIZE (SUPSTKDST5)
+       SZSSDT = CALC (SZSSD1 + SZSSD2 + SZSSD3 + SZSSD4 + SZSSD5)

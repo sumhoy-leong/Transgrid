@@ -1,0 +1,181 @@
+%*** Revision History:
+%*** 11-Apr-13    a9nh4814      MO164 (Version 0004)
+%***                            Corrected journal description suppresion
+%*** 2-Apr-13     a9nh4814      MO164 (Version 0003)
+%***                            Added apostrophe to Account Code CSV
+%*** 11-Mar-13    a9is6175      MO164 (Version 0002)
+%***                            Modify GST Excl Amt/GST Tax for CSV format
+%***                            without comma. Show journal no and journal desc.
+%*** 21-Nov-12    a9jw6280      MO164 ---
+%***                            Modify length of Account Code to fit 12 characters.
+%*** 15-Aug-12    a9jw6280      MO164 (Version 0001)
+%***                            Reset version number to 0001 for E8 upgrade.
+%*** 26-Nov-08    Janak Barar   SC2144123 required work order or project no 
+%***                            be displayed in report/file.         
+%*** 24-Jan-06    Amanda N.     Ellipse Upgrade.
+%***                            Continued modify to Ellipse 5.2.3.7.
+%*** 18-Nov-05 E Fredeluces     P05110870
+%***                            Fix compilation errors in Ellipse 5.2.3.7.
+%*** 30-Oct-2003  Lubanovic     WCHG037668
+%***                            Added a new parameter to provide an
+%***                            option to output the data as a CSV file
+%***                            to the requestor's H Drive.
+%*** 22-Aug-2000  E Fredeluces  W00080588
+%***                            Include parameter Date From/To.
+%*** 19-Jun-2000  E Fredeluces  W00060389
+%***                            Initial Coding.
+%***
+%PROGRAM-ID
+       TRR918
+%AUTHOR
+       Elizabeth Fredeluces
+%NARRATIVE
+      **  This will generate the List of Tax Journals
+      **  created via MSO90A.  It will read the input file
+      **  created by TRR917.
+%VERSION
+       0004
+%MODULE
+       3140
+%FILES
+        IFILE = TRT917
+        AFILE = MSFX90
+        LFILE = MSF810
+        LFILE = MSF917
+        LFILE = MSF900
+        RFILE = TRR918A
+        OFILE = TRT918B
+%*CONTROL
+%*        RECORD-LENGTH = 41
+%INPUT-FILE
+        DIST     PIC (X(4))
+        PERD     PIC (X(6))
+        TRKEY    PIC (X(28))
+        JRNO     PIC (X(10))
+        PRDTE    PIC (X(4))
+        DUMMY    PIC (X(124))
+%ROUTINES
+       MSSDAT
+       MSSCNV
+%BREAK-FIELDS
+       DIST
+       JRNO
+	   DUM
+%REPORT
+       A
+%REPORT-TITLE
+'List of Tax Journals Entered'
+%BREAK DIST HEADING ON NEW-PAGE 
+<IF %DIST% = SPACE>
+'District :  ' {DC}
+'Period   :  ' {FP   }
+
+<ENDIF>
+%PAGE HEADING
+'                                                                                                                     GST Excl Amt/'
+'Journal No.  ----Journal Description----   Date    Accountant --- Accountant Name--- Account-Code  WO/Proj   TaxCd         GST Tax'
+%DETAIL
+ {JNODESC                               } {DTE   }  {ACCTNT  } {ACCNAME             } {ACCT      }  {WOPR  }  TTTT  {AMTT         }
+%BREAK JRNO FOOTING 
+' '
+%SUMMARY
+
+
+'                                                    ***  End Of Report  ***'
+%OUTPUT-FILE
+      B 
+%CONTROL
+       RECORD-LENGTH = 148 
+%BREAK DUM HEADING
+<IF %FSW% = 'Y'>
+{HDG1                                                                        }-
+{HDG2                                                                }
+<ENDIF>
+%DETAIL
+<IF %FSW% = 'Y'>
+{DC}D{FP   }D{JNLS    }D{JNLDES                   }D{DTE   }D{ACCTNT  }D-
+{ACCNAME             }D{ACCTA        }D{WOPR  }D{T }D{AMT          }
+<ENDIF>
+%REQUEST-PARAMETERS
+       DIST   PIC (X(4))   TEXT 'District Code - defaults to ALL if blank       : '
+       PERD   PIC (X(4))   TEXT 'Period        - defaults to Previous if blank  : '
+       DATEFR PIC (9(8))   TEXT 'Date From     - defaults to Period if blank    : '
+       DATETO PIC (9(8))   TEXT 'Date To       - defaults to Period if blank    : '
+       ACC    PIC (X(10))  TEXT 'Accountant    - defaults to ALL if blank       : '
+       FSW    PIC (X(1))   TEXT 'Create CSV File (Y/N)                          : '
+%VARIABLES
+       D       = ','         	CONSTANT
+       TRGRP   = TRKEY
+       DC      = DIST
+       PR      = SUBSTR (TRGRP,5,8)
+       FPRD    = PERD
+       FPYR    = substr (FPRD,3,2)
+       FPMO    = substr (FPRD,5,2)
+       FP      = catenate (FPMO,'/',FPYR)      
+       JNL     = JRNO
+       JNLS    = JNL  SUPPRESS
+       MSFX90  = JOURNAL-NO FROM MSFX90          -
+                 WHERE  (DSTRCT-CODE     = DC,   -
+                         JOURNAL-NO      = JNL,  -
+                         FULL-PERIOD     = FPRD, -
+                         PROCESS-DATE    = PR,   -
+                         TRANSACTION-NO >= SPACES) 
+       TR      = TRANSACTION-NO VIA (MSFX90)
+       USR     = USERNO         VIA (MSFX90)
+       TY      = REC900-TYPE    VIA (MSFX90)
+       JNLDESC = JNL-DESC OF MSF917       -
+                 WHERE (DSTRCT-CODE = DC, -
+                        JOURNAL-NO  = JNL)
+       JNODESC = CATENATE (JNL, '   ', JNLDESC) SUPPRESS
+       JNLDES  = JNLDESC  SUPPRESS
+       MSF900  = ACCOUNT-CODE OF MSF900            -
+                 WHERE    (DSTRCT-CODE    = DC,    -
+                           PROCESS-DATE   = PR,    -
+                           TRANSACTION-NO = TR,    -
+                           USERNO         = USR,   -
+                           REC900-TYPE    = TY)
+       DTE     = TRNDTE-REVSD VIA (MSF900) FORMAT (REVERSE-DATE)
+       AMT     = TRAN-AMOUNT  VIA (MSF900) D-PIC ---------9.99
+       AMTT    = AMT D-PIC ----,---,--9.99
+       TRTYPE  = TRAN-TYPE    VIA (MSF900)
+       ACCT    = ACCOUNT-CODE VIA (MSF900)
+       ACCTA   = CATENATE(''', ACCT)
+       ACCTNTM = ACCOUNTANT-M VIA (MSF900)
+       ACCTNTI = ACCOUNTANT-I VIA (MSF900)
+       ACCTNT  = choose (ACCTNTI IF (TY = 'I'), -
+                         ACCTNTM)
+       ACCFLG  = choose ('Y' IF (%ACC%  = SPACES), -
+                         'Y' IF (ACCTNT = %ACC%,   -
+                                 %ACC% <> SPACES), -
+                         'N')
+       SNAME   = SURNAME OF MSF810 -
+                 WHERE (EMPLOYEE-ID = ACCTNT)
+       I       = FIRST-INITIAL VIA (SNAME)
+       NAME    = CATENATE (SNAME,' ',I) 
+       ACCNAME = OUT-STRING OF MSSCNV     -
+                 WHERE (OPTION     = 'P', -
+                        INP-STRING = NAME)          
+       WOI     = WORK-ORDER-I VIA (MSF900)
+       WOM     = WORK-ORDER-M VIA (MSF900)
+       PROJI   = PROJECT-NO-I VIA (MSF900)
+       PROJM   = PROJECT-NO-M VIA (MSF900)
+       WOPR  = choose (WOI IF (WOI <> SPACES), -
+                       WOM IF (WOM <> SPACES), -
+                       PROJI IF (PROJI <> SPACES), -
+                       PROJM IF (PROJM <> SPACES), -
+                       ' ')
+       ATAX   = ATAX-CODE-I VIA (MSF900)
+       CTAX   = CTAX-CODE-I VIA (MSF900)
+       T      = choose (ATAX IF (TRTYPE = 'MTN'), -
+                        ATAX IF (TRTYPE = 'MTR'), -
+                        CTAX IF (TRTYPE = 'MCA'), -
+                        '    ')
+%*
+       HDG1    = 'Dist,Period,Journal No.,Journal Description,Date,Accountant,Accountant Name,Ac'
+       HDG2    = 'count Code,WO/Project,Tax Code,GST Excl Amt/GST Tax' 
+%*
+       YDUMMY  = 'Y'          CONSTANT
+       DUM     = choose ('Y'  IF (YDUMMY = 'Y'), 'Y') 
+%*
+%*     End of Program
+%*

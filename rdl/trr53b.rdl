@@ -1,0 +1,138 @@
+%PROGRAM-ID
+       TRR53B
+%*** Revision History     
+%*** 01-Aug-12 a9nh4814         MO164 (Version 0001)
+%*** .........................  - Refined report to pass Transgrid RDL compiler.
+%*** .........................  - Replace tabs with spaces.
+%*** .........................  - Reset version number to 0001 for E8 upgrade.
+%*** 01-Apr-2003  Neel Chandra  TRAN01 WCHG017259.
+%*** ...........................Added Work Status & Liability Status Descriptions.
+%*** 19-Feb-2002  Danny Diolaso WCHG001282
+%***                            Changed claim-status reference from '01' to '02'
+%***                            and from '02' to '06'
+%*** 12-Sep-2001  Laura Nee     W01090191
+%*** .........................  Included a selection parameter for claims
+%*** .........................  officer.
+%*** 09-Jul-1999  E Fredeluces  W99070017
+%*** .........................  Included total for the number
+%*** .........................  claims for each location and
+%*** .........................  the total number of claims.
+%*** 20-Nov-1997  L CAPPLE    
+%*** .........................  Initial Coding.
+
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+       This RDL will produce a report of details of open claims.
+%VERSION
+       0001
+%MODULE
+       3820
+%FILES
+       MFILE = MSF536
+       LFILE = MSF010
+       LFILE = MSF510
+       LFILE = MSF537
+       LFILE = MSF810
+       LFILE = MSF012
+       RFILE = TRR53BA
+%SELECTION
+       REJECTIF (CLAIM-STATUS <> '02', -
+                 CLAIM-STATUS <> '03', -
+                 CLAIM-STATUS <> '04')
+%ORDER
+    L
+    EMPID
+%CONTROL-BREAKS
+    L 
+%REPORT-TITLE 
+                                      'OPEN CLAIMS REPORT'
+%PAGE HEADING 
+' WC Emp   ----- Name ---- Incident   Date of    Description                   Stat    Total        Total        Total      Net'
+'Loc Id                       No.     Incident                                       Estimate     Payment    Recoveries  Balance'
+%DETAIL
+<IF INCL = 'Y'>
+ LL  {DEMP}{SNAME      } F IIIIIIIIII {ID      } {DESC                       } SSSS EEEEEEEEEEE PPPPPPPPPPP RRRRRRRRRRR BBBBBBBBBBB
+    'Work Status : ' {WCDES                        }      'Liability Status : ' {WLDES                                           }
+
+<ENDIF>
+%BREAK L FOOTER
+<IF TP = 0 AND TE = 0 AND TR = 0 AND TB = 0>
+<ELSE>
+'                                                                                   -----------------------------------------------'
+                                  LL  'Number of Records  -->' {TOT  }              {TE       } {TP       } {TR       } {TB       }
+'  '
+<ENDIF>
+%REPORT-SUMMARY
+'                                                                                   -----------------------------------------------'
+'                                 Total Number of Records -->' {TOT  }              {TE       } {TP       } {TR       } {TB       }
+'                                                                                   ==============================================='
+
+'                                                   ******* End Of Report ******'
+%REQUEST-PARAMETERS
+     CLAIMS-OFF  PIC (X(10)) TEXT  Claims Officer  :
+%VARIABLES 
+    CLNO        = CLAIM-NO
+    LOC         = WC-LOCATION OF MSF537 -
+                  WHERE (CLAIM-NO = CLNO)
+    WCMISC      = WC-MISC-FLDS VIA (LOC)
+
+%*  TRAN01 WCHG017259 - Work Status Description
+    WCCDE       = RET-WRK-CODE VIA (LOC)    
+    WCDES       = TABLE-DESC   OF MSF010 -
+                  WHERE(TABLE-TYPE = 'WCWS', -
+                        TABLE-CODE = WCCDE) 
+    CLOFF       = SUBSTR(WCMISC, 1, 10)
+    INCL        = CHOOSE ('Y' IF (%CLAIMS-OFF% <> SPACES, -
+                                  %CLAIMS-OFF% = CLOFF),  -
+                          'Y' IF (%CLAIMS-OFF% = SPACES), 'N')
+    L           = CHOOSE(LOC IF(LOC > SPACES), LOC)
+    EMPID       = EMPLOYEE-ID
+    DEMP        = SUBSTR(EMPID,6,5)    
+    I           = INCIDENT-NO
+    SNAME       = SURNAME OF MSF810 -
+                   WHERE(EMPLOYEE-ID = EMPID)
+    FNAME       = FIRST-NAME VIA(SNAME)
+    F           = FIRST-INITIAL VIA (SNAME)
+    DIST        = DSTRCT-CODE
+    DESC        = INCIDENT-DESC OF MSF510 -
+                    WHERE(DSTRCT-CODE = DIST, -
+                         INCIDENT-NO =  I)
+%*
+    IN-DATE     = REV-OCC-DATE VIA (DESC)
+    ID          = IN-DATE FORMAT (REVERSE-DATE)
+%*
+    ST      = CLAIM-STATUS
+    S       = TABLE-DESC   OF MSF010 -
+              WHERE(TABLE-TYPE = 'WCCS', -
+                    TABLE-CODE = ST)
+    P       = WC-PAYMENT
+    E       = WC-ESTIMATE
+    R       = RECOVERY-AMT
+    B       = CALC(E - P + R) D-PIC(-ZZZZZZ9.99)
+    P1      = CHOOSE (P IF (INCL = 'Y'), 0)
+    E1      = CHOOSE (E IF (INCL = 'Y'), 0)
+    R1      = CHOOSE (R IF (INCL = 'Y'), 0)
+    B1      = CHOOSE (B IF (INCL = 'Y'), 0)
+    CNT     = CHOOSE (1 IF (INCL = 'Y'), 0)
+    TP      = TOTAL(P1)        D-PIC(-ZZZZZZ9.99)
+    TE      = TOTAL(E1)        D-PIC(-ZZZZZZ9.99)
+    TR      = TOTAL(R1)        D-PIC(-ZZZZZZ9.99)
+    TB      = TOTAL(B1)        D-PIC(-ZZZZZZ9.99)
+    TOT     = TOTAL(CNT)       D-PIC (ZZZ,ZZ9)
+
+%* TRAN01 WCHG017259
+%* MSF012-KEY  =  MSF536,DSTRCT CODE, CLAIM-NO
+   MSF012-KEY= CATENATE ('MSF536',DIST,CLNO)
+   KEY-V     = KEY-VALUE OF    MSF012             -
+               WHERE  (DATA-TYPE = 'M',           -
+                       KEY-VALUE =  MSF012-KEY)   -
+               MAX    (1)
+   D-AREA    = DATA-AREA VIA (KEY-V)
+   CLCDE     = SUBSTR(D-AREA,20,2)   
+   WLDES     = TABLE-DESC   OF MSF010 -
+               WHERE(TABLE-TYPE = 'WCCL', -
+                     TABLE-CODE = CLCDE)
+
+   
+%* END PROGRAM

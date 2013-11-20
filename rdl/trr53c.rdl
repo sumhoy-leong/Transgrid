@@ -1,0 +1,169 @@
+%PROGRAM-ID
+       TRR53C
+%*** Revision History
+%*** 01-Aug-12 a9nh4814        MO164 (Version 0001)
+%*** .......................  - Refined report to pass Transgrid RDL compiler.
+%*** .......................  - Replace tabs with spaces.
+%*** .......................  - Reset version number to 0001 for E8 upgrade.
+%*** 26-Jun-06  Phil Rowlands    SC 1144738
+%*** .......................  Increase the size of the total display fields.
+%*** 03-May-06  JN            Following fix missing:
+%*** 19-Feb-2002  Danny Diolaso WCHG001282
+%***                            Changed claim-status reference from '01' to '02'
+%***                            and from '02' to '06'
+%*** 16-Apr-99  E Fredeluces  W904160005
+%*** .......................  It is not picking up the latest estimate.
+%*** 23-Jun-98  E Fredeluces  
+%*** .......................  To sort by the Date of Occurrence of
+%*** .......................  the Incident and Surname.
+%*** 28-Apr-98  E Fredeluces  W802250011
+%*** .......................  To report on the date the incident was 
+%*** .......................  received rather than the claim.
+%*** 20-Mar-98  E Fredeluces  W802250011
+%*** .......................  When the claim is closed the payments must 
+%*** .......................  be equated to estimates to get a net balance
+%*** .......................  of zero.
+%*** 25-Nov-97  L CAPPLE    
+%*** .......................  Initial Coding.
+%***
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+       This RDL will produce a report of status details for a specified
+       financial year.
+%VERSION
+       0001
+%MODULE
+       3820
+%FILES
+       MFILE = MSF510B
+       AFILE = MSF536B
+       LFILE = MSF010
+       LFILE = MSF537
+       LFILE = MSF538A
+       LFILE = MSF760
+       LFILE = MSF810
+       RFILE = TRR53CA
+       OFILE = TSE53CB
+%ORDER
+       SRTORD 
+       SSNAME
+%SELECTION
+       WHERE (REV-OCC-DATE-2  >= REDATE, -
+              REV-OCC-DATE-2  <= RSDATE)
+%ROUTINES
+       MSSCNV
+%REPORT
+       A
+%REPORT-TITLE 
+'Workers Compensation Status Report'
+%PAGE HEADING 
+'                                                For Financial Year :  '{DFYR     }
+                   
+'Emp   ----- Name ----- WC   Incident    Date   Description     Claim   Stat Cmp   Total      Total     Total         Net    Last'
+'Id                     Loc    No.       Occ.                    No.         Crt  Estimate   Payments Recoveries    Balance   Est'
+%DETAIL
+<IF CLNO <> SPACES>
+%*{EMPDET                                                   }{CLNO    } SSSS M EEEEEEEEEEEPPPPPPPPPPPRRRRRRRRRRBBBBBBBBBBB DDDDDDDD
+{EMP} {SNAM           } LL  IIIIIIIIII {DOCCUR} {DESC       }{CLNO    } SSSS M EEEEEEEEEEEPPPPPPPPPPPRRRRRRRRRRBBBBBBBBBBB DDDDDDDD
+<ENDIF>
+%REPORT-SUMMARY
+'                                                                          --------------------------------------------------'
+'Total'                                                               {TE           }{TP           }{TR           }{TB           }
+'                                                                     ============================================================'
+
+'                                                ******* End Of Report ******'
+%OUTPUT-FILE
+     B
+%DETAIL
+<IF CLNO <> SPACES>
+Q{EMPID   }QCQ{SRNAME            }QCQ{FNAME     }QCQXQCQ{BDATE }QCQLLQCQIIIIIIIIIIQCQ{OCCDTE}Q-
+CQ{IDESC                  }QCQ{CLNO    }QCQ{CLDATE}QCQSSSSSSSQCQMQCQEEEEEEEEEEEQCQPPPPPPPPPPPQC-
+QRRRRRRRRRRQCQBBBBBBBBBBBQCQ{ESTDTE}Q
+<ENDIF>
+%PARAMETERS
+   SDATE  PIC(X(4)) TEXT Financial Year From                               :
+   EDATE  PIC(X(4)) TEXT Financial Year To                                 :
+   SRTOPT PIC(X(1)) TEXT Sort By Emp Id Y(es) -default by Financial Yr Y/N :
+%VARIABLES 
+        Q               = '"'                         CONSTANT
+        C               = ','                         CONSTANT
+        SDATEI      = %SDATE%                     CONSTANT
+    SDATE       = CATENATE(SDATEI,'0701')     CONSTANT
+        SDATEN          = NUMERIC (SDATE)             CONSTANT
+        REVSDATE        = CALC    (99999999 - SDATEN) CONSTANT I-PIC (9(8))
+        RSDATE          = CHOOSE  (REVSDATE IF (REVSDATE <> SPACES), -
+                                   REVSDATE)          CONSTANT I-PIC (X(8))
+    EDATEI      = %EDATE%                     CONSTANT
+    EDATE       = CATENATE(EDATEI,'0630')     CONSTANT
+        EDATEN          = NUMERIC (EDATE)             CONSTANT
+        REVEDATE        = CALC    (99999999 - EDATEN) CONSTANT I-PIC (9(8))
+        REDATE          = CHOOSE  (REVEDATE IF (REVEDATE <> SPACES), -
+                                   REVEDATE)          CONSTANT I-PIC (X(8))
+    DFYR        = CATENATE(SDATEI,'/',EDATEI) CONSTANT
+        IDESC           = INCIDENT-DESC
+        DESC            = SUBSTR(IDESC,1,13)
+        ROCC            = REV-OCC-DATE-9-2
+        REVODATE        = CALC    (99999999 - ROCC)   I-PIC (9(8))
+        OCCDTE          = CHOOSE  (REVODATE IF (REVODATE <> SPACES), -
+                                   REVODATE)  I-PIC (X(8)) 
+        DOCCUR          = OCCDTE   FORMAT(DATE)
+        SDOCCUR         = CHOOSE  (DOCCUR IF (DOCCUR <> SPACES), DOCCUR)
+        I               = INCIDENT-NO-3
+        IDATA           = CATENATE(I,' ',DOCCUR,' ',DESC)
+        CLNO            = CLAIM-NO-3 FROM MSF536B -
+                                WHERE(INCIDENT-NO  = I, -
+                                      CLAIM-NO-3  >= SPACES)
+        CDATE           = DATE-CLOSED-9 VIA (CLNO)
+        RODATE          = DATE-REOPEN-9 VIA (CLNO)
+        EMPID       = EMPLOYEE-ID   VIA (CLNO)
+    EMP     = SUBSTR(EMPID,6,5)         D-PIC (X(5))
+    ST      = CLAIM-STATUS  VIA (CLNO)
+    P       = WC-PAYMENT    VIA (CLNO)  D-PIC(ZZZZZZ9.99-)
+    EST     = WC-ESTIMATE   VIA (CLNO)
+        CLDATE          = DATE-RAISED   VIA (CLNO)
+        E               = CHOOSE (P IF (ST     = '06'), -
+                                  P IF (ST     = '04', -
+                                        EST    = 0),   -
+                                  EST)    D-PIC(ZZZZZZ9.99-)
+    R       = RECOVERY-AMT  VIA (CLNO)  D-PIC(ZZZZZ9.99-)
+    B       = CALC(E - P + R) D-PIC(ZZZZZZ9.99-)
+    TP      = TOTAL(P)        D-PIC(ZZZZZZZZZZ9.99-)
+    TE      = TOTAL(E)        D-PIC(ZZZZZZZZZZ9.99-)
+    TR      = TOTAL(R)        D-PIC(ZZZZZZZZZZ9.99-)
+    TB      = TOTAL(B)        D-PIC(ZZZZZZZZZZ9.99-)
+        S               = TABLE-DESC   OF MSF010 -
+                                WHERE(TABLE-TYPE = 'WCCS', -
+                                      TABLE-CODE = ST)
+        WL      = WC-LOCATION OF MSF537 WHERE -
+                                (CLAIM-NO = CLNO)
+        L               = SUBSTR(WL,1,2)  
+        COMP            = COMP-COURT VIA (WL)
+        M               = SUBSTR(COMP,1,1)
+    D       = INVERSE-DATE OF MSF538A                  -
+                WHERE   (CLAIM-NO-2      = CLNO,   -
+                                         INVERSE-DATE-2 >= SPACES) -
+                    SELECTIF(CLAIM-NO-2      = CLNO)   -
+                                         MAX(1) FORMAT(DATE)
+        D9              = INVERSE-DATE-9 VIA (D)
+        D9DATE          = CALC    (99999999 - D9)                      I-PIC (9(8))
+        ESTDTE          = CHOOSE  (D9DATE IF (D9DATE <> 99999999),' ') I-PIC (X(8)) 
+    SRNAME      = SURNAME OF MSF810 -
+                                WHERE(EMPLOYEE-ID = EMPID)
+        SNAME           = SUBSTR(SRNAME,1,15) 
+        SSNAME          = CHOOSE(SNAME IF(SNAME > SPACES), SNAME)
+        FNAME           = FIRST-NAME VIA (SRNAME)
+        F               = SUBSTR(FNAME,1,1)
+        ENAME           = CATENATE (SNAME,' ',F)
+        SNAM            = OUT-STRING  OF MSSCNV  -
+                          WHERE (OPTION     = 'P', -
+                                 INP-STRING = ENAME)
+        BDATE           = BIRTH-DATE OF MSF760 -
+                                WHERE(EMPLOYEE-ID = EMPID)
+        X               = GENDER VIA (BDATE)
+        EMPDET          = CATENATE(EMP+' '+SNAM+' '+L+IDATA) 
+%*
+        SRTORD          = CHOOSE ( DOCCUR IF (%SRTOPT% = 'N') ,-
+                                   EMPID )  
+%*                        End Of Program
+%*

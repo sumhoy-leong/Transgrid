@@ -1,0 +1,380 @@
+%*** TRRMSB.rdl
+%***
+%*** Revision History ***
+%*** 22-Mar-13  a9wp3261    Added new report B in order to cater 
+%*** ....................   send email to warehouse manager for all
+%*** ....................   stock information.
+%*** ....................   Minor fix - Incorrect break header
+%*** 27-Feb-13  a9ma2656    Initial Coding.
+%***
+%PROGRAM-ID
+    TRRMSB
+%AUTHOR
+    Ventyx
+%NARRATIVE
+    Notification - Minimum Stock levels breached.
+    
+    This report is to notify the current incumbents of Position No 
+    (Parameter) and the Inventory Controller that the minimum stock 
+    levels have been breached for all items that have a stock class 
+    of (Parameter). 
+    
+    Email to be sent in the daily cyclic report to current incumbents
+    of Position No (Parameter) and the Inventory Controller for the 
+    warehouse at which the stock is being booked out.
+%MODULE
+    3140
+%VERSION
+    0002
+%ROUTINES
+    MSS110
+    MSSCNV
+%FILES
+    MFILE = MSF170
+    AFILE = MSF1CS
+    AFILE = MSF1HD
+    AFILE = MSF1FHA
+    LFILE = MSF878
+    LFILE = MSF140
+    LFILE = MSF810
+    LFILE = MSF100
+    LFILE = MSF180
+    LFILE = MSF010
+    RFILE = TRRMSBA
+    RFILE = TRRMSBB
+%BREAK-FIELDS
+    INVT-CONTROLLR
+%SELECTION
+    WHERE    (DSTRCT-CODE    = WX-DISTRICT, -
+              STOCK-CODE    >= SPACES)
+    SELECTIF (CLASS          = %R-STKCLS%)
+%ORDER
+    ASCENDING   INVT-CONTROLLR TEXT 'Invent Controller;
+%REPORT
+    A
+%REPORT-TITLE
+    'NOTIFICATION - MINIMUM STOCK LEVELS BREACHED'
+%PAGE HEADING
+<IF INCLD = 'Y'>
+<IF EMAIL1 <> SPACES>
+{B1     }{B2                  }
+{EMAIL1                                                    }
+{B3                                                             }
+{B4                                                                                                          }
+{B5      }
+<ENDIF>
+'WARNING - Minimum Stock Levels breached, contact Inventory Controller prior to issuing the Goods.'
+'                                                                                                                                  '
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+'|Inventory Controller                                                           |Warehouse ID                                    |'
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+ S{ICNAME                                                          }             S{WHID                                          }S
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+'                                                                                                                                  '
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+'|Stock        |Part        |Description                   |Min Stock |Dues Out  |Requisition |Requested By     |Phone Number     |'
+'|Code         |Number      |                              |Level     |          |No          |                 |                 |'
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+ <ENDIF>
+%BREAK INVT-CONTROLLR HEADING ON NEW-PAGE
+<IF INCLD = 'Y'>
+'                                                                                                                                  '
+<ENDIF>
+%DETAIL
+<IF INCLD = 'Y'>
+<IF TOT1 > 0>
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+<ENDIF>
+<SUPPRESS>
+ S{STKCDE     }S{A01       }S{DSC                         }S{SL     } S{DO     } S{IREQNO  }  S{RBNAME         }S{PH             }S
+<ENDIF>
+%BREAK INVT-CONTROLLR FOOTING
+<IF TOT1 > 0>
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+<ENDIF>
+%REPORT-SUMMARY
+'                                                                                                                                  '
+'                                                        *** END of REPORT ***'
+%REPORT
+    B
+%REPORT-TITLE
+    'NOTIFICATION FOR WHOUSE MANAGER - MINIMUM STOCK LEVELS BREACHED'
+%PAGE HEADING
+%* Bursting to multiple email addresses (Warehouse Managers)
+<IF INCLD = 'Y'>
+<IF IMAIL1 <> SPACES OR IMAIL2 <> SPACES OR IMAIL3 <> SPACES OR IMAIL4 <> SPACES OR IMAIL5 <> SPACES>
+{B1     }{B2                  }
+<IF IMAIL1 <> SPACES>
+{IMAIL1                                                    }
+<ENDIF>
+<IF IMAIL2 <> SPACES>
+ <IF IMAIL1 <> SPACES>
+C
+ <ENDIF>
+{IMAIL2                                                    }
+<ENDIF>
+<IF IMAIL3 <> SPACES>
+ <IF IMAIL1 <> SPACES OR IMAIL2 <> SPACES>
+C
+ <ENDIF>
+{IMAIL3                                                    }
+<ENDIF>
+<IF IMAIL4 <> SPACES>
+ <IF IMAIL1 <> SPACES OR IMAIL2 <> SPACES OR IMAIL3 <> SPACES>
+C
+ <ENDIF>
+{IMAIL4                                                    }
+<ENDIF>
+<IF IMAIL5 <> SPACES>
+ <IF IMAIL1 <> SPACES OR IMAIL2 <> SPACES OR IMAIL3 <> SPACES OR IMAIL4 <> SPACES>
+C
+ <ENDIF>
+{IMAIL5                                                    }
+<ENDIF>
+{B3                                                             }
+{B4                                                                                                          }
+{B5      }
+<ENDIF>
+<ENDIF>
+<IF INCLD = 'Y'>
+'WARNING - Minimum Stock Levels breached, contact Inventory Controller prior to issuing the Goods.'
+'                                                                                                                                  '
+'                                                                                                                                  '
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+'|Inventory Controller                                                           |Warehouse ID                                    |'
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+'|Stock        |Part        |Description                   |Min Stock |Dues Out  |Requisition |Requested By     |Phone Number     |'
+'|Code         |Number      |                              |Level     |          |No          |                 |                 |'
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+<ENDIF>
+%DETAIL
+<IF INCLD = 'Y'>
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+ S{ICNAME                                                          }             S{WHID                                          }S
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+<SUPPRESS>
+ S{STKCDE     }S{A01       }S{DSC                         }S{SL     } S{DO     } S{IREQNO  }  S{RBNAME         }S{PH             }S
+<ENDIF>
+%BREAK INVT-CONTROLLR FOOTING
+<IF TOT1 > 0>
+ UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU
+<ENDIF>
+%REPORT-SUMMARY
+'                                                                                                                                  '
+'                                                        *** END of REPORT ***'
+%REQUEST-PARAMETERS
+    R-STKCLS   PIC (X(2))     TEXT 'Stock Class            : '
+    R-WHOUSE   PIC (X(4))     TEXT 'Warehouse              : '
+    R-POS1     PIC (X(10))    TEXT 'Position 1             : '
+    R-POS2     PIC (X(10))    TEXT 'Position 2             : '
+    R-POS3     PIC (X(10))    TEXT 'Position 3             : '
+    R-POS4     PIC (X(10))    TEXT 'Position 4             : '
+    R-POS5     PIC (X(10))    TEXT 'Position 5             : '
+%VARIABLES
+%*
+%*  Constants
+    S  = '|'                                                                                                              CONSTANT
+    C  = ','                                                                                                              CONSTANT
+    U  = UNDERLINE()                                                                                                      CONSTANT
+    B1 = '<burst>'                                                                                                        CONSTANT
+    B2 = '<type>EMAIL</type><to>'                                                                                         CONSTANT
+    B3 = '</to><subject>- WARNING - Minimum Stock Levels Breached</subject>'                                              CONSTANT
+    B4 = '<body>WARNING - Minimum Stock Levels breached, contact Inventory Controller prior to issuing the Goods.</body>' CONSTANT
+    B5 = '</burst>'                                                                                                       CONSTANT
+    
+%*
+%*  Get Msf170 (District Inventory)
+    DSTRCT = DSTRCT-CODE
+    STKCDE = STOCK-CODE
+    ICNTLR = INVT-CONTROLLR
+
+%*
+%*  Get Msf1cs (Custodian Definition)
+    CUSTID = CUSTODIAN-ID FROM MSF1CS -
+             WHERE    (CUSTODIAN-ID  >= SPACES) -
+             SELECTIF (CUSTODIAN-TYPE = 'W', -
+                       DSTRCT-CODE    = DSTRCT, -
+                       WHOUSE-ID      = %R-WHOUSE%)
+    
+    WHID   = WHOUSE-ID VIA (CUSTID)
+    INCL1  = CHOOSE ('Y' IF (CUSTID <> SPACES), 'N')
+    
+%*
+%*  Get Msf1hd (Holdings Details)
+    STKOH  = SOH FROM MSF1HD -
+             WHERE    (STOCK-CODE     = STKCDE, -
+                       CUSTODIAN-ID   = CUSTID, -
+                       HOLDING-ID    >= SPACES) -
+             SELECTIF (HOLDING-TYPE   = 'F', -
+                       FIXED-STATUS   = 'UN')
+    STKCD  = STOCK-CODE VIA (STKOH)
+    INCL2  = CHOOSE ('Y' IF (STKCD <> SPACES), 'N')
+    
+%*
+%*  Get Msf1fh (Fixed Holdings Document Cross Ref)
+    DOCKEY = DOCUMENT-KEY FROM MSF1FHA -
+             WHERE    (STOCK-CODE    = STKCDE, -
+                       CUSTODIAN-ID  = CUSTID, -
+                       HOLDING-ID   >= SPACES) -
+             REJECTIF (DOCMNT-TYPE  <> 'RQ', -
+                       DOCMNT-TYPE  <> 'NI', -
+                       DOCMNT-TYPE  <> 'NM', -
+                       DOCMNT-TYPE  <> 'NS', -
+                       DOCMNT-TYPE  <> 'WH')
+
+    IREQNO = SUBSTR (DOCKEY,5,6)
+    INCL3  = CHOOSE ('Y' IF (IREQNO <> SPACES), 'N')
+    
+%*
+%*  Lookup Msf140 to get the issue requisition details.
+    REQBY  = REQUESTED-BY OF MSF140 -
+             WHERE (DSTRCT-CODE = DSTRCT, -
+                    IREQ-NO     = IREQNO) -
+             MAX (1)
+
+%*
+%*  Lookup Msf180 to get the warehouse item details.
+    MSL    = MIN-STOCK-LVL OF MSF180 -
+             WHERE (DSTRCT-CODE = DSTRCT, -
+                    STOCK-CODE  = STKCDE, -
+                    WHOUSE-ID   = WHID) -
+             MAX (1)
+    
+    DUO    = DUES-OUT VIA (MSL)
+    WHP    = WHOUSE-PICKED VIA (MSL)
+    DOUT   = CALC (DUO + WHP) I-PIC (S9(9))
+    
+%*
+%*  Lookup Msf100 to get the Stock Code details.
+    INAME  = ITEM-NAME OF MSF100 -
+             WHERE    (STOCK-CODE = STKCDE) -
+             MAX (1)
+    DLINE1 = DESC-LINE-1 VIA (INAME)
+    DSC    = CHOOSE (INAME IF (INAME <> SPACES), DLINE1)
+
+%*
+%*  Check if minimum stock levels breached
+    CALSOH = CALC (STKOH - DOUT) I-PIC (S9(9))
+    SOHCHK = CHOOSE ('Y' IF (CALSOH < MSL), 'N')
+    NBCHK  = CHOOSE ('Y' IF (INCL1 = 'Y' AND INCL2 = 'Y' AND INCL3 = 'Y'), 'N')
+    INCLD  = CHOOSE ('Y' IF (SOHCHK = 'Y' AND NBCHK = 'Y'), 'N')
+    
+    VAL    = CHOOSE (1 IF (INCLD = 'Y'), 0)
+    TOT1   = TOTAL (VAL)
+
+%*
+%*  Get inventory controller name
+    ICGET  = HRGET (EMPLOYEE-ID -
+                    FROM ('MSF810, MSSEMP') -
+                    KEY  (EMPLOYEE-ID = ICNTLR))
+    ICNAM  = FORMATTED-NAME VIA (ICGET)
+    ICNAME = CHOOSE (ICNAM IF (ICNAM <> SPACES), -
+                     ICNTLR) I-PIC (X(46))
+    
+%*
+%*  Get required by name
+    RBGET  = HRGET (EMPLOYEE-ID -
+                    FROM ('MSF810, MSSEMP') -
+                    KEY  (EMPLOYEE-ID = REQBY))
+    RNAM   = FORMATTED-NAME VIA (RBGET)
+    RBNAME = CHOOSE (RNAM IF (RNAM <> SPACES), -
+                     REQBY) I-PIC (X(46))
+    
+%*
+%*  Get phone numbers (Work Phone/Mobile Phone)
+    WPHNO  = WORK-PHONE-NO OF MSF810 -
+             WHERE (EMPLOYEE-ID = REQBY) -
+             MAX (1)
+    MPHNO  = MOBILE-NO VIA (WPHNO)
+    TWPHNO = OUT-STRING OF MSSCNV - 
+             WHERE (OPTION     = 'P', -
+                    INP-STRING = WPHNO)
+    TMPHNO = OUT-STRING OF MSSCNV - 
+             WHERE (OPTION     = 'P', -
+                    INP-STRING = MPHNO)
+    CATPH  = CATENATE (TWPHNO, '/', TMPHNO)
+    PH     = CHOOSE (CATPH IF (TMPHNO <> SPACES), -
+                     TWPHNO) I-PIC (X(33))
+
+%*
+%*  Get email of inventory controller
+    EMAIL1 = EMAIL-ADDRESS OF MSF810 -
+             WHERE (EMPLOYEE-ID = ICNTLR) -
+             MAX (1)
+
+%*
+%*  Get all incumbents of position (Parameters).
+    EMPID1 = EMPLOYEE-ID OF MSF878 -
+             WHERE    (POSITION-ID    = %R-POS1%, -
+                       EMPLOYEE-ID   >= SPACES) -
+             SELECTIF (%R-POS1%      <> SPACES, -
+                       POSITION-ID    = %R-POS1%) -
+             REJECTIF (POS-STOP-DATE  < WX-TODAYS-DATE, -
+                       POS-STOP-DATE <> '00000000') -
+             MAX (5)
+    EMPID2 = EMPLOYEE-ID OF MSF878 -
+             WHERE    (POSITION-ID    = %R-POS2%, -
+                       EMPLOYEE-ID   >= SPACES) -
+             SELECTIF (%R-POS2%      <> SPACES, -
+                       POSITION-ID    = %R-POS2%) -
+             REJECTIF (POS-STOP-DATE  < WX-TODAYS-DATE, -
+                       POS-STOP-DATE <> '00000000') -
+             MAX (5)
+    EMPID3 = EMPLOYEE-ID OF MSF878 -
+             WHERE    (POSITION-ID    = %R-POS3%, -
+                       EMPLOYEE-ID   >= SPACES) -
+             SELECTIF (%R-POS3%      <> SPACES, -
+                       POSITION-ID    = %R-POS3%) -
+             REJECTIF (POS-STOP-DATE  < WX-TODAYS-DATE, -
+                       POS-STOP-DATE <> '00000000') -
+             MAX (5)
+    EMPID4 = EMPLOYEE-ID OF MSF878 -
+             WHERE    (POSITION-ID    = %R-POS4%, -
+                       EMPLOYEE-ID   >= SPACES) -
+             SELECTIF (%R-POS4%      <> SPACES, -
+                       POSITION-ID    = %R-POS4%) -
+             REJECTIF (POS-STOP-DATE  < WX-TODAYS-DATE, -
+                       POS-STOP-DATE <> '00000000') -
+             MAX (5)
+    EMPID5 = EMPLOYEE-ID OF MSF878 -
+             WHERE    (POSITION-ID    = %R-POS5%, -
+                       EMPLOYEE-ID   >= SPACES) -
+             SELECTIF (%R-POS5%      <> SPACES, -
+                       POSITION-ID    = %R-POS5%) -
+             REJECTIF (POS-STOP-DATE  < WX-TODAYS-DATE, -
+                       POS-STOP-DATE <> '00000000') -
+             MAX (5)
+
+%*
+%*  Get email for incumbents.
+    IMAIL1 = EMAIL-ADDRESS OF MSF810 -
+             WHERE (EMPLOYEE-ID = EMPID1) -
+             MAX (1)
+    IMAIL2 = EMAIL-ADDRESS OF MSF810 -
+             WHERE (EMPLOYEE-ID = EMPID2) -
+             MAX (1)
+    IMAIL3 = EMAIL-ADDRESS OF MSF810 -
+             WHERE (EMPLOYEE-ID = EMPID3) -
+             MAX (1)
+    IMAIL4 = EMAIL-ADDRESS OF MSF810 -
+             WHERE (EMPLOYEE-ID = EMPID4) -
+             MAX (1)
+    IMAIL5 = EMAIL-ADDRESS OF MSF810 -
+             WHERE (EMPLOYEE-ID = EMPID5) -
+             MAX (1)
+
+%*
+%*  Get mnemonic and part numbers
+    A01 = MNEMONIC OF MSS110 -
+          WHERE (DSTRCT-CODE   = DSTRCT, -
+                 STOCK-CODE    = STKCDE, -
+                 NO-REQUIRED-9 = 3)
+    A02 = PART-NO VIA (A01)
+
+%*
+%*  Get display
+    SL  = MSL  D-PIC (SZZZZZZZZ9)
+    DO  = DOUT D-PIC (SZZZZZZZZ9)
+
+%*
+%*  End of program

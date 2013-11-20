@@ -1,0 +1,402 @@
+%*** TRR22H.RDL
+%***
+%*** Revision History ***
+%***
+%*** 01-Aug-12 a9nh4814      MO164 (Version 0001)
+%***                         Refined report to pass Transgrid RDL compiler.
+%***                         - Changed Report Name from ESS22A to TRR22H
+%***                         - Changed function calls to uppercase
+%***                         - Reset version number to 0001 for E8 upgrade.
+%*** 12-Mar-04 L Nee         WHD0225819 - Print totals for FPA 
+%*** 11-Feb-04 R Yeung       WCHG044413 - Excluded cancelled records.
+%*** 10-Feb-04 R Yeung       WCHG044413 - Select records by using the new current due date. 
+%***                                      (using ODD instead of OCDATE) 
+%*** 06-Feb-04 R Yeung       WCHG044392 - Read data from msf221.
+%***                         WCHG044413 - Select records by using the current due date.
+%*** 23-May-03 R Yeung       WCHG020408 - Remove "Totals for All Suppliers" from summary.
+%*** 04-Nov-02 RK Mahajan    WCHG008759 - Amended OverDue Flag calculations.
+%***                         Rewrote the program using file MSF251 instead
+%***                         of MSF170.
+%*** 10-Oct-02 RK Mahajan    WCHG007093 - Modified Order Date and Due Date
+%***                         to add grace period for Sat and Sunday. Changed
+%***                         Version to 010 from 008.
+%*** 10-Dec-01 E Fredeluces  WHD0001084 - Testing on the Date From and To
+%*** ....................... should be based on either the original date
+%*** ....................... or the curr due date and not both.
+%***  9-Sep-99 G Presser     W99090233      (Version 008)
+%*** ....................... Ignore Tranfer Orders
+%*** 02-Jun-99 E Fredeluces  W99051047
+%*** ....................... Testing if the FPA Group is the same
+%*** ....................... between MSF170 and MSF221 taken out.
+%*** 27-May-99 G Presser     W99051070      (Version 007)
+%*** ....................... Calculate Start & End Dates correctly
+%*** 26-Nov-98 DDiolaso      Recompile (Fix for MIMS 4.3)
+%*** ........................
+%*** 09-May-95 Assia_Sahyoun Modified program to add current due date to the
+%*** ....................... selection process.
+%*** 05-Mar-95 David_Gatward Ver 006D.Don't include inactive dist orders due.
+%*** 05-Oct-94 David_Gatward Ver 006C.Use curr-due-date (cd) instead of 
+%*** ....................... orig-date for overdue flag.
+%*** ....................... Break on fpa-id rather than supplier - was
+%*** ....................... reporting different fpa's on same page.
+%*** 08-Aug-94 David_Gatward Ver 006B.Do not include cancelled order items.
+%*** 03-Aug-94 David_Gatward Ver 006A.WX-STORES-CP was blank for global req's.
+%*** ........................So get period (CP1) from substrings from TODAY.
+%*** 16-Aug-93 Mary_Wachman  Ver 5. Change Main File to MSF170.
+%*** ........................Add 'Sat/Sun' to detail. Fix truncation of total values.
+%*** 02-Aug-93 David_Gatward Ver 4. Always print Supplier total. Even if 0.
+%*** 15-Jul-93 Mary_Wachman  Ver 3. Added order item value and report total value.
+%*** 07-Jan-93 David_Gatward Was reporting twice for each fpa item.
+%*** ........................This is because msf251 holds 1 record 
+%*** ........................with blank dist and 1 with nominated dist.
+%*** ........................Add %global% paramter.
+%*** ........................Only select nominated dist.- Ignore blank dist if global=n.
+%*** ........................Also print page heading in page-heading not break.
+%*** 04-Dec-92 David_Gatward Initial Coding
+%PROGRAM-ID
+    TRR22H
+%AUTHOR
+    David Gatward
+%NARRATIVE
+      **  FPA Order Delivery Performance Report
+      **
+      **  Report all order items due in a nominated period for a nominated FPA 
+      **  Print the status of receipt and give each supplier a delivery rating.
+      **
+%VERSION
+    0001
+%MODULE
+    3250
+%ROUTINES
+    MSSDAT
+%FILES
+%*    MFILE = MSF251
+    MFILE = MSF221C
+    LFILE = MSF200
+    LFILE = MSF220
+%*    AFILE = MSF221B
+    RFILE = TRR22HA
+%SELECTION
+    WHERE (DSTRCT-CODE-2 >= SPACES)
+    REJECTIF (DSTRCT-CODE-2 <> %DIST%, %DIST% <> SPACES)
+    REJECTIF (CURR-DUE-DATE < FRDATE)
+    REJECTIF (CURR-DUE-DATE > TODATE)
+    REJECTIF (FPA-GROUP    <> %FPAGRP%)
+    REJECTIF (FPA-AGREEMENT <> %FPAAGT%, %FPAAGT% <> SPACES) 
+    REJECTIF (STATUS-221    = '3')
+    
+
+%ORDER
+    FPA-ID
+    SUPPLIER-NO           VIA (M220)
+    PO-NO
+    PO-ITEM-NO 
+%REPORT
+    A
+%CONTROL-BREAKS
+    FPA-ID 
+    SUPPLIER-NO           VIA (M220)
+    PO-NO   
+    PO-ITEM-NO  
+%REPORT-TITLE
+       'FPA Delivery Performance Report'
+%PAGE HEADING
+%BREAK FPA-ID  HEADING ON NEW-PAGE
+<IF PFLAG = 'Y'>
+'Supplier      :'{SUP } {SUPNAME                       }             '*:fully recd-late,'
+'FPA Agreement :'{FPAID }                                           '**:part recd,'
+'Period        :'{FRDATE }'to'{TODATE }                            '***:none recd'
+{UNDERLINE                                                                                                                         }
+'               FPA  Order  Itm     Item    Purchase Order Date            Original Due  Date     Receipt   Order    Receipt  O/Due'
+'Dist Stockcode Itm   No    No      Value   Old      /   New                Old      /   New       Date     Status   Status   Flag:'
+{UNDERLINE                                                                                                                         }
+<ENDIF>
+%DETAIL
+<IF PFLAG = 'Y'>  
+{DS} {SC     } {FPI}{PO  } {PI}{VAL      } {PODATE} EEE {POD   }          {OCDATE} DDD {ODD    } {RD    } {ST1    } {RS1      } GGG 
+<ENDIF>
+%BREAK FPA-ID  FOOTING
+{UNDERLINE                                                                                                                         }
+'Totals for Supplier for FPA'
+'---------------------------'
+'Total FPA Order values                                   :'{    VALTOT}
+'Total FPA Order items expected in period                 :'{    DUETOT}
+'Total FPA Order items fully received by current due date :'{    RECTOT}
+'RATING for period (Itms fully recd / Itms due)           :'    {RATING}'%'
+%SUMMARY
+%***{UNDERLINE                                                                                                           }
+%***'Totals for ALL Suppliers'
+%***'========================'
+%***'Total FPA Order values                                   :'{    VALTOT}
+%***'Total FPA Order items expected in period                 :'{    DUETOT}
+%***'Total FPA Order items fully received by current due date :'{    RECTOT}
+%***'RATING for period (Itms fully recd / Itms due)           :'    {RATING}'%'
+
+' --------------------  End  of  the  Report TRR22HA  ---------------------- '
+%*%CONTROL
+%*    INCLUDE-EMPTY-SUMMARY
+%REQUEST-PARAMETERS
+    FPAGRP     PIC (X(5))  TEXT  FPA Number                                           -> 
+    FPAAGT     PIC (X(3))  TEXT  FPA Agreement - blank for all                        -> 
+    DTE1       PIC (9(8))  TEXT  Due Date From                                        -> 
+    DTE2       PIC (9(8))  TEXT  Due Date To                                          -> 
+    CYCLE-IND  PIC (X(1))  TEXT  Report Cycle - (D)aily or (M)onthly - if dates blank -> 
+    DIST       PIC (X(4))  TEXT  District Code - blank for all                        ->
+%VARIABLES
+%* Constants
+    DTE1      = %DTE1%                 CONSTANT FORMAT (DATE)
+    DTE2      = %DTE2%                 CONSTANT FORMAT (DATE)
+    TODAY     = DATE ()                CONSTANT FORMAT (DATE)
+    YESTERDAY = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = TODAY, -
+                       DAYS   = -1)    CONSTANT FORMAT (DATE)
+    CP1       = WX-STORES-CP           CONSTANT
+%*
+    LP        = PERIOD-YRMN OF MSSDAT -
+                WHERE (OPTION      = 'J', -
+                       PERIOD-YRMN = CP1, -
+                       DAYS        = -1) CONSTANT FORMAT PERIOD
+    ST-DATE   = STARTING-DATE-1-9      VIA (LP) CONSTANT FORMAT (DATE)
+    END-DATE  = ENDING-DATE-1-9        VIA (LP) CONSTANT FORMAT (DATE)
+%*
+%* Display dates for printing in Page Heading
+    FRDATE     = CHOOSE (DTE1      IF (%DTE1%     <> SPACES), -
+                         YESTERDAY IF (%CYCLE-IND% = 'D'), -
+                         ST-DATE)      I-PIC (9(8)) CONSTANT FORMAT (DATE)
+    TODATE     = CHOOSE (DTE2  IF (%DTE2%     <> SPACES), -
+                         TODAY IF (%CYCLE-IND% = 'D'), -
+                         END-DATE)     I-PIC (9(8)) CONSTANT FORMAT (DATE)
+%*                 
+    FPAGRP    = %FPAGRP%               CONSTANT
+    FPAAGT    = %FPAAGT%               CONSTANT
+%* MSF251
+    F         = FPA-GROUP  
+    AG        = %FPAAGT%   CONSTANT
+%*    DST       = DSTRCT-CODE
+%*    STKACT    = STK-ACTIV-CTR
+%*    STCD      = SUBSTR (STKACT, 1, 9)
+%*
+%* MSF221B 
+%*    PO        = PO-NO FROM MSF221B -
+%*                WHERE    (PREQ-STK-CODE   = STCD, -
+%*                          REVSD-CRT-DATE >= SPACES) -
+%*                REJECTIF (DSTRCT-CODE  <> DST) -
+%*                REJECTIF (STATUS-221    = '3') -
+%*                REJECTIF (ORIG-DUE-DATE < FRDATE, -
+%*                          CURR-DUE-DATE < FRDATE) -
+%*                REJECTIF (ORIG-DUE-DATE > TODATE, -
+%*                          CURR-DUE-DATE > TODATE) -
+%*                REJECTIF (FPA-GROUP    <> F) -
+%*                REJECTIF (FPA-AGREEMENT <> AG, AG <> SPACES) -
+%*                MAX (1000)
+%*
+    PO        = PO-NO
+    PI        = PO-ITEM-NO   
+    DS        = DSTRCT-CODE     
+    SC        = STOCK-CODE    
+    FPAID     = FPA-ID   
+    FPGR221   = FPA-GROUP    
+    FPAG2211  = FPA-AGREEMENT   
+    FPI       = FPA-ITEM-NO    
+    DD        = ORIG-DUE-DATE  FORMAT (DATE) 
+    CD        = CURR-DUE-DATE  FORMAT (DATE)   
+%* choose either the orig-due-date or the curr-due-date
+    OCDATE    = CHOOSE (CD IF (CD <> SPACES), -
+                        DD)            FORMAT (DATE)
+%* Print Day for OCDATE if SAT or SUN 
+    OCNAME    = DAY-NAME OF MSSDAT -
+                WHERE (OPTION = '6', -
+                       DATE1  = OCDATE) 
+    D         = CHOOSE (OCNAME IF (OCNAME = 'SATURDAY'), -
+                        OCNAME IF (OCNAME = 'SUNDAY'), -
+                        SPACES)
+%*
+    RD        = ONST-RCPT-DATE          FORMAT (DATE)
+    RS        = RECEIPT-STATUS         
+    ST        = STATUS-221            
+    MED       = PO-ITEM-MEDIUM        
+    QTY       = CURR-QTY-P             D-PIC (-(5)9.99)
+    NP        = CURR-NET-PR-P          D-PIC (-(6)9.99)
+    VAL       = CALC (QTY * NP)
+%* Receipt Status
+    RS1       = CHOOSE ('None  recvd' IF (RS = '0'), -     
+                        'Part  recvd' IF (RS = '1'), -     
+                        'Fully recvd' IF (RS = '2'), -     
+                        ' ')
+%* Order status
+    ST1       = CHOOSE ('Unprinted' IF (ST = '0', MED = 'P'), -     
+                        'UnsentEDI' IF (ST = '0', MED = 'E'), -     
+                        'Printed  ' IF (ST = '1', MED = 'P'), -     
+                        'Sent  EDI' IF (ST = '1', MED = 'E'), -     
+                        'Modified ' IF (ST = '2'), -     
+                        'Cancelled' IF (ST = '3'), -     
+                        'Complete ' IF (ST = '9'), -     
+                        ' ')   
+%* MSF220
+    M220      = ORDER-DATE OF MSF220 -
+                WHERE (PO-NO = PO)
+    PODATE    = M220                   FORMAT (DATE)
+    SUP       = SUPPLIER-NO            VIA (M220)
+    POTYPE    = PO-TYPE                VIA (M220)
+%* Print Day for PODATE if SAT or SUN 
+    PONAME    = DAY-NAME OF MSSDAT -
+                WHERE (OPTION = '6', -
+                       DATE1  = PODATE) 
+    E         = CHOOSE (PONAME IF (PONAME = 'SATURDAY'), -
+                        PONAME IF (PONAME = 'SUNDAY'), -
+                        SPACES)
+%* MSF200
+    SUPNAME   = SUPPLIER-NAME OF MSF200 -
+                WHERE (SUPPLIER-NO = SUP)
+%*
+%* Please don't delete any explanation/comments from the paragraph
+%* bounded by the two %% lines. You may add more or clarify comments.
+%* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%* This is the important explanation for updating the OrderDate (PODATE) 
+%* and OrigDueDate (OCDATE)  as requested by User (WCHG007093).
+%* 
+%*  OrderDate (PODATE)    OrigDueDate (OCDATE) 
+%* -----------------------------------------------
+%*   Friday               Sat to Monday
+%*                        Sun to Monday
+%*
+%*   Sat to Mon(+2)       Add 2 then Sat to Mon
+%*                                   Sun to Mon
+%*
+%*   Sun to Mon(+1)       Add 1 then Sat to Mon
+%*                                   Sun to Mon
+%* ----------------------------------------------
+%*
+%* To determine the DAY for PurchaseOrderDate (PODATE)
+%* 1 - Monday ....  7 - Sunday
+    PODAY     = DAYS OF MSSDAT -
+                WHERE (OPTION = '6', -
+                       DATE1  = PODATE)
+%*
+%* To choose the Monday Date if PODATE is on Saturday (+2)
+    POSATM    = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = PODATE, -
+                       DAYS   = 2)    FORMAT (DATE)
+%*
+%* To choose the Monday Date if PODATE is on Sunday (+1)
+    POSNTM    = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = PODATE, -
+                       DAYS   = 1)    FORMAT (DATE)
+%*
+    POD       = CHOOSE (POSATM IF (PODAY = 6), -
+                        POSNTM IF (PODAY = 7), -
+                        PODATE)       FORMAT (DATE)
+%* To determine the DAY for OrigDueDate (OCDATE)
+%* 1 - Monday ....  7 - Sunday
+    ODDDAY    = DAYS OF MSSDAT -
+                WHERE (OPTION = '6', -
+                       DATE1  = OCDATE) 
+%*
+%* To choose the Monday Date if OCDATE is on Saturday (+2)
+    ODDSATM   = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = OCDATE, -
+                       DAYS   = 2)    FORMAT (DATE)
+%*
+%* To choose the Monday Date if OCDATE is on Sunday (+1)
+    ODDSNTM   = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = OCDATE, -
+                       DAYS   = 1)    FORMAT (DATE)
+%*
+%* In case PODATE falls on a SAT then make it MON and add 2 in 
+%* OrigDueDate (OCDATE) which becomes ODDSATM.
+%* Now check for this OrigDueDate (ODDSATM).
+%* If it does not fall on a SAT then leave this as the new
+%* OrigDueDate (OCDATE).
+%* If it falls on a SAT then make it a Monday by adding 2.
+%*
+%* Get DAY for this OrigDueDate ODDSATM.
+%* 1 - Monday ....  7 - Sunday
+    ODDS2     = DAYS OF MSSDAT -
+                WHERE (OPTION = '6', -
+                       DATE1  = ODDSATM)     
+%* To choose the Monday Date if ODDSATM is on Saturday (+2)
+    ODDSM22   = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = ODDSATM, -
+                       DAYS   = 2)    FORMAT (DATE)
+%*
+%* To choose the Monday Date if ODDSATM is on Sunday (+1)
+    ODDSM21   = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = ODDSATM, -
+                       DAYS   = 1)    FORMAT (DATE)
+%*
+%* In case PODATE falls on a Sun then make it MON and add 1 in 
+%* OrigDueDate (OCDATE)  which becomes ODDSNTM.
+%* Now check for this OrigDueDate (ODDSNTM).
+%* If it does not fall on SUN then leave this as the new
+%* OrigDueDate (OCDATE).
+%* If it falls on a SUN then make it a Monday by adding 1.
+%*
+%* Get DAY for this OrigDueDate ODDSNTM.
+%* 1 - Monday ....  7 - Sunday
+    ODDS1     = DAYS OF MSSDAT -
+                WHERE (OPTION = '6', -
+                       DATE1  = ODDSNTM) 
+%* To choose the Monday Date if ODDSNTM is on Saturday (+2)
+    ODDSM12   = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = ODDSNTM, -
+                       DAYS   = 2)    FORMAT (DATE)
+%*
+%* To choose the Monday Date if ODDSNTM is on Sunday (+1)
+    ODDSM11   = DATE2 OF MSSDAT -
+                WHERE (OPTION = '1', -
+                       DATE1  = ODDSNTM, -
+                       DAYS   = 1)    FORMAT (DATE)
+%*
+%* Now get the correct OrigDueDate (OCDATE)  by checking on all the above 
+%* scenarios.
+    ODD       = CHOOSE (ODDSATM IF (ODDDAY = 6, -
+                                    PODAY <> 6, -
+                                    PODAY <> 7), -
+                        ODDSNTM IF (ODDDAY = 7, -
+                                    PODAY <> 6, -
+                                    PODAY <> 7), -
+                        ODDSATM IF (PODAY  = 6, -
+                                    ODDS2 <> 6, -
+                                    ODDS2 <> 7), -
+                        ODDSNTM IF (PODAY  = 7, -
+                                    ODDS1 <> 6, -
+                                    ODDS1 <> 7), -
+                        ODDSM22 IF (PODAY  = 6, -
+                                    ODDS2  = 6), -
+                        ODDSM21 IF (PODAY  = 6, -
+                                    ODDS2  = 7), -
+                        ODDSM12 IF (PODAY  = 7, -
+                                    ODDS1  = 6), -
+                        ODDSM11 IF (PODAY  = 7, -
+                                    ODDS1  = 7), -
+                        OCDATE)        FORMAT (DATE)
+%*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%* Check for printing of record.
+    PFLAG     = CHOOSE ('Y' IF (PO     <> SPACES, -
+                                POTYPE <> 'T', -
+                                FPAID  <> SPACES, -
+                                ODD >= FRDATE, -
+                                ODD <= TODATE), -
+                        'N') 
+    VAL1      = CHOOSE (VAL IF (PFLAG = 'Y'), 0)
+    VALTOT    = TOTAL (VAL1)    
+    DUECNT    = CHOOSE (1 IF (PFLAG = 'Y'), 0)
+    DUETOT    = TOTAL (DUECNT)    
+    RECCNT    = CHOOSE (1 IF (RS = '2', RD <= ODD, PFLAG = 'Y'), 0)
+    RECTOT    = TOTAL (RECCNT)    
+    RATING    = CALC (RECTOT / DUETOT * 100)
+%* Flag for items received
+    G         = CHOOSE ('***' IF (RD = SPACES, PO <> SPACES), -     
+                        '** ' IF (RS < 2,      PO <> SPACES), -     
+                        '*  ' IF (RD > ODD,    PO <> SPACES), -     
+                        '   ')
+%*
+%* ---------------------  End  of  the  Program  --------------------------

@@ -1,0 +1,37 @@
+%PROGRAM-ID
+       TRRBMM
+%AUTHOR
+       Mincom PTY LTD
+%NARRATIVE
+      **  This report will extract Open Work Orders
+%VERSION
+       0003
+%MODULE
+       3880
+%FILES
+        MFILE = MSF620
+        RFILE = TRRBMMA
+%ORDER
+        WORK-ORDER
+%SELECTION
+        WHERE    (DSTRCT-CODE = 'GRID',  -
+                  WORK-ORDER  >= 'BMTAIRC', -
+                  WORK-ORDER  <= 'BMTAIRC')
+%REPORT
+       A
+%REPORT-TITLE
+       'SUMMARY ERROR REPORT'
+%PAGE HEADING
+'Brandon test RDL'
+%DETAIL
+{DATENOW    } {TIMENOW    }
+%CONTROL REPORT A
+       TRIM-REPORT
+       PAGE-WIDTH = 132
+       PAGE-LENGTH = 68
+%VARIABLES
+       DATENOW = WX-TODAYS-DATE
+       TIMENOW = WX-TIME
+%*
+%*            End of Program
+%*

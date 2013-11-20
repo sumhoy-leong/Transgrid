@@ -1,0 +1,231 @@
+%***  $Id: trr90f.rdl,v6b 2010/10/13 13:30:00 Exp $
+%*** TRR90F.RDL
+%***
+%*** Copyright (c) 1990, Mincom Pty Ltd, Brisbane 4120, Australia.
+%*** All rights reserved.
+%*** 
+%*** Revision History ***
+%*** 05-Sep-12 N Perry
+%*** Reset version number to 0001 for E8 upgrade
+%*** 27-Jul-12 N Perry      MO164 (Version 0001) 
+%*** ...................... Reset version number to 0001 for E8 Upgrade.
+%*** ......................  Convert to Ellipse 8 format.
+%*** 20-Oct-2010   E Fredeluces SC3021397
+%***               Deleted Report A which is not required.
+%*** 21-Jun-2010  Janak Barar   SC2842544     (Version 006A)
+%***              To exclude SQTY=0 records.                        
+%*** 06-Oct-2009  Janak Barar   SC2559701     (Version 006)
+%***              To include another tran-type ICO for extraction.
+%*** 22-Aug-2006  G Presser     1208112       (Version 005)
+%***              Do not use Julian dates on MSF900 anymore.
+%*** 11-Nov-2005  E Fredeluces  P05110870
+%***              Fix compilation errors in Ellipse 5.2.3.7.
+%*** 24-Apr-2001  Diolaso   Danny
+%***              UNIX Changes
+%*** 12-Aug-1999  Elizabeth Fredeluces
+%***              Include the Fortnightly Cycle Type.
+%*** 16-Jul-1999  Elizabeth Fredeluces
+%***              W99070445  Include the Cycle Type parameter for Monthly
+%***                         and Daily. 
+%*** 18-May-1999  Elizabeth Fredeluces
+%***              W99050566  Initial coding.
+%***
+%PROGRAM-ID
+       TRR90F
+%AUTHOR
+       Elizabeth Fredeluces
+%NARRATIVE
+      **  This will extract the Store Issues - Owned Stock in the 
+      **  MSF900 file for a given month or position.
+%VERSION
+        0001
+%FILES
+        MFILE = MSF900
+        LFILE = MSF875
+        LFILE = MSF878
+        LFILE = MSF878A
+        OFILE = TRT90FA
+%ROUTINES
+        MSSDAT
+        MSSCNV
+%SELECTION
+       WHERE    (DSTRCT-CODE     = %DISTRICT-CODE%, -
+                 PROCESS-DATE   >=  DATE1,          -       
+                 PROCESS-DATE   <=  DATE2)
+       REJECTIF (REC900-TYPE    <> 'S')              
+       REJECTIF (TRAN-TYPE      <> 'ISS' AND TRAN-TYPE <> 'ICO')
+       REJECTIF (REQUESTED-BY-S <>  AUTH-BY-S)
+%CONTROL
+       COPY-REQUEST = TRR90G
+       RECORD-LENGTH = 127
+       STATISTICS
+%OUTPUT-FILE
+       A
+%DETAIL
+<IF PFLAG = 'Y'>
+{DATE1D}{DATE2D}{SUPID   }{AUTBY   }{SUPPOS  }{AUTPOS  }{SREQ}AAAA{STKCDE  }{ACCTNO    }{DTE}BB{SQTY     }{SPRX    }{VAL      }
+<ENDIF>
+%REQUEST-PARAMETERS
+       DATE1 D-PIC (X(8))  TEXT  'From Date                                     : '
+       DATE2 D-PIC (X(8))  TEXT  'To   Date                                     : '
+       POS   D-PIC (X(10)) TEXT  'Position-Id                                   : '
+       SUM   D-PIC (X(1))  TEXT  'Summary Report (Y/N)                          : '
+       CYCLE D-PIC (X(1))  TEXT  'Cycle: M-onthly D-daily F-Fortnightly (M/D/F) : '
+%VARIABLES
+       DC    = DSTRCT-CODE
+       PD    = PROCESS-DATE
+       TR    = TRANSACTION-NO
+       RT    = REC900-TYPE
+       Z     = '/'      CONSTANT
+       C     = %CYCLE%  CONSTANT
+       DTE1  = %DATE1%  CONSTANT
+       DTE2  = %DATE2%  CONSTANT 
+%*
+%* Determine the Previous Month
+%*
+       CP1   = WX-STORES-CP CONSTANT
+       LP    = PERIOD-YRMN OF MSSDAT        -
+                   WHERE (OPTION = 'I',     -
+                          PERIOD-YRMN = CP1,-
+                           DAYS = -1)       -
+                           CONSTANT FORMAT PERIOD
+       LP2   = PERIOD-YRMN OF MSSDAT        -
+                   WHERE (OPTION = 'H',     -
+                          PERIOD-YRMN = LP) -
+                           CONSTANT FORMAT PERIOD
+       ST-DATE  = STARTING-DATE-1-9 VIA (LP2) CONSTANT
+       END-DATE = ENDING-DATE-1-9   VIA (LP2) CONSTANT
+%*
+%* Determine the Previous Day
+%*
+       TODAY           = DATE ()        CONSTANT 
+       YESTERDAY       = DATE2 OF MSSDAT -
+                         WHERE (OPTION = '1', -
+                                DATE1  = TODAY, -
+                                DAYS   = -1) CONSTANT 
+%*   To determine the DAY today
+      DY              = DAYS OF MSSDAT       -
+                        WHERE (OPTION = '6', -
+                               DATE1  = TODAY) CONSTANT
+%*   DAY Values
+      D               = choose ('MON' IF (DY = 1), -
+                                'TUE' IF (DY = 2), -
+                                'WED' IF (DY = 3), -
+                                'THU' IF (DY = 4), -
+                                'FRI' IF (DY = 5), -
+                                'SAT' IF (DY = 6), -
+                                'SUN' IF (DY = 7), -
+                                '   ')
+%*
+%*    To choose the Friday Date if today is Sunday in the Approved Loaded Date
+%*
+      SUNDAY          = DATE2 OF MSSDAT         -
+                        WHERE (OPTION = '1',    -
+                               DATE1  = TODAY,  -
+                               DAYS   = -2)     -
+                               CONSTANT 
+%*
+%*    To choose the Friday date if today is Monday in the Approved Loaded Date
+%*
+      MONDAY          = DATE2 OF MSSDAT         -
+                        WHERE (OPTION = '1',    -
+                               DATE1  = TODAY,  -
+                               DAYS   = -3)     -
+                               CONSTANT
+%*
+      DEYT            = CHOOSE (SUNDAY IF (DY = 7), -
+                                MONDAY IF (DY = 1), -
+                                YESTERDAY)          -
+                                CONSTANT I-PIC (9(8))
+%*
+%* Determine the Start of the Previous Fortnight
+%*           the End   of the Fortnight will be the Date of Daily Cycle  
+%*
+      FNFR            = DATE2 OF MSSDAT         -
+                        WHERE (OPTION = '1',    -
+                               DATE1  = DEYT,   -
+                               DAYS   = -13)    -
+                               CONSTANT
+%*
+%*  Determine the Process Dates to be Used
+%* 
+       DATE1     = CHOOSE (ST-DATE  IF (C = 'M'),    -
+                           DEYT     IF (C = 'D'),    -
+                           FNFR     IF (C = 'F'),    -
+                           DTE1) CONSTANT 
+       DATE2     = CHOOSE (END-DATE IF (C = 'M'),    -
+                           DEYT     IF (C = 'D'),    -
+                           DEYT     IF (C = 'F'),    -
+                           DTE2) CONSTANT
+%************************
+%* Display dates for printing in Page Heading
+%*
+       DATE1D    = CHOOSE (ST-DATE  IF (C = 'M'),    -
+                           DEYT     IF (C = 'D'),    -
+                           FNFR     IF (C = 'F'),    -
+                           DTE1) CONSTANT I-PIC 9(8)
+
+       DATE2D    = CHOOSE (END-DATE IF (C = 'M'),    -
+                           DEYT     IF (C = 'D'),    -
+                           DEYT     IF (C = 'F'),    -
+                           DTE2) CONSTANT I-PIC 9(8)
+%***   variables
+       AUTBY  = AUTH-BY-S
+       REQBY  = REQUESTED-BY-S
+       SREQ   = ISSUE-REQ-NO-S
+       A      = IREQ-ITEM-NO-S
+       STKCDE = STOCK-CODE-S
+       DTE    = CREATION-DATE FORMAT DATE 
+       B      = ITRAN-TYPE-S
+       SWO    = WORK-ORDER-S
+       SQ     = QUANTITY-ISS-S
+       SQTY   = QUANTITY-ISS-S     D-PIC ( --------9.99 )
+       SPRX   = AVERAGE-PR-S       D-PIC ( -------9.99 )
+       SVAL   = calc (SQTY * SPRX)
+       ACCTNO = ACCOUNT-CODE
+       VAL    = TRAN-AMOUNT        D-PIC ( --------9.99 )
+%*
+%*     Retrieve the Employee's Current Position
+%*
+       AUTPOS    = POSITION-ID OF MSF878A                        -
+                        WHERE    (EMPLOYEE-ID-1    = AUTBY,      -
+                                  PRIMARY-POS-1    = '0',        -
+                                  INV-STR-DATE-1  >= SPACES)     -
+                        REJECTIF (POS-STOP-DATE-1 <> '00000000') -
+                        MAX      (1)
+       HTYVER    = catenate ('C','001')   D-PIC (X(4))
+       SUPPOS    = SUPERIOR-ID OF MSF875                       -
+                        WHERE    (HIER-DETAILS   = HTYVER,     -
+                                  POSITION-ID    = AUTPOS)
+
+       QFLG      = choose ('Y'    IF (SQ <> 0), -                    
+                           'N')
+
+       PFLAG     = choose ('Y'    IF (SUPPOS  = %POS%, QFLG = 'Y'), -
+                           'Y'    IF (%POS%   = SPACES,QFLG = 'Y'),-
+                           'N')
+
+%*
+%*     Team Leader's Primary Position and Name
+%*
+       SUPIDP    = EMPLOYEE-ID OF MSF878                       -
+                        WHERE    (POSITION-ID    = SUPPOS,     -
+                                  EMPLOYEE-ID   >= SPACES)     -
+                        REJECTIF (PRIMARY-POS   <> '0')        -
+                        REJECTIF (POS-STOP-DATE <> '00000000') -
+                        MAX      (1)
+%*
+%*     Team Leader's Secondary Position and Name
+%*
+       SUPIDS    = EMPLOYEE-ID OF MSF878                       -
+                        WHERE    (POSITION-ID    = SUPPOS,     -
+                                  EMPLOYEE-ID   >= SPACES)     -
+                        REJECTIF (PRIMARY-POS   <> '1')        -
+                        REJECTIF (POS-STOP-DATE <> '00000000') -
+                        MAX      (1)
+
+       SUPID     = choose (SUPIDP IF (SUPIDP <> SPACES),       -
+                           SUPIDS) 
+
+%*                   *****  End of Program  *****
+%*
