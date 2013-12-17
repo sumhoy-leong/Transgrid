@@ -23,7 +23,7 @@ import com.mincom.enterpriseservice.ellipse.stdtext.StdTextServiceGetTextReplyDT
 import com.mincom.enterpriseservice.ellipse.stdtext.StdTextServiceGetTextRequestDTO;
 
 /**
- * Input and Output file from Trb266. The structure for input and output file is the same.
+ * Iffsdfdsfsdfsdfsdfdsnput and Output file from Trb266. The structure for input and output file is the same.
  */
 public class TRT266 {
     /*
