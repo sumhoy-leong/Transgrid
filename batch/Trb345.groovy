@@ -12,7 +12,7 @@
  *                      Output TRT345Audit consist of 
  *						incorrect Bay value when Equip Fit
  *						is blank.  Bay Value should be 
- *						blank when Equip Fit is blank.   
+ *		dkfjsdl;fkjsdf';sdkfsd;f				blank when Equip Fit is blank.   
  *
  */
 package com.mincom.ellipse.script.custom;
